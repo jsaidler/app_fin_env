@@ -1,0 +1,6157 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html lang="pt-BR" class="theme-light">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <title>Caixa Simples</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <link rel="stylesheet"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <link rel="manifest" href="/manifest.json">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/vendor/ionic/css/ionic.bundle.css">
+
+  <script type="module" src="/assets/vendor/ionic/dist/ionic/ionic.esm.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="/assets/css/style.css">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<body class="bg-grid theme-light">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="bg-glow"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <main id="app">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <section class="view active" id="view-auth">
+      <div class="c-container">
+        <section class="c-card">
+          <div class="c-stack">
+            <div class="c-brand">
+              <img src="/assets/img/logo-mono-white.webp" alt="Caixa Simples">
+            </div>
+            <header class="c-stack c-stack--sm">
+              <p class="c-muted c-tiny">Acesso restrito</p>
+              <h1 class="c-appbar__title">Caixa Simples</h1>
+              <p class="c-muted">O livro caixa digital mais fácil de usar.</p>
+            </header>
+            <form id="login-form" class="c-stack" novalidate>
+              <div class="form-error" id="login-error" hidden></div>
+              <label class="c-field" data-field="email">
+                <span class="c-field__label">Email</span>
+                <input class="c-input" id="login-email" type="email" name="email" placeholder="usuario@email.com" autocomplete="username">
+                <small class="field-error c-field__error" data-field="email" hidden></small>
+              </label>
+              <label class="c-field" data-field="password">
+                <span class="c-field__label">Senha</span>
+                <input class="c-input" id="login-password" type="password" name="password" placeholder="********" minlength="6" autocomplete="current-password">
+                <small class="field-error c-field__error" data-field="password" hidden></small>
+              </label>
+              <button type="submit" class="c-btn">Entrar</button>
+              <p class="form-hint c-muted">Quer saber mais? Acesse: <a href="https://envisione.com.br">https://envisione.com.br</a></p>
+            </form>
+          </div>
+        </section>
+      </div>
+    </section>
+
+<section class="view" id="view-dashboard" hidden>
+      <header class="c-appbar">
+        <div>
+          <h2 class="c-appbar__title">Dashboard</h2>
+          <p class="c-appbar__meta">Visão geral do período</p>
+        </div>
+        <span class="c-tooltip">
+          <button class="c-icon-btn" type="button" id="dashboard-filter-btn" aria-label="Filtros">
+            <span class="material-icons-outlined" aria-hidden="true">tune</span>
+            <span class="c-indicator" id="dashboard-filter-indicator" hidden></span>
+          </button>
+          <span class="c-tooltip__content" role="tooltip">Filtros</span>
+        </span>
+      </header>
+
+      <div class="c-container">
+        <div class="c-grid c-grid--bento">
+          <section class="c-card c-span-4">
+            <header class="c-section-header">
+              <div>
+                <h3 class="c-section-header__title">Saldo do período</h3>
+                <p class="c-section-header__meta" id="balance-label">Saldo do período</p>
+              </div>
+            </header>
+            <div class="c-balance">
+              <span class="c-balance__label">Saldo atual</span>
+              <span class="c-balance__value" id="balance">R$ 0,00</span>
+            </div>
+            <div class="c-grid c-grid--2">
+              <div class="c-stat-tile">
+                <span class="c-stat-tile__label">
+                  <span class="material-icons-outlined c-icon-sm" aria-hidden="true">north_east</span>
+                  Entradas
+                </span>
+                <span class="c-stat-tile__value" id="total-in">R$ 0,00</span>
+              </div>
+              <div class="c-stat-tile">
+                <span class="c-stat-tile__label">
+                  <span class="material-icons-outlined c-icon-sm" aria-hidden="true">south_east</span>
+                  Saídas
+                </span>
+                <span class="c-stat-tile__value" id="total-out">R$ 0,00</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="c-card c-span-2">
+            <header class="c-section-header">
+              <div>
+                <h3 class="c-section-header__title">Pendências</h3>
+                <p class="c-section-header__meta">Análises pendentes</p>
+              </div>
+            </header>
+            <div class="c-alert" id="pending-summary" hidden>
+              <div class="c-alert__icon" aria-hidden="true">
+                <span class="material-icons-outlined">info</span>
+              </div>
+              <div>
+                <strong>Pendências do período</strong>
+                <p class="c-appbar__meta" id="pending-summary-text">Pendências: valores não totalizados.</p>
+              </div>
+            </div>
+            <div class="c-empty" id="pending-empty" hidden>Sem pendências no período.</div>
+          </section>
+
+          <section class="c-card c-span-6">
+            <header class="c-section-header">
+              <div>
+                <h3 class="c-section-header__title">Resumo do período</h3>
+                <p class="c-section-header__meta" id="filter-period-label">Período aberto</p>
+              </div>
+            </header>
+            <div class="c-grid c-grid--2">
+              <div class="c-stat-tile">
+                <span class="c-stat-tile__label">Maior entrada</span>
+                <span class="c-stat-tile__value" id="insight-max-in">R$ 0,00</span>
+              </div>
+              <div class="c-stat-tile">
+                <span class="c-stat-tile__label">Maior saída</span>
+                <span class="c-stat-tile__value" id="insight-max-out">R$ 0,00</span>
+              </div>
+              <div class="c-stat-tile">
+                <span class="c-stat-tile__label">Média por lançamento</span>
+                <span class="c-stat-tile__value" id="insight-avg">R$ 0,00</span>
+              </div>
+              <div class="c-stat-tile">
+                <span class="c-stat-tile__label">Movimentações</span>
+                <span class="c-stat-tile__value" id="insight-count">0</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="c-card c-span-6">
+            <header class="c-section-header">
+              <div>
+                <h3 class="c-section-header__title">Últimos lançamentos</h3>
+                <p class="c-section-header__meta">Filtros rápidos e lista recente</p>
+              </div>
+            </header>
+
+            <div class="c-filters is-collapsible" id="filter-controls">
+              <div class="period-range">
+                <label class="c-field period-field">
+                  <span class="c-field__label">Início</span>
+                  <input class="c-input" type="month" id="filter-start" aria-label="Início do período">
+                </label>
+                <label class="c-field period-field">
+                  <span class="c-field__label">Fim</span>
+                  <input class="c-input" type="month" id="filter-end" aria-label="Fim do período">
+                </label>
+              </div>
+              <label class="c-field">
+                <span class="c-field__label">Tipo</span>
+                <select class="c-select" id="filter-type">
+                  <option value="all">Todos</option>
+                  <option value="in">Entradas</option>
+                  <option value="out">Saídas</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="c-filter-summary" id="filter-summary">
+              <span class="c-filter-chip" id="filter-summary-period">
+                <span class="material-icons-outlined" aria-hidden="true">date_range</span>
+                <span id="filter-summary-period-text">Período aberto</span>
+              </span>
+              <span class="c-filter-chip" id="filter-summary-type">
+                <span class="material-icons-outlined" aria-hidden="true">tune</span>
+                <span id="filter-summary-type-text">Tipo: Todos</span>
+              </span>
+              <div class="c-inline-actions">
+                <button type="button" class="c-icon-btn" id="filter-reset" title="Limpar filtros" aria-label="Limpar filtros">
+                  <span class="material-icons-outlined">restart_alt</span>
+                </button>
+                <button type="button" class="c-icon-btn" id="filter-toggle" title="Mostrar filtros" aria-label="Mostrar filtros" aria-expanded="false" aria-controls="filter-controls">
+                  <span class="material-icons-outlined">tune</span>
+                </button>
+              </div>
+            </div>
+
+            <small class="c-muted c-tiny" id="locked-info" hidden>Mês fechado, alterações notificadas ao administrador.</small>
+
+            <ul id="entries-list" class="c-list"></ul>
+
+            <div id="entries-empty" class="c-empty" hidden>Nenhum lançamento no período.</div>
+          </section>
+        </div>
+      </div>
+
+      <div class="c-bottom-sheet" id="filter-sheet" hidden>
+        <div class="c-bottom-sheet__panel" role="dialog" aria-modal="true" aria-label="Filtros">
+          <strong>Filtros</strong>
+          <div class="c-stack">
+            <div class="c-grid c-grid--responsive-2">
+              <label class="c-field">
+                <span class="c-field__label">Início</span>
+                <input class="c-input" type="month" id="filter-start-sheet" aria-label="Início do período">
+              </label>
+              <label class="c-field">
+                <span class="c-field__label">Fim</span>
+                <input class="c-input" type="month" id="filter-end-sheet" aria-label="Fim do período">
+              </label>
+            </div>
+            <label class="c-field">
+              <span class="c-field__label">Tipo</span>
+              <select class="c-select" id="filter-type-sheet">
+                <option value="all">Todos</option>
+                <option value="in">Entradas</option>
+                <option value="out">Saídas</option>
+              </select>
+            </label>
+          </div>
+          <div class="c-bottom-sheet__actions">
+            <button type="button" class="c-btn" id="filter-apply-sheet">Aplicar filtros</button>
+            <button type="button" class="c-btn c-btn--ghost" id="filter-close-sheet">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+<section class="view" id="view-reports" hidden>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <header class="top-summary reports-hero has-chip">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="user-chip" id="report-user" hidden></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="kpi-card kpi-balance">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <p class="muted tiny" id="report-balance-label">Saldo do perodo</p>
+
+
+
+
+
+          <h2 id="report-balance">R$ 0,00</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="kpi-row">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="kpi-card mini kpi-in">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <h3 id="report-total-in"><span class="material-icons-outlined tiny-icon">arrow_upward</span> R$ 0,00</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="kpi-card mini kpi-out">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <h3 id="report-total-out"><span class="material-icons-outlined tiny-icon">arrow_downward</span> R$ 0,00</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+        <div class="pending-summary" id="report-pending-summary" hidden>
+
+
+
+
+
+          <span class="material-icons-outlined" aria-hidden="true">info</span>
+
+
+
+
+
+          <span class="pending-text" id="report-pending-summary-text">Pendencias: valores nao totalizados.</span>
+
+
+
+
+
+        </div>
+
+
+
+
+
+</header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <section class="card glass reports-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <header class="section-title">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <strong>ltimos 12 meses</strong>
+
+
+
+
+
+            <p class="muted tiny">Entradas, sadas e saldo consolidado</p>
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="report-grid">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="chart-tile wide">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="tile-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <p class="muted tiny">Tendncia</p>
+
+
+
+
+
+              <h3>Fluxo mensal</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <canvas id="report-12m-chart" height="190"></canvas>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-legend compact-legend">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="dot in">Entradas</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="dot out">Sadas</span>
+
+
+
+
+
+              <span class="dot total">Saldo acumulado</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="chart-tile">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="tile-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <p class="muted tiny">Tabela</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <h3>Resumo mensal</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="summary-wrapper">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div class="table-subtitle">Mensal + acumulado</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div class="summary-list" id="report-12m-month-list"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div class="empty-state" id="report-12m-empty" hidden>Sem movimentaes nos ltimos 12 meses.</div>
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <section class="card glass reports-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <header class="section-title">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <strong>Viso geral</strong>
+
+
+
+
+
+        </header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="filters compact user-filters is-collapsible" id="report-controls">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="period-range">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <label class="period-field">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="muted tiny">Incio</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <input type="month" id="report-start" aria-label="Incio do perodo">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <label class="period-field">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="muted tiny">Fim</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <input type="month" id="report-end" aria-label="Fim do perodo">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <select id="report-type">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <option value="all">Todos</option>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <option value="in">Entradas</option>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <option value="out">Sadas</option>
+
+
+
+
+
+          </select>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="filter-summary" id="report-summary">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <span class="filter-chip" id="report-summary-period">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <span class="material-icons-outlined" aria-hidden="true">date_range</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <span id="report-summary-period-text">Perodo aberto</span>
+
+
+
+
+
+          </span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <span class="filter-chip" id="report-summary-type">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <span class="material-icons-outlined" aria-hidden="true">tune</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <span id="report-summary-type-text">Tipo: Todos</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <button type="button" class="icon-btn ghost square" id="report-reset" title="Limpar filtros" aria-label="Limpar filtros">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <span class="material-icons-outlined">restart_alt</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <button type="button" class="icon-btn ghost square" id="report-toggle" title="Mostrar filtros" aria-label="Mostrar filtros" aria-expanded="false" aria-controls="report-controls">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <span class="material-icons-outlined">tune</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="report-grid">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="chart-tile wide">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="tile-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <p class="muted tiny">Linha do tempo</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <h3>Movimentao diria</h3>
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <canvas id="report-chart" height="190"></canvas>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-legend compact-legend">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="dot in">Entradas</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="dot out">Sadas</span>
+
+
+
+
+
+              <span class="dot total">Saldo do perodo</span>
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="chart-tile">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="tile-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <p class="muted tiny">Categorias</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <h3>Entradas vs sadas</h3>
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div id="report-category-bars" class="bar-list"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="chart-tile">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="tile-header">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <p class="muted tiny">Composio</p>
+
+
+
+
+
+              <h3>Entradas x Sadas</h3>
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="donut-wrap">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div id="report-type-donut" class="donut"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div class="donut-center">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <small>Saldo do perodo</small>
+
+
+
+
+
+                <strong id="report-type-balance">R$ 0,00</strong>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <span class="muted tiny" id="report-type-percent">0% entradas</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="mini-legend" id="report-type-legend"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+
+
+
+
+
+      <section class="card glass reports-card report-closure-card">
+
+
+
+
+
+        <header class="section-title">
+
+
+
+
+
+          <div>
+
+
+
+
+
+            <strong>Fechamento do mes</strong>
+
+
+
+
+
+            <p class="muted tiny" id="report-closure-subtitle">Selecione um mes fechado.</p>
+
+
+
+
+
+          </div>
+
+
+
+
+
+          <div class="report-actions">
+
+
+
+
+
+            <select id="report-closure-month"></select>
+
+
+
+
+
+            <button type="button" class="icon-btn ghost square" id="report-closure-refresh" title="Atualizar" aria-label="Atualizar">
+
+
+
+
+
+              <span class="material-icons-outlined">refresh</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+          </div>
+
+
+
+
+
+        </header>
+
+
+
+
+
+        <div class="summary-wrapper">
+
+
+
+
+
+          <div class="summary-item" id="report-closure-summary" hidden>
+
+
+
+
+
+            <div class="summary-label" id="report-closure-title">Fechamento</div>
+
+
+
+
+
+            <div class="summary-values">
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Entradas</small>
+
+
+
+
+
+                <strong id="report-closure-in">R$ 0,00</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Saidas</small>
+
+
+
+
+
+                <strong id="report-closure-out">R$ 0,00</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Saldo</small>
+
+
+
+
+
+                <strong id="report-closure-balance">R$ 0,00</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Lancamentos</small>
+
+
+
+
+
+                <strong id="report-closure-count">0</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+            </div>
+
+
+
+
+
+            <div class="muted tiny" id="report-closure-meta"></div>
+
+
+
+
+
+          </div>
+
+
+
+
+
+          <div class="summary-item" id="report-closure-pending" hidden>
+
+
+
+
+
+            <div class="summary-label">Pendencias</div>
+
+
+
+
+
+            <div class="summary-values">
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Entradas</small>
+
+
+
+
+
+                <strong id="report-closure-pending-in">R$ 0,00</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Saidas</small>
+
+
+
+
+
+                <strong id="report-closure-pending-out">R$ 0,00</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Saldo</small>
+
+
+
+
+
+                <strong id="report-closure-pending-balance">R$ 0,00</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="summary-value">
+
+
+
+
+
+                <small>Lancamentos</small>
+
+
+
+
+
+                <strong id="report-closure-pending-count">0</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </div>
+
+
+
+
+
+          <div class="empty-state" id="report-closure-empty" hidden>Sem fechamento selecionado.</div>
+
+
+
+
+
+        </div>
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+      <section class="card glass reports-card report-table-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <header class="section-title">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <strong>Movimentaes do filtro</strong>
+
+
+
+
+
+          <div class="report-actions">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <button type="button" class="icon-only pdf-btn" id="btn-report-pdf" title="Salvar PDF"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              aria-label="Salvar PDF">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="material-icons-outlined">picture_as_pdf</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="table-wrapper">
+
+
+
+
+
+
+
+
+
+
+
+          <ul class="list" id="report-list"></ul>
+
+
+
+
+
+
+
+
+
+
+
+          <div class="empty-state" id="report-table-empty" hidden>Nenhuma movimentao encontrada nesse filtro.</div>
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <section class="view entry-detail-view" id="view-entry-detail" hidden>
+
+
+
+
+
+      <header class="top-summary entry-detail-hero has-back">
+
+
+
+
+
+        <button type="button" class="icon-btn ghost" id="btn-entry-detail-back" aria-label="Voltar para a lista">
+
+
+
+
+
+          <span class="material-icons-outlined">arrow_back</span>
+
+
+
+
+
+        </button>
+
+
+
+
+
+        <div>
+
+
+
+
+
+          <p class="eyebrow">Detalhes</p>
+
+
+
+
+
+          <strong id="report-entry-title">Movimentacao</strong>
+
+
+
+
+
+        </div>
+
+
+
+
+
+      </header>
+
+
+
+
+
+      <section class="card glass entry-detail-card">
+
+
+
+
+
+        <div class="modal-content" id="report-entry-content"></div>
+
+
+
+
+
+      </section>
+
+
+
+
+
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+    <section class="view" id="view-support" hidden>
+
+
+
+
+
+      <header class="top-summary support-hero">
+
+
+
+
+
+        <div>
+
+
+
+
+
+          <p class="eyebrow">Suporte</p>
+
+
+
+
+
+          <h2>Atendimentos</h2>
+
+
+
+
+
+          <p class="muted">Abra um novo atendimento e acompanhe suas conversas.</p>
+
+
+
+
+
+        </div>
+
+
+
+
+
+      </header>
+
+
+
+
+
+      <section class="card glass support-card">
+
+
+
+
+
+        <div class="section-title">
+
+
+
+
+
+          <div>
+
+
+
+
+
+            <strong>Novo atendimento</strong>
+
+
+
+
+
+            <p class="muted tiny">Informe o assunto e a mensagem inicial.</p>
+
+
+
+
+
+          </div>
+
+
+
+
+
+        </div>
+
+
+
+
+
+        <form id="support-new-form" class="stack support-form" novalidate>
+
+
+
+
+
+          <input type="text" id="support-new-subject" name="subject" placeholder="Assunto do atendimento">
+
+
+
+
+
+          <div class="support-composer">
+
+
+
+
+
+            <textarea id="support-new-message" name="message" placeholder="Mensagem inicial"></textarea>
+
+
+
+
+
+            <div class="support-composer-actions">
+
+
+
+
+
+              <button type="button" class="icon-btn ghost square" id="support-new-attachment-btn" title="Anexar imagem" aria-label="Anexar imagem">
+
+
+
+
+
+                <span class="material-icons-outlined" aria-hidden="true">attach_file</span>
+
+
+
+
+
+              </button>
+
+
+
+
+
+              <button type="submit" class="icon-btn primary square" title="Enviar" aria-label="Enviar">
+
+
+
+
+
+                <span class="material-icons-outlined" aria-hidden="true">send</span>
+
+
+
+
+
+              </button>
+
+
+
+
+
+            </div>
+
+
+
+
+
+            <input type="file" id="support-new-attachment" accept="image/*" class="visually-hidden">
+
+
+
+
+
+            <div id="support-new-attachment-preview" class="attachment-preview support-attachment-preview is-empty" role="button" tabindex="0"
+
+
+
+
+
+              aria-label="Anexo selecionado">
+
+
+
+
+
+              <div class="thumb-box">
+
+
+
+
+
+                <img id="support-new-attachment-thumb" alt="Pre-visualizacao do anexo">
+
+
+
+
+
+                <div class="camera-icon" aria-hidden="true">
+
+
+
+
+
+                  <span class="material-icons-outlined">photo_camera</span>
+
+
+
+
+
+                </div>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="preview-meta">
+
+
+
+
+
+                <div class="preview-info">
+
+
+
+
+
+                  <small id="support-new-attachment-name" class="file-name c-muted">Nenhum arquivo selecionado</small>
+
+
+
+
+
+                  <small id="support-new-attachment-status" class="upload-status c-tiny" aria-live="polite" hidden>Enviando anexo...</small>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <button type="button" class="icon-btn ghost" id="support-new-clear-attachment" aria-label="Remover anexo" disabled>
+
+
+
+
+
+                  <span class="material-icons-outlined">close</span>
+
+
+
+
+
+                </button>
+
+
+
+
+
+              </div>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </div>
+
+
+
+
+
+        </form>
+
+
+
+
+
+        <div class="section-title">
+
+
+
+
+
+          <strong>Conversas</strong>
+
+
+
+
+
+        </div>
+
+
+
+
+
+        <div class="support-thread-list" id="support-thread-list"></div>
+
+
+
+
+
+        <div class="empty-state" id="support-thread-empty" hidden>Nenhum atendimento aberto.</div>
+
+
+
+
+
+      </section>
+
+
+
+
+
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+    <section class="view" id="view-support-chat" hidden>
+
+
+
+
+
+      <header class="top-summary support-chat-hero has-back">
+
+
+
+
+
+        <button type="button" class="icon-btn ghost" id="support-back" aria-label="Voltar para os atendimentos">
+
+
+
+
+
+          <span class="material-icons-outlined">arrow_back</span>
+
+
+
+
+
+        </button>
+
+
+
+
+
+        <div>
+
+
+
+
+
+          <p class="eyebrow">Atendimento</p>
+
+
+
+
+
+          <strong id="support-active-subject">Selecione um atendimento</strong>
+
+
+
+
+
+          <p class="muted tiny" id="support-active-meta">-</p>
+
+
+
+
+
+        </div>
+
+
+
+
+
+      </header>
+
+
+
+
+
+      <section class="card glass support-chat-card">
+
+
+
+
+
+        <div class="support-entry-summary" id="support-entry-summary" hidden>
+
+
+
+
+
+          <div>
+
+
+
+
+
+            <strong id="support-entry-title">Lancamento relacionado</strong>
+
+
+
+
+
+            <p class="muted tiny" id="support-entry-meta">-</p>
+
+
+
+
+
+          </div>
+
+
+
+
+
+          <button type="button" class="icon-btn ghost square" id="support-entry-view" aria-label="Ver lancamento">
+
+
+
+
+
+            <span class="material-icons-outlined">open_in_new</span>
+
+
+
+
+
+          </button>
+
+
+
+
+
+        </div>
+
+
+
+
+
+        <div class="support-chat" id="support-chat"></div>
+
+
+
+
+
+        <div class="empty-state" id="support-chat-empty" hidden>Selecione um atendimento para conversar.</div>
+
+
+
+
+
+        <form id="support-reply-form" class="stack support-reply" novalidate>
+
+
+
+
+
+          <div class="support-composer">
+
+
+
+
+
+            <textarea id="support-reply-message" name="message" placeholder="Escreva sua resposta"></textarea>
+
+
+
+
+
+            <div class="support-composer-actions">
+
+
+
+
+
+              <button type="button" class="icon-btn ghost square" id="support-reply-attachment-btn" title="Anexar imagem" aria-label="Anexar imagem">
+
+
+
+
+
+                <span class="material-icons-outlined" aria-hidden="true">attach_file</span>
+
+
+
+
+
+              </button>
+
+
+
+
+
+              <button type="submit" class="icon-btn primary square" title="Enviar" aria-label="Enviar">
+
+
+
+
+
+                <span class="material-icons-outlined" aria-hidden="true">send</span>
+
+
+
+
+
+              </button>
+
+
+
+
+
+            </div>
+
+
+
+
+
+            <input type="file" id="support-reply-attachment" accept="image/*" class="visually-hidden">
+
+
+
+
+
+            <div id="support-reply-attachment-preview" class="attachment-preview support-attachment-preview is-empty" role="button" tabindex="0"
+
+
+
+
+
+              aria-label="Anexo selecionado">
+
+
+
+
+
+              <div class="thumb-box">
+
+
+
+
+
+                <img id="support-reply-attachment-thumb" alt="Pre-visualizacao do anexo">
+
+
+
+
+
+                <div class="camera-icon" aria-hidden="true">
+
+
+
+
+
+                  <span class="material-icons-outlined">photo_camera</span>
+
+
+
+
+
+                </div>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="preview-meta">
+
+
+
+
+
+                <div class="preview-info">
+
+
+
+
+
+                  <small id="support-reply-attachment-name" class="file-name c-muted">Nenhum arquivo selecionado</small>
+
+
+
+
+
+                  <small id="support-reply-attachment-status" class="upload-status c-tiny" aria-live="polite" hidden>Enviando anexo...</small>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <button type="button" class="icon-btn ghost" id="support-reply-clear-attachment" aria-label="Remover anexo" disabled>
+
+
+
+
+
+                  <span class="material-icons-outlined">close</span>
+
+
+
+
+
+                </button>
+
+
+
+
+
+              </div>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </div>
+
+
+
+
+
+        </form>
+
+
+
+
+
+      </section>
+
+
+
+
+
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+    <section class="view" id="view-user-options" hidden>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <header class="top-summary user-options-hero has-chip">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div class="user-hero-main">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="user-hero-identity">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <strong id="options-user" class="hero-name">-</strong>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <span id="options-email" class="hero-email">-</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <p class="muted">Atualize perfil, senha e limpe a lixeira.</p><span id="options-role" class="hero-role">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <span class="material-icons-outlined" aria-hidden="true">shield_person</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <small class="muted tiny">Usurio</small>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      </header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <div class="options-grid">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <section class="card glass profile-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <p class="eyebrow">Perfil &amp; segurana</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <strong>Dados e senha</strong>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="stack profile-forms">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <form id="profile-form" class="stack slim-form" novalidate>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <label>Nome
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <input type="text" name="name" id="profile-name" placeholder="Seu nome">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              </label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div class="form-actions right">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <button class="icon-btn primary square" type="submit" title="Salvar" aria-label="Salvar">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  <span class="material-icons-outlined">save</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </form>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="form-divider"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <form id="password-form" class="stack slim-form" novalidate>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <label>Senha atual
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <input type="password" name="current_password" placeholder="Senha atual">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              </label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <label>Nova senha
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <input type="password" name="password" placeholder="Mnimo 8 caracteres">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              </label>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div class="form-actions right">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <button class="icon-btn primary square" type="submit" title="Atualizar senha"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  aria-label="Atualizar senha">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  <span class="material-icons-outlined">lock_reset</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </form>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+<section class="card glass list-card trash-card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <p class="eyebrow">Lixeira</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <strong>Itens excludos</strong>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <button class="icon-btn danger" type="button" id="btn-empty-trash" title="Esvaziar lixeira"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              aria-label="Esvaziar lixeira">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <span class="material-icons-outlined">delete_sweep</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <ul class="list" id="trash-list"></ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div id="trash-empty" class="empty-state" hidden>Nenhum item na lixeira.</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </section>
+
+
+
+
+
+
+
+
+
+
+
+      <section class="card glass logout-card">
+
+
+
+
+
+        <div class="section-title">
+
+
+
+
+
+          <div>
+
+
+
+
+
+            <p class="eyebrow">Sessao</p>
+
+
+
+
+
+            <strong>Encerrar acesso</strong>
+
+
+
+
+
+          </div>
+
+
+
+
+
+        </div>
+
+
+
+
+
+        <div class="logout-actions">
+
+
+
+
+
+          <button class="nav-btn danger" type="button" id="btn-logout-options" aria-label="Sair">
+
+
+
+
+
+            <span class="nav-icon material-icons-outlined">logout</span>
+
+
+
+
+
+          </button>
+
+
+
+
+
+        </div>
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <section class="view entry-view" id="view-entry" hidden>
+      <header class="c-appbar">
+        <button id="btn-entry-back" class="c-icon-btn" aria-label="Voltar">
+          <span class="material-icons-outlined" aria-hidden="true">arrow_back</span>
+        </button>
+        <div>
+          <h2 class="c-appbar__title">Novo lançamento</h2>
+          <p class="c-appbar__meta">Registre entradas e saídas em um único fluxo.</p>
+        </div>
+        <span class="c-badge c-entry-accent c-badge--success" id="entry-type-badge">
+          <span class="material-icons-outlined c-icon-sm" id="entry-type-badge-icon" aria-hidden="true">arrow_upward</span>
+          <span id="entry-type-badge-label">Entrada</span>
+        </span>
+      </header>
+
+      <div class="c-container">
+        <section class="c-card">
+          <header class="c-section-header">
+            <div>
+              <h3 class="c-section-header__title">Tipo do lançamento</h3>
+              <p class="c-section-header__meta">Escolha a natureza da movimentação.</p>
+            </div>
+          </header>
+          <div class="c-segmented" role="tablist" aria-label="Tipo de lançamento">
+            <button class="c-segmented__item is-active" type="button" id="entry-type-in" role="tab" aria-selected="true">Entrada</button>
+            <button class="c-segmented__item" type="button" id="entry-type-out" role="tab" aria-selected="false">Saída</button>
+          </div>
+        </section>
+
+        <section class="c-card">
+          <header class="c-section-header">
+            <div>
+              <h3 class="c-section-header__title">Dados principais</h3>
+              <p class="c-section-header__meta">Campos obrigatórios para o lançamento.</p>
+            </div>
+          </header>
+
+          <div class="c-bottom-sheet" id="entry-upload-overlay" hidden>
+            <div class="c-bottom-sheet__panel" role="dialog" aria-modal="true" aria-live="polite">
+              <strong>Enviando anexo...</strong>
+              <div class="c-loading">
+                <div class="c-skeleton c-skeleton--lg"></div>
+                <div class="c-skeleton"></div>
+              </div>
+              <div class="c-bottom-sheet__actions">
+                <button type="button" class="c-btn c-btn--ghost" id="btn-cancel-upload" aria-label="Cancelar upload">Cancelar upload</button>
+              </div>
+            </div>
+          </div>
+
+          <form id="entry-form" class="c-entry-form is-in" novalidate>
+            <input type="hidden" name="type" id="entry-type" value="in">
+
+            <div class="c-grid c-grid--responsive-2">
+              <label class="c-field">
+                <span class="c-field__label">Valor</span>
+                <input class="c-input" type="text" name="amount" id="entry-amount" data-mask="money" placeholder="0,00" inputmode="decimal">
+                <div class="c-entry-preview">
+                  <span class="c-field__hint">Prévia</span>
+                  <span class="c-badge c-entry-accent c-badge--success" id="entry-amount-preview">+ R$ 0,00</span>
+                </div>
+              </label>
+              <label class="c-field">
+                <span class="c-field__label">Data</span>
+                <input class="c-input" type="text" name="date" id="entry-date" inputmode="numeric" autocomplete="off" placeholder="dd/mm/aaaa">
+              </label>
+            </div>
+
+            <label class="c-field">
+              <span class="c-field__label">Categoria</span>
+              <select class="c-select" name="category" id="entry-category"></select>
+            </label>
+
+            <div class="c-field">
+              <span class="c-field__label">Anexo (opcional)</span>
+              <div class="c-dropzone">
+                <input type="file" id="attachment" accept="image/*" class="visually-hidden">
+                <div id="attachment-preview" class="attachment-preview is-empty" role="button" tabindex="0" aria-label="Adicionar ou alterar foto do anexo">
+                  <div class="thumb-box">
+                    <img id="attachment-thumb" alt="Pré-visualização do anexo">
+                    <div class="camera-icon" aria-hidden="true">
+                      <span class="material-icons-outlined">photo_camera</span>
+                    </div>
+                  </div>
+                  <div class="preview-meta">
+                    <div class="preview-info">
+                      <small id="attachment-name" class="file-name c-muted">Nenhum arquivo selecionado</small>
+                      <small id="attachment-status" class="upload-status c-tiny" aria-live="polite" hidden>Enviando anexo...</small>
+                    </div>
+                    <button type="button" class="c-icon-btn" id="btn-clear-attachment" aria-label="Remover anexo" disabled>
+                      <span class="material-icons-outlined">close</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <label class="c-field">
+              <span class="c-field__label">Descrição</span>
+              <textarea class="c-textarea" name="description" placeholder="Explique o lançamento"></textarea>
+            </label>
+
+            <div class="c-inline-actions">
+              <button type="submit" class="c-btn" id="entry-submit" aria-label="Salvar entrada">
+                <span class="c-spinner" aria-hidden="true"></span>
+                <span class="c-btn__label" id="entry-submit-label">Salvar entrada</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+
+<datalist id="category-options"></datalist>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div id="toast" hidden></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <nav class="c-bottom-nav" aria-label="Navegação principal" hidden>
+
+
+
+
+
+    <button class="c-bottom-nav__item" data-go-view="view-dashboard" aria-label="Dashboard">
+
+
+
+
+
+      <span class="material-icons-outlined" aria-hidden="true">home</span>
+
+
+
+
+
+    </button>
+
+
+
+
+
+    <button class="c-bottom-nav__item" data-go-view="view-reports" aria-label="Relatórios">
+
+
+
+
+
+      <span class="material-icons-outlined" aria-hidden="true">show_chart</span>
+
+
+
+
+
+    </button>
+
+
+
+
+
+    <button class="c-fab" id="nav-add" type="button" aria-label="Novo lançamento">
+
+
+
+
+
+      <span class="material-icons-outlined" aria-hidden="true">add</span>
+
+
+
+
+
+    </button>
+
+
+
+
+
+    <button class="c-bottom-nav__item" data-go-view="view-support" id="nav-support" aria-label="Suporte">
+
+
+
+
+
+      <span class="material-icons-outlined" aria-hidden="true">support_agent</span>
+
+
+
+
+
+    </button>
+
+
+
+
+
+    <button class="c-bottom-nav__item" data-go-view="view-user-options" id="nav-options" aria-label="Perfil">
+
+
+
+
+
+      <span class="material-icons-outlined" aria-hidden="true">person</span>
+
+
+
+
+
+    </button>
+
+
+
+
+
+  </nav>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="c-bottom-sheet" id="entry-sheet" hidden>
+
+
+
+
+
+    <div class="c-bottom-sheet__panel" role="dialog" aria-modal="true" aria-label="Novo lançamento">
+
+
+
+
+
+      <strong>Novo lançamento</strong>
+
+
+
+
+
+      <div class="c-bottom-sheet__actions">
+
+
+
+
+
+        <button type="button" class="c-btn" id="nav-add-in">Novo lançamento (Entrada)</button>
+
+
+
+
+
+        <button type="button" class="c-btn c-btn--ghost" id="nav-add-out">Novo lançamento (Saída)</button>
+
+
+
+
+
+      </div>
+
+
+
+
+
+    </div>
+
+
+
+
+
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script src="/assets/js/api.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script src="/assets/js/chart.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script src="/assets/js/ui.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script src="/assets/js/app.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

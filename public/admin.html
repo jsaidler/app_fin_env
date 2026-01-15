@@ -1,0 +1,2630 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="pt-BR" class="theme-light">
+
+
+
+
+
+
+
+
+
+
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+
+
+  <title>Caixa Simples | Admin</title>
+
+
+
+
+
+  <link rel="stylesheet"
+
+
+
+
+
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+
+
+
+
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined">
+
+
+
+
+
+  <link rel="manifest" href="/manifest.json">
+
+
+
+
+
+  <link rel="icon" href="data:,">
+
+
+
+
+
+  <link rel="stylesheet" href="/assets/css/style.css">
+
+
+
+
+
+</head>
+
+
+
+
+
+
+
+
+
+
+
+<body class="bg-grid theme-light role-admin">
+
+
+
+
+
+  <div class="bg-glow"></div>
+
+
+
+
+
+
+
+
+
+
+
+  <main id="app">
+
+
+
+
+
+    <section class="view admin-view" id="view-admin" hidden>
+
+
+
+
+
+      <div class="admin-layout">
+
+
+
+
+
+        <aside class="admin-sidebar">
+
+
+
+
+
+          <div class="admin-brand" aria-label="Caixa Simples">
+
+
+
+
+
+            <span class="material-icons-outlined" aria-hidden="true">shield</span>
+
+
+
+
+
+          </div>
+
+
+
+
+
+          <nav class="admin-side-nav" aria-label="Navegação admin">
+
+
+
+
+
+            <button class="admin-nav-btn active" data-admin-panel="entries" title="Lançamentos" aria-label="Lançamentos">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">receipt_long</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+            <button class="admin-nav-btn" data-admin-panel="users" title="Usuários" aria-label="Usuários">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">group</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+            <button class="admin-nav-btn" data-admin-panel="categories" title="Categorias" aria-label="Categorias">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">category</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+            <button class="admin-nav-btn" data-admin-panel="locks" title="Fechamento" aria-label="Fechamento">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">lock_clock</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+            <button class="admin-nav-btn" data-admin-panel="notifications" title="Notificações" aria-label="Notificações">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">notifications</span>
+
+
+
+
+
+              <span class="count-badge" id="notification-count" hidden>0</span>
+
+
+
+
+
+            </button>            <button class="admin-nav-btn" data-admin-panel="support" title="Suporte" aria-label="Suporte">
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">support_agent</span>
+
+
+
+              <span class="count-badge" id="support-count" hidden>0</span>
+
+
+
+            </button>
+
+
+
+
+
+
+
+            <button class="admin-nav-btn" data-admin-panel="export" title="Exportar" aria-label="Exportar">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">file_download</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+          </nav>
+
+
+
+
+
+          <div class="admin-side-footer">
+
+
+
+
+
+            <button class="admin-nav-btn" type="button" id="btn-admin-refresh" title="Atualizar" aria-label="Atualizar">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">refresh</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+            <button class="admin-nav-btn" type="button" id="btn-admin-logout" title="Sair" aria-label="Sair">
+
+
+
+
+
+              <span class="material-icons-outlined" aria-hidden="true">logout</span>
+
+
+
+
+
+            </button>
+
+
+
+
+
+          </div>
+
+
+
+
+
+        </aside>
+
+
+
+
+
+
+
+
+
+
+
+        <section class="admin-main">
+
+
+
+
+
+          <header class="admin-topbar">
+
+
+
+
+
+            <div class="admin-title">
+
+
+
+
+
+              <p class="eyebrow">Admin</p>
+
+
+
+
+
+              <h2 id="admin-view-title">Lançamentos</h2>
+
+
+
+
+
+              <p class="muted tiny" id="admin-user-label">-</p>
+
+
+
+
+
+            </div>
+
+
+
+
+
+            <div class="admin-impersonate">
+
+
+
+
+
+              <label class="tiny muted" for="admin-impersonate-user">Personificar</label>
+
+
+
+
+
+              <select id="admin-impersonate-user"></select>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </header>
+
+
+
+
+
+
+
+
+
+
+
+          <section class="admin-hero">
+
+
+
+
+
+            <div class="admin-hero-main">
+
+
+
+
+
+              <p class="muted tiny">Resumo administrativo</p>
+
+
+
+
+
+              <h3>Visão geral</h3>
+
+              <p class="muted tiny">Dados atualizados nas últimas consultas.</p>
+
+            </div>
+
+
+
+
+
+            <div class="kpi-row admin-kpis">
+
+
+
+
+
+              <div class="kpi-card mini">
+
+
+
+
+
+                <p class="muted tiny">Usuários ativos</p>
+
+
+
+
+
+                <h3 id="admin-kpi-users">0</h3>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="kpi-card mini">
+
+
+
+
+
+                <p class="muted tiny">Lançamentos listados</p>
+
+
+
+
+
+                <h3 id="admin-kpi-entries">0</h3>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="kpi-card mini">
+
+
+
+
+
+                <p class="muted tiny">Notificações</p>
+
+
+
+
+
+                <h3 id="admin-kpi-notifications">0</h3>
+
+
+
+
+
+              </div>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </section>
+
+
+
+
+
+
+
+
+
+
+
+          <section class="admin-panel" data-admin-panel="entries">
+
+
+
+
+
+            <div class="admin-panel-grid">
+
+
+
+
+
+              <section class="card glass admin-side-card">
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Novo lançamento</strong>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <form id="admin-entry-form" class="stack admin-entry-form" novalidate>
+
+
+
+
+
+                  <div class="row admin-entry-head">
+
+
+
+
+
+                    <div class="admin-entry-user">
+
+
+
+
+
+                      <small class="muted tiny">Usuário atual</small>
+
+
+
+
+
+                      <strong id="admin-entry-user-label">Selecione um usuário</strong>
+
+
+
+
+
+                    </div>
+
+
+
+
+
+                    <label>Tipo
+
+
+
+
+
+                      <select id="admin-entry-type" name="type">
+
+
+
+
+
+                        <option value="in">Entrada</option>
+
+
+
+
+
+                        <option value="out">Saída</option>
+
+
+
+
+
+                      </select>
+
+
+
+
+
+                    </label>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                  <div class="row">
+
+
+
+
+
+                    <label>Valor
+
+
+
+
+
+                      <input type="text" id="admin-entry-amount" name="amount" placeholder="0,00" inputmode="decimal">
+
+
+
+
+
+                    </label>
+
+
+
+
+
+                    <label>Data
+
+
+
+
+
+                      <input type="date" id="admin-entry-date" name="date">
+
+
+
+
+
+                    </label>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                  <label>Categoria
+
+
+
+
+
+                    <select id="admin-entry-category" name="category"></select>
+
+
+
+
+
+                  </label>
+
+
+
+
+
+                  <label>Descrição
+
+
+
+
+
+                    <textarea id="admin-entry-description" name="description" placeholder="Detalhe do lançamento"></textarea>
+
+
+
+
+
+                  </label>
+
+
+
+
+
+                  <div class="form-actions right admin-form-actions">
+
+
+
+
+
+                    <button type="submit" class="icon-btn primary square" id="admin-entry-submit" title="Salvar" aria-label="Salvar">
+
+
+
+
+
+                      <span class="material-icons-outlined" aria-hidden="true">save</span>
+
+
+
+
+
+                    </button>
+
+
+
+
+
+                    <button type="button" class="icon-btn ghost square" id="admin-entry-cancel" title="Cancelar" aria-label="Cancelar" hidden>
+
+
+
+
+
+                      <span class="material-icons-outlined" aria-hidden="true">close</span>
+
+
+
+
+
+                    </button>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                </form>
+
+
+
+
+
+              </section>
+
+
+
+
+
+
+
+
+
+
+
+              <div class="stack">
+
+
+
+              <section class="card glass">
+
+
+
+                <div class="section-title">
+
+
+
+                  <strong>Pendentes de aprovacao</strong>
+
+
+
+                </div>
+
+
+
+                <div class="table-wrapper">
+
+
+
+                  <table class="table" id="admin-approvals-table">
+
+
+
+                    <thead>
+
+
+
+                      <tr>
+
+
+
+                        <th>Data</th>
+
+
+
+                        <th>Usuario</th>
+
+
+
+                        <th>Categoria</th>
+
+
+
+                        <th>Tipo</th>
+
+
+
+                        <th>Valor</th>
+
+                        <th>Descricao</th>
+
+                        <th>Anexo</th>
+
+                        <th>Status</th>
+
+                        <th>Acoes</th>
+
+
+                      </tr>
+
+
+
+                    </thead>
+
+
+
+                    <tbody></tbody>
+
+
+
+                  </table>
+
+
+
+                  <div class="empty-state" id="admin-approvals-empty" hidden>Nenhuma pendencia de fechamento.</div>
+
+
+
+                </div>
+
+
+
+              </section>
+
+
+
+<section class="card glass">
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Lista de lançamentos</strong>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <div class="filters is-collapsible" id="admin-filter-controls">
+
+
+
+
+
+                  <div class="period-range">
+
+
+
+
+
+                    <label class="period-field">
+
+
+
+
+
+                      <span class="muted tiny">Início</span>
+
+
+
+
+
+                      <input type="month" id="admin-filter-start" aria-label="Início do período">
+
+
+
+
+
+                    </label>
+
+
+
+
+
+                    <label class="period-field">
+
+
+
+
+
+                      <span class="muted tiny">Fim</span>
+
+
+
+
+
+                      <input type="month" id="admin-filter-end" aria-label="Fim do período">
+
+
+
+
+
+                    </label>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                  <select id="admin-filter-type">
+
+
+
+
+
+                    <option value="all">Todos</option>
+
+
+
+
+
+                    <option value="in">Entradas</option>
+
+
+
+
+
+                    <option value="out">Saídas</option>
+
+
+
+
+
+                  </select>
+
+
+
+
+
+                  <label class="inline-toggle"><input type="checkbox" id="admin-filter-deleted"><span>Mostrar excluídos</span></label>
+
+                  <button type="button" class="icon-btn ghost square" id="admin-filter-refresh" title="Atualizar" aria-label="Atualizar">
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">refresh</span>
+
+
+
+
+
+                  </button>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <div class="filter-summary admin-filter-summary" id="admin-filter-summary">
+
+
+
+
+
+                  <span class="filter-chip" id="admin-summary-user">
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">person</span>
+
+
+
+
+
+                    <span id="admin-summary-user-text">Todos</span>
+
+
+
+
+
+                  </span>
+
+
+
+
+
+                  <span class="filter-chip" id="admin-summary-period">
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">date_range</span>
+
+
+
+
+
+                    <span id="admin-summary-period-text">Período aberto</span>
+
+                  </span>
+
+
+
+
+
+                  <span class="filter-chip" id="admin-summary-type">
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">tune</span>
+
+
+
+
+
+                    <span id="admin-summary-type-text">Tipo: Todos</span>
+
+
+
+
+
+                  </span>
+
+
+
+
+
+                  <span class="filter-chip" id="admin-summary-deleted" hidden>
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">delete</span>
+
+
+
+
+
+                    <span>Excluídos</span>
+
+                  </span>
+
+
+
+
+
+                  <button type="button" class="icon-btn ghost square" id="admin-filter-reset" title="Limpar filtros" aria-label="Limpar filtros">
+
+
+
+
+
+                    <span class="material-icons-outlined">restart_alt</span>
+
+
+
+
+
+                  </button>
+
+
+
+
+
+                  <button type="button" class="icon-btn ghost square" id="admin-filter-toggle" title="Mostrar filtros" aria-label="Mostrar filtros" aria-expanded="false" aria-controls="admin-filter-controls">
+
+
+
+
+
+                    <span class="material-icons-outlined">tune</span>
+
+
+
+
+
+                  </button>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <div class="table-wrapper">
+
+
+
+
+
+                  <table class="table" id="admin-entries-table">
+
+
+
+
+
+                    <thead>
+
+
+
+
+
+                      <tr>
+
+
+
+
+
+                        <th>Data</th>
+
+
+
+
+
+                        <th>Usuário</th>
+
+
+
+
+
+                        <th>Categoria</th>
+
+
+
+
+
+                        <th>Tipo</th>
+
+
+
+
+
+                        <th>Valor</th>
+
+
+
+
+
+                        <th>Status</th>
+
+
+
+
+
+                        <th>Ações</th>
+
+
+
+
+
+                      </tr>
+
+
+
+
+
+                    </thead>
+
+
+
+
+
+                    <tbody></tbody>
+
+
+
+
+
+                  </table>
+
+
+
+
+
+                  <div class="empty-state" id="admin-entries-empty" hidden>Nenhum lançamento encontrado.</div>
+
+
+
+
+
+                </div>
+
+
+
+
+
+              </section>
+
+            </div>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </section>
+
+
+
+
+
+
+
+
+
+
+
+          <section class="admin-panel" data-admin-panel="users" hidden>
+
+
+
+
+
+            <div class="admin-panel-grid wide">
+
+
+
+
+
+              <section class="card glass">
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Usuários</strong>
+
+
+
+
+
+                  <button type="button" class="icon-btn primary square" id="btn-new-user" title="Novo usuário" aria-label="Novo usuário">
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">person_add</span>
+
+
+
+
+
+                  </button>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <table class="table" id="users-table">
+
+
+
+
+
+                  <thead>
+
+
+
+
+
+                    <tr>
+
+
+
+
+
+                      <th>Nome</th>
+
+
+
+
+
+                      <th>Email</th>
+
+
+
+
+
+                      <th>Perfil</th>
+
+
+
+
+
+                      <th>Codigo Alterdata</th>
+
+
+
+
+
+                      <th>Ações</th>
+
+
+
+
+
+                    </tr>
+
+
+
+
+
+                  </thead>
+
+
+
+
+
+                  <tbody></tbody>
+
+
+
+
+
+                </table>
+
+
+
+
+
+              </section>
+
+
+
+
+
+
+
+
+
+
+
+              <section id="user-form-area" class="card glass muted-surface admin-side-card" hidden>
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Cadastro de usuário</strong>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <form id="user-form" class="stack">
+
+
+
+
+
+                  <input type="text" name="name" placeholder="Nome completo">
+
+
+
+
+
+                  <input type="email" name="email" placeholder="email">
+
+
+
+
+
+                  <div class="row">
+
+
+
+
+
+                    <input type="password" name="password" placeholder="Senha (min 8)">
+
+
+
+
+
+                    <select name="role">
+
+
+
+
+
+                      <option value="user">Usuário</option>
+
+
+
+
+
+                      <option value="admin">Admin</option>
+
+
+
+
+
+                    </select>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                  <input type="text" name="alterdata_code" placeholder="Codigo Alterdata (exclusivo)">
+
+
+
+
+
+                  <div class="form-actions right">
+
+
+
+
+
+                    <button type="submit" class="icon-btn primary square" title="Salvar" aria-label="Salvar">
+
+
+
+
+
+                      <span class="material-icons-outlined" aria-hidden="true">save</span>
+
+
+
+
+
+                    </button>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                </form>
+
+
+
+
+
+              </section>
+
+
+
+
+
+              <section class="card glass admin-form-placeholder user-form-placeholder">
+
+
+
+
+
+                <p class="muted">Use o + para criar um novo usuário ou clique em editar na tabela.</p>
+
+
+
+
+
+              </section>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </section>
+
+
+
+
+
+
+
+
+
+
+
+          <section class="admin-panel" data-admin-panel="categories" hidden>
+
+
+
+
+
+            <div class="admin-panel-grid wide">
+
+
+
+
+
+              <section class="card glass">
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Categorias</strong>
+
+
+
+
+
+                  <button type="button" class="icon-btn primary square" id="btn-new-category" title="Nova categoria" aria-label="Nova categoria">
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">add</span>
+
+
+
+
+
+                  </button>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <table class="table" id="categories-table">
+
+
+
+
+
+                  <thead>
+
+
+
+
+
+                    <tr>
+
+
+
+
+
+                      <th>Nome</th>
+
+
+
+
+
+                      <th>Tipo</th>
+
+
+
+
+
+                      <th>Lançamento auto</th>
+
+
+
+
+
+                      <th>Ações</th>
+
+
+
+
+
+                    </tr>
+
+
+
+
+
+                  </thead>
+
+
+
+
+
+                  <tbody></tbody>
+
+
+
+
+
+                </table>
+
+
+
+
+
+              </section>
+
+
+
+
+
+
+
+
+
+
+
+              <section id="category-form-area" class="card glass muted-surface admin-side-card" hidden>
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Cadastro de categoria</strong>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <form id="category-form" class="stack">
+
+
+
+
+
+                  <input type="text" name="name" placeholder="Nome da categoria">
+
+
+
+
+
+                  <select name="type">
+
+
+
+
+
+                    <option value="in">Entrada</option>
+
+
+
+
+
+                    <option value="out">Saída</option>
+
+
+
+
+
+                  </select>
+
+
+
+
+
+                  <input type="text" name="alterdata_auto" placeholder="Lançamento auto Alterdata">
+
+
+
+
+
+                  <div class="form-actions right">
+
+
+
+
+
+                    <button type="submit" class="icon-btn primary square" title="Salvar" aria-label="Salvar">
+
+
+
+
+
+                      <span class="material-icons-outlined" aria-hidden="true">save</span>
+
+
+
+
+
+                    </button>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                </form>
+
+
+
+
+
+              </section>
+
+
+
+
+
+              <section class="card glass admin-form-placeholder category-form-placeholder">
+
+
+
+
+
+                <p class="muted">Use o + para criar uma categoria ou clique em editar na tabela.</p>
+
+
+
+
+
+              </section>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </section>
+
+
+
+
+
+
+
+
+
+
+
+          <section class="admin-panel" data-admin-panel="locks" hidden>
+
+
+
+
+
+            <div class="admin-panel-grid">
+
+
+
+
+
+              <section class="card glass admin-side-card">
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Consolidar mes</strong>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <form id="close-month-form" class="stack">
+
+
+
+
+
+                  <label>Mês (YYYY-MM)
+
+
+
+
+
+                    <input type="month" id="close-month" name="month">
+
+
+
+
+
+                  </label>
+
+
+
+
+
+                  <div class="row">
+
+
+
+
+
+                    <label class="control-chip"><input type="radio" name="closed" value="1" checked><span>Fechar</span></label>
+
+                    <label class="control-chip"><input type="radio" name="closed" value="0"><span>Reabrir</span></label>
+
+                  </div>
+
+
+
+
+
+                  <div class="user-checkboxes" id="close-month-users"></div>
+
+
+
+
+
+                  <label class="control-chip"><input type="checkbox" id="select-all-users"><span>Selecionar todos</span></label>
+
+                  <div class="form-actions right">
+
+
+
+
+
+                    <button type="submit" class="icon-btn primary square" title="Aplicar" aria-label="Aplicar">
+
+
+
+
+
+                      <span class="material-icons-outlined" aria-hidden="true">check</span>
+
+
+
+
+
+                    </button>
+
+
+
+
+
+                  </div>
+
+
+
+
+
+                </form>
+
+
+
+
+
+              </section>
+
+
+
+
+
+              <section class="card glass">
+
+
+
+
+
+                <div class="section-title">
+
+
+
+
+
+                  <strong>Fechamentos registrados</strong>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <div id="closed-months-list" class="muted list"></div>
+
+
+
+
+
+              </section>
+
+
+
+
+
+            </div>
+
+
+
+
+
+          </section>
+
+
+
+
+
+
+
+
+
+
+
+          <section class="admin-panel" data-admin-panel="notifications" hidden>
+
+
+
+
+
+            <section class="card glass">
+
+
+
+
+
+              <div class="section-title">
+
+
+
+
+
+                <strong>Notificações apos consolidação</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <div class="table-wrapper">
+
+
+
+
+
+                <table class="table" id="admin-notifications-table">
+
+
+
+
+
+                  <thead>
+
+
+
+
+
+                    <tr>
+
+
+
+
+
+                      <th>Data</th>
+
+
+
+
+
+                      <th>Usuário</th>
+
+
+
+
+
+                      <th>Acao</th>
+
+
+
+
+
+                      <th>Detalhes</th>
+
+
+
+
+
+                      <th>Ações</th>
+
+
+
+
+
+                    </tr>
+
+
+
+
+
+                  </thead>
+
+
+
+
+
+                  <tbody></tbody>
+
+
+
+
+
+                </table>
+
+
+
+
+
+                <div class="empty-state" id="admin-notifications-empty" hidden>Nenhuma notificação pendente.</div>
+
+
+
+
+
+              </div>
+
+
+
+
+
+            </section>
+
+
+
+
+
+          </section>
+
+
+
+
+
+
+
+
+
+
+
+          
+
+          <section class="admin-panel" data-admin-panel="support" hidden>
+            <div class="admin-panel-grid wide">
+              <section class="card glass">
+                <div class="section-title">
+                  <strong>Conversas</strong>
+                </div>
+                <form id="support-new-form" class="stack support-form" novalidate>
+                  <div class="row">
+                    <label>Usuario
+                      <select id="support-new-user" name="user_id"></select>
+                    </label>
+                    <label>Assunto
+                      <input type="text" id="support-new-subject" name="subject" placeholder="Assunto do atendimento">
+                    </label>
+                  </div>
+                  <div class="form-actions right">
+                    <button type="submit" class="icon-btn primary square" title="Abrir atendimento" aria-label="Abrir atendimento">
+                      <span class="material-icons-outlined" aria-hidden="true">add_comment</span>
+                    </button>
+                  </div>
+                </form>
+                <div class="support-thread-list" id="support-thread-list"></div>
+                <div class="empty-state" id="support-thread-empty" hidden>Nenhuma conversa iniciada.</div>
+              </section>
+              <section class="card glass">
+
+                <div class="section-title">
+
+                  <strong>Atendimento</strong>
+
+                  <span class="muted tiny" id="support-active-user">Selecione um usuario</span>
+
+                </div>
+
+                <div class="support-chat" id="support-chat"></div>
+
+                <div class="empty-state" id="support-chat-empty" hidden>Selecione uma conversa para responder.</div>
+
+                <form id="support-reply-form" class="stack support-reply" novalidate>
+                  <div class="support-composer">
+                    <textarea id="support-reply-message" name="message" placeholder="Escreva a resposta"></textarea>
+                    <div class="support-composer-actions">
+                      <button type="button" class="icon-btn ghost square" id="support-reply-attachment-btn" title="Anexar imagem" aria-label="Anexar imagem">
+                        <span class="material-icons-outlined">attach_file</span>
+                      </button>
+                      <button type="submit" class="icon-btn primary square" title="Enviar" aria-label="Enviar">
+                        <span class="material-icons-outlined" aria-hidden="true">send</span>
+                      </button>
+                    </div>
+                    <input type="file" id="support-reply-attachment" accept="image/*" class="visually-hidden">
+                    <div id="support-reply-attachment-preview" class="attachment-preview support-attachment-preview is-empty" role="button" tabindex="0"
+                      aria-label="Anexo selecionado">
+                      <div class="thumb-box">
+                        <img id="support-reply-attachment-thumb" alt="Pre-visualizacao do anexo">
+                        <div class="camera-icon" aria-hidden="true">
+                          <span class="material-icons-outlined">photo_camera</span>
+                        </div>
+                      </div>
+                      <div class="preview-meta">
+                        <div class="preview-info">
+                          <small id="support-reply-attachment-name" class="file-name muted">Nenhum arquivo selecionado</small>
+                          <small id="support-reply-attachment-status" class="upload-status tiny" aria-live="polite" hidden>Enviando anexo...</small>
+                        </div>
+                        <button type="button" class="icon-btn ghost" id="support-reply-clear-attachment" aria-label="Remover anexo" disabled>
+                          <span class="material-icons-outlined">close</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </section>
+
+            </div>
+
+          </section>
+
+
+
+          <section class="admin-panel" data-admin-panel="export" hidden>
+            <div class="stack">
+              <section class="card glass">
+
+
+
+
+              <div class="section-title">
+
+
+
+
+
+                <strong>Exportar Alterdata</strong>
+
+
+
+
+
+              </div>
+
+
+
+
+
+              <form id="admin-export-form" class="stack">
+
+
+
+
+
+                <div class="row">
+
+
+
+
+
+                  <label>Mês
+
+
+
+
+
+                    <input type="month" id="admin-export-month" name="month">
+
+
+
+
+
+                  </label>
+
+
+
+
+
+                  <label>Tipo
+
+
+
+
+
+                    <select id="admin-export-type" name="type">
+
+
+
+
+
+                      <option value="all">Todos</option>
+
+
+
+
+
+                      <option value="in">Entradas</option>
+
+
+
+
+
+                      <option value="out">Saídas</option>
+
+
+
+
+
+                    </select>
+
+
+
+
+
+                  </label>
+
+
+
+
+
+                  <label>Usuário
+
+
+
+
+
+                    <select id="admin-export-user" name="user_id"></select>
+
+
+
+
+
+                  </label>
+
+
+
+
+
+                </div>
+
+
+
+
+
+                <p class="muted tiny">Layout: codigo_usuário;data;tipo(E/S);categoria;auto;valor;descricao</p>
+
+
+
+
+
+                <div class="form-actions right">
+
+
+
+
+
+                  <button type="submit" class="icon-btn primary square" title="Exportar" aria-label="Exportar">
+
+
+
+
+
+                    <span class="material-icons-outlined" aria-hidden="true">file_download</span>
+
+
+
+
+
+                  </button>
+
+
+
+
+
+                </div>
+
+
+
+
+
+              </form>
+
+
+
+
+
+            
+
+              </section>
+              <section class="card glass">
+              <div class="section-title">
+
+                <strong>Relatorio de fechamento</strong>
+
+              </div>
+
+              <form id="admin-closure-form" class="stack">
+
+                <div class="row">
+
+                  <label>Mes
+
+                    <input type="month" id="admin-closure-month" name="month">
+
+                  </label>
+
+                  <label>Usuario
+
+                    <select id="admin-closure-user" name="user_id"></select>
+
+                  </label>
+
+                </div>
+
+                <div class="form-actions right">
+
+                  <button type="submit" class="icon-btn primary square" title="Gerar" aria-label="Gerar">
+
+                    <span class="material-icons-outlined" aria-hidden="true">assessment</span>
+
+                  </button>
+
+                </div>
+
+              </form>
+
+              <div class="summary-item" id="admin-closure-summary" hidden>
+                <div class="summary-label" id="admin-closure-title">Fechamento</div>
+                <div class="summary-values">
+                  <div class="summary-value">
+                    <small>Entradas</small>
+                    <strong id="admin-closure-in">R$ 0,00</strong>
+                  </div>
+
+                  <div class="summary-value">
+
+                    <small>Saidas</small>
+
+                    <strong id="admin-closure-out">R$ 0,00</strong>
+
+                  </div>
+
+                  <div class="summary-value">
+
+                    <small>Saldo</small>
+
+                    <strong id="admin-closure-balance">R$ 0,00</strong>
+
+                  </div>
+
+                  <div class="summary-value">
+
+                    <small>Lancamentos</small>
+
+                    <strong id="admin-closure-count">0</strong>
+
+                  </div>
+
+                </div>
+                <div class="muted tiny" id="admin-closure-meta"></div>
+              </div>
+              <div class="summary-item" id="admin-closure-pending" hidden>
+                <div class="summary-label">Pendencias</div>
+                <div class="summary-values">
+                  <div class="summary-value">
+                    <small>Entradas</small>
+                    <strong id="admin-closure-pending-in">R$ 0,00</strong>
+                  </div>
+                  <div class="summary-value">
+                    <small>Saidas</small>
+                    <strong id="admin-closure-pending-out">R$ 0,00</strong>
+                  </div>
+                  <div class="summary-value">
+                    <small>Saldo</small>
+                    <strong id="admin-closure-pending-balance">R$ 0,00</strong>
+                  </div>
+                  <div class="summary-value">
+                    <small>Lancamentos</small>
+                    <strong id="admin-closure-pending-count">0</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="empty-state" id="admin-closure-empty" hidden>Selecione mes e usuario para visualizar.</div>
+            </section>
+            </div>
+          </section>
+
+        </section>
+
+
+
+
+      </div>
+
+
+
+
+
+    </section>
+
+
+
+
+
+  </main>
+
+
+
+
+
+
+
+
+
+
+
+  <div id="toast" hidden></div>
+
+
+
+
+
+
+
+
+
+
+
+  <script src="/assets/js/api.js"></script>
+
+
+
+
+
+  <script src="/assets/js/ui.js"></script>
+
+
+
+
+
+  <script src="/assets/js/admin.js"></script>
+
+
+
+
+
+</body>
+
+
+
+
+
+
+
+
+
+
+
+</html>
+
+
+
+
+
+
+

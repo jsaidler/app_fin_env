@@ -1,0 +1,16 @@
+RewriteEngine On
+RewriteBase /
+
+<IfModule mod_headers.c>
+  Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  Header set Pragma "no-cache"
+  Header set Expires "0"
+</IfModule>
+
+# Keep existing files (assets, uploads, service worker, manifest, etc.) served directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Send everything else to the front controller
+RewriteRule ^ index.php [QSA,L]
