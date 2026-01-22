@@ -1,0 +1,771 @@
+:root {
+      color-scheme: dark;
+      --brand: #005D97;
+      --canvas: #031623;
+      --surface: #062235;
+      --card: #0a2f48;
+      --card2: #0d3a57;
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.65);
+      --stroke: rgba(255,255,255,.10);
+      --pos: #34c759;
+      --neg: #ff3b30;
+      --shadow-soft: 0 10px 22px rgba(0,0,0,0.22);
+      --stroke-strong: var(--stroke);
+      --separator: var(--stroke);
+      --surface-1: var(--surface);
+      --surface-2: var(--surface);
+      --surface-3: var(--card);
+      --gutter: 16px;
+      --gap: 12px;
+      --card-pad: 14px;
+      --radius: 18px;
+      --radius-sm: 10px;
+      --icon-size: 26px;
+      --preview-footer-height: 84px;
+      --section-gap: 20px;
+      --section-pad: 18px;
+
+      --ion-background-color: var(--canvas);
+      --ion-text-color: var(--text);
+      --ion-color-primary: var(--brand);
+      --ion-color-success: var(--pos);
+      --ion-color-danger: var(--neg);
+      --ion-toolbar-background: var(--brand);
+      --ion-tab-bar-background: var(--surface);
+      --ion-card-background: var(--card);
+      --ion-item-background: var(--card);
+    }
+    /* P3 aplicado */
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body, ion-app, ion-page {
+      width: 100%;
+      height: 100%;
+    }
+
+    ion-page {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    html,
+    body,
+    ion-app,
+    ion-content {
+      background: var(--canvas);
+    }
+
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--text);
+      overflow-x: hidden;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    ion-app, ion-page, ion-content {
+      --background: var(--canvas);
+      color: var(--text);
+    }
+
+    ion-content {
+      --overflow: auto;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    ion-header,
+    ion-footer {
+      flex: 0 0 auto;
+    }
+
+    ion-toolbar {
+      --background: var(--surface);
+      --color: var(--text);
+      border-bottom: 1px solid var(--separator);
+    }
+
+    ion-header ion-toolbar {
+      --background: var(--brand);
+    }
+
+    ion-toolbar ion-title {
+      padding-right: 12px;
+    }
+
+    ion-toolbar ion-buttons[slot="end"] {
+      margin-left: 8px;
+    }
+
+    ion-header ion-toolbar:last-child {
+      border-bottom: 1px solid var(--separator);
+    }
+
+    ion-card {
+      --background: var(--card);
+      border: none;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      margin: 0;
+    }
+
+    ion-card::part(native) {
+      border-radius: var(--radius);
+    }
+
+    ion-card-header {
+      padding: var(--card-pad);
+    }
+
+    ion-card-content {
+      padding: var(--card-pad);
+    }
+
+    h1 {
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    h2 {
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 0;
+    }
+
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .body {
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .muted {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    .error-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neg);
+    }
+
+    ion-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    ion-grid {
+      --ion-grid-padding: 0;
+      --ion-grid-column-padding: 0;
+    }
+
+    .page-grid {
+      padding: var(--gutter);
+    }
+
+    ion-row.section-row {
+      margin-top: 0;
+    }
+
+    ion-row.section-row + ion-row.section-row {
+      margin-top: var(--section-gap);
+    }
+
+    ion-row.grid-row {
+      row-gap: var(--gap);
+      column-gap: var(--gap);
+    }
+
+    ion-col.grid-col {
+      padding: 0;
+    }
+
+    ion-segment {
+      --background: var(--surface-1);
+      border: none;
+      border-radius: var(--radius);
+      height: 40px;
+      padding: 3px;
+    }
+
+    ion-segment-button::part(native) {
+      height: 34px;
+      border-radius: var(--radius-sm);
+    }
+
+    ion-segment-button {
+      --color: var(--muted);
+      --color-checked: var(--text);
+      --background-checked: var(--card2);
+      --indicator-color: transparent;
+      --indicator-height: 0;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: none;
+    }
+
+    ion-button.uikit-btn {
+      height: 44px;
+      --border-radius: var(--radius);
+      --background: var(--surface-2);
+      --color: var(--text);
+      --border-color: transparent;
+      --border-style: solid;
+      --border-width: 0;
+      --box-shadow: none;
+      text-transform: none;
+      font-weight: 700;
+    }
+
+    ion-button.uikit-btn.primary {
+      --background: var(--card);
+      --box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+    }
+
+    ion-button.uikit-btn.secondary {
+      --background: transparent;
+      --border-color: var(--separator);
+      --border-width: 1px;
+      --color: var(--muted);
+    }
+
+    ion-button.uikit-btn[disabled] {
+      --background: rgba(255,255,255,0.08);
+      --color: var(--muted);
+      opacity: 0.7;
+    }
+
+    ion-button.action-btn {
+      height: 56px;
+      --border-radius: 18px;
+      --box-shadow: none;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    ion-button.icon-btn {
+      --border-radius: var(--radius-sm);
+      --background: var(--surface-2);
+      --color: var(--text);
+      --border-color: transparent;
+      --border-style: solid;
+      --border-width: 0;
+      --box-shadow: none;
+      height: 48px;
+      width: 48px;
+    }
+
+    ion-icon {
+      font-size: var(--icon-size);
+    }
+
+    ion-button.icon-btn ion-icon {
+      font-size: var(--icon-size);
+    }
+
+    ion-toolbar ion-button.icon-btn ion-icon {
+      font-size: var(--icon-size);
+    }
+
+    ion-button[disabled],
+    ion-searchbar.uikit-input[disabled],
+    ion-input[disabled],
+    ion-textarea[disabled] {
+      opacity: 0.65;
+    }
+
+    ion-button.toolbar-btn {
+      --background: transparent;
+      --color: var(--text);
+      --border-color: var(--stroke);
+      --border-style: solid;
+      --border-width: 1px;
+      --border-radius: 14px;
+      height: 36px;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: none;
+    }
+
+    ion-button.toolbar-btn ion-icon {
+      font-size: 18px;
+    }
+
+    ion-searchbar.uikit-input {
+      --background: var(--card);
+      --color: var(--text);
+      --placeholder-color: var(--muted);
+      --icon-color: var(--muted);
+      height: 44px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--separator);
+    }
+
+    ion-searchbar.uikit-input.is-focus {
+      border-color: var(--stroke-strong);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
+    }
+
+    ion-item.uikit-input {
+      --background: var(--card);
+      --min-height: 44px;
+      --padding-start: 12px;
+      --inner-padding-end: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--separator);
+    }
+
+    ion-item.uikit-input::part(native) {
+      border-radius: var(--radius-sm);
+    }
+
+    ion-item.uikit-input.is-error {
+      border-color: var(--neg);
+    }
+
+    ion-item.uikit-input.is-error::part(native) {
+      border-color: var(--neg);
+    }
+
+    ion-item.uikit-input.is-focus {
+      border-color: var(--stroke-strong);
+    }
+
+    ion-item.uikit-input.is-focus::part(native) {
+      border-color: var(--stroke-strong);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
+    }
+
+    ion-item.uikit-input ion-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    ion-item.uikit-input.is-error ion-label {
+      color: var(--neg);
+    }
+
+    ion-input.uikit-control,
+    ion-textarea.uikit-control {
+      --color: var(--text);
+      --placeholder-color: var(--muted);
+      font-size: 16px;
+    }
+
+    ion-chip.uikit-chip {
+      height: 34px;
+      --background: var(--card);
+      --color: var(--text);
+      border: none;
+      border-radius: 14px;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 0 10px;
+    }
+
+    ion-chip.uikit-chip.is-active {
+      --background: var(--card);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+    }
+
+    ion-row.chip-row {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      column-gap: 8px;
+      white-space: nowrap;
+      padding-bottom: 4px;
+    }
+
+    ion-list.uikit-list {
+      background: var(--surface);
+      padding: 0;
+    }
+
+    ion-item-divider {
+      --background: transparent;
+      --color: var(--muted);
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    ion-item.uikit-list-item {
+      --background: var(--card);
+      --color: var(--text);
+      --padding-start: 12px;
+      --inner-padding-end: 12px;
+      --min-height: 44px;
+      --inner-border-width: 1px;
+      --inner-border-color: var(--separator);
+      border-radius: var(--radius-sm);
+      border: none;
+      margin-bottom: 12px;
+    }
+
+    ion-item.uikit-list-item::part(native) {
+      border-radius: var(--radius-sm);
+    }
+
+    ion-avatar.uikit-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--stroke-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    ion-badge.uikit-badge {
+      --background: var(--surface-2);
+      --color: var(--text);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .amount-pos {
+      color: var(--pos);
+      font-weight: 700;
+      font-size: 16px;
+      min-width: 96px;
+      text-align: right;
+    }
+
+    .amount-neg {
+      color: var(--neg);
+      font-weight: 700;
+      font-size: 16px;
+      min-width: 96px;
+      text-align: right;
+    }
+
+    ion-skeleton-text.uikit-skeleton {
+      height: 12px;
+      border-radius: 8px;
+    }
+
+    ion-toolbar.action-bar {
+      --background: var(--surface-2);
+      border-top: 1px solid var(--separator);
+    }
+
+    ion-toolbar.action-bar ion-button {
+      height: 44px;
+    }
+
+    ion-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .item-title {
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .preview-content {
+      --padding-bottom: calc(var(--preview-footer-height) + var(--gap) + var(--ion-safe-area-bottom) + 8px);
+    }
+
+    ion-toolbar.preview-actions {
+      --background: var(--surface-2);
+      border-top: 1px solid var(--separator);
+      padding-bottom: var(--ion-safe-area-bottom);
+    }
+
+    #preview-footer ion-toolbar.preview-actions {
+      padding-top: 12px;
+      padding-bottom: calc(var(--ion-safe-area-bottom) + 6px);
+    }
+
+    #preview-footer ion-button.action-btn.secondary {
+      --background: transparent;
+      --color: var(--ion-color-danger);
+      --border-color: var(--ion-color-danger);
+      --border-style: solid;
+      --border-width: 1px;
+    }
+
+    #preview-footer .grid-row {
+      column-gap: 12px;
+    }
+
+    #preview-footer ion-button.action-btn {
+      height: 60px;
+    }
+
+    #catalog-view > ion-row.section-row > ion-col > ion-card {
+      --background: var(--surface-1);
+      border: none;
+      padding: 2px;
+    }
+
+    #catalog-view ion-card-header {
+      padding: var(--section-pad) var(--section-pad) 8px;
+    }
+
+    #catalog-view ion-card-content {
+      padding: 0 var(--section-pad) var(--section-pad);
+    }
+
+    #catalog-view ion-card-title {
+      font-size: 16px;
+      letter-spacing: 0.08em;
+    }
+
+    #catalog-view .uikit-list-item {
+      --background: var(--surface-3);
+      border-color: var(--stroke-strong);
+    }
+
+    #preview-view ion-card {
+      --background: var(--card);
+      border: none;
+    }
+
+    #preview-view .hero-card {
+      --background: var(--card2);
+      box-shadow: 0 14px 28px rgba(0,0,0,0.22);
+    }
+
+    #preview-view .hero-card ion-card-header {
+      padding-bottom: 4px;
+    }
+
+    #preview-view .kpi-card {
+      --background: var(--surface);
+      box-shadow: none;
+      border-radius: var(--radius-sm);
+    }
+
+    #preview-view .kpi-card ion-card-content {
+      padding: 12px;
+    }
+
+    #preview-view .secondary-card {
+      --background: var(--surface);
+      box-shadow: none;
+    }
+
+    #preview-view .insight-card {
+      --background: transparent;
+      box-shadow: none;
+    }
+
+    #preview-view .insight-card ion-card-header,
+    #preview-view .insight-card ion-card-content {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    #preview-view #page-lancamentos ion-searchbar.uikit-input {
+      margin-bottom: 6px;
+    }
+
+    #preview-view #page-lancamentos .chip-row {
+      opacity: 0.85;
+    }
+
+    #preview-view #page-pendencias ion-note[slot="end"] {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    #preview-view ion-card-title {
+      font-size: 15px;
+      letter-spacing: 0.05em;
+    }
+
+    #preview-view ion-segment {
+      --background: var(--surface-1);
+      border-color: var(--stroke-strong);
+    }
+
+    #preview-view ion-searchbar.uikit-input,
+    #preview-view ion-item.uikit-input {
+      --background: var(--card);
+    }
+
+    #preview-view ion-list.uikit-list {
+      padding-bottom: var(--gap);
+    }
+
+    .preview-actions ion-button.action-btn ion-icon {
+      font-size: 20px;
+    }
+
+    /* P4 aplicado */
+    #preview-view h1 {
+      font-size: 38px;
+      line-height: 1.05;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    #preview-view .label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+    }
+
+    #preview-view .body {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    #preview-view .item-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    #preview-view ion-note.muted,
+    #preview-view ion-note {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #preview-view .chip-row ion-chip {
+      font-size: 11px;
+      font-weight: 600;
+      height: 32px;
+    }
+
+    #preview-view ion-card-content h1 + ion-grid {
+      margin-top: 12px;
+    }
+
+    #preview-view ion-row.grid-row + ion-row.grid-row {
+      margin-top: 10px;
+    }
+
+    #preview-view #page-dashboard ion-card-content {
+      padding-top: 18px;
+      padding-bottom: 18px;
+    }
+
+    #preview-view #preview-list .uikit-list-item {
+      --background: transparent;
+      --min-height: 50px;
+      --padding-start: 8px;
+      --inner-padding-end: 8px;
+      --inner-border-width: 1px;
+      --inner-border-color: var(--separator);
+      border: none;
+      margin-bottom: 0;
+    }
+
+    #preview-view #preview-list .uikit-list-item::part(native) {
+      border-radius: 0;
+    }
+
+    #preview-view #preview-list .uikit-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 13px;
+      font-size: 10px;
+    }
+
+    #preview-view #preview-list .amount-pos,
+    #preview-view #preview-list .amount-neg {
+      font-size: 15px;
+      font-weight: 800;
+      min-width: 90px;
+    }
+
+    #preview-view #preview-list .item-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    #preview-view #preview-list ion-note.muted {
+      font-size: 11px;
+    }
+
+    #preview-footer ion-button.action-btn {
+      height: 58px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    [data-ui="hero-balance"] h1 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    [data-ui="kpi"] .label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+
+    [data-ui="kpi"] .body {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    #page-lancamentos .chip-row {
+      opacity: 0.75;
+    }
+
+    #preview-list .item-title {
+      font-weight: 700;
+    }
+
+    #preview-list ion-note.muted {
+      color: var(--muted);
+    }
+
+    .amount-pos {
+      color: var(--ion-color-success);
+    }
+
+    .amount-neg {
+      color: var(--ion-color-danger);
+    }
+
+    [data-ui="dock"] ion-button.action-btn {
+      height: 62px;
+    }
+
+    ion-icon {
+      font-size: 22px;
+    }

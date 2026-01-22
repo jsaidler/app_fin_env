@@ -1,827 +1,829 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="theme-light">
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Caixa Simples | UI Kit V5</title>
-  <link rel="stylesheet" href="/assets/vendor/ionic/css/ionic.bundle.css">
-  <script type="module" src="/assets/vendor/ionic/dist/ionic/ionic.esm.js"></script>
-  <link rel="stylesheet" href="/assets/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Copilot Light Preview</title>
+  <link rel="stylesheet" href="assets/vendor/ionic/css/ionic.bundle.css" />
+  <style>
+    @font-face {
+      font-family: "Material Symbols Rounded";
+      src: url("assets/vendor/material-symbols/material-symbols-rounded.ttf") format("truetype");
+      font-weight: 100 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --brand: #005D97;
+      --canvas: #F2F5F9;
+      --surface: #FFFFFF;
+      --text: #0F1720;
+      --muted: #657181;
+      --stroke: rgba(15, 23, 32, 0.08);
+      --pos: #2E8B5A;
+      --neg: #C65757;
+      --warn: #D28B3C;
+      --radius: 16px;
+      --shadow-soft: 0 10px 24px rgba(12, 22, 34, 0.08);
+
+      --ion-color-primary: #005D97;
+      --ion-color-primary-rgb: 0, 93, 151;
+      --ion-color-primary-contrast: #FFFFFF;
+      --ion-color-primary-contrast-rgb: 255, 255, 255;
+      --ion-color-primary-shade: #005286;
+      --ion-color-primary-tint: #1a6ea2;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: "Avenir Next", "Nunito", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--canvas);
+    }
+
+    ion-app {
+      height: 100%;
+      background: var(--canvas);
+    }
+
+    ion-content {
+      --background: var(--canvas);
+      --padding-top: 12px;
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --padding-bottom: 96px;
+    }
+
+    ion-toolbar {
+      --background: var(--surface);
+      --color: var(--text);
+      --min-height: 52px;
+      --border-color: transparent;
+    }
+
+    ion-header {
+      border-bottom: 1px solid var(--stroke);
+    }
+
+    .material-symbols-rounded {
+      font-family: "Material Symbols Rounded";
+      font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+      font-size: 22px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .topbar-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .toolbar-actions ion-button {
+      --background: transparent;
+      --color: var(--text);
+      --padding-start: 8px;
+      --padding-end: 8px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 6px;
+      background: rgba(15, 23, 32, 0.05);
+      border-radius: 999px;
+      margin: 8px 0 16px;
+    }
+
+    .tab {
+      min-height: 44px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      padding: 8px 10px;
+    }
+
+    .tab.active {
+      background: rgba(0, 93, 151, 0.12);
+      color: var(--brand);
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin: 18px 0 10px;
+    }
+
+    ion-card.hero {
+      margin: 0;
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+      padding: 16px;
+    }
+
+    .hero-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .hero-value {
+      font-size: 34px;
+      font-weight: 800;
+      margin-top: 6px;
+    }
+
+    .hero-meta {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .sparkline {
+      height: 64px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(0, 93, 151, 0.18), rgba(0, 93, 151, 0.04));
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .sparkline svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .badge-soft {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(0, 93, 151, 0.12);
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--stroke);
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .row-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .row-meta {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .row-value {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .row-value.pos { color: var(--pos); }
+    .row-value.neg { color: var(--neg); }
+
+    .icon-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(0, 93, 151, 0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand);
+    }
+
+    .review-action {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .budget-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 96px;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .budget-item {
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .budget-ring {
+      width: 86px;
+      height: 86px;
+      border-radius: 999px;
+      background: conic-gradient(var(--brand) 0 250deg, rgba(15, 23, 32, 0.08) 250deg 360deg);
+      display: grid;
+      place-items: center;
+    }
+
+    .budget-ring span {
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      background: var(--surface);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px var(--stroke);
+      color: var(--brand);
+    }
+
+    .upcoming-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .search-min {
+      --background: #FFFFFF;
+      --box-shadow: none;
+      --color: var(--text);
+      --placeholder-color: var(--muted);
+      --icon-color: var(--muted);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 32, 0.06);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .chip.active {
+      color: var(--brand);
+      background: rgba(0, 93, 151, 0.12);
+    }
+
+    .ring-summary {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .ring {
+      width: 96px;
+      height: 96px;
+      border-radius: 999px;
+      background: conic-gradient(var(--brand) 0 240deg, rgba(15, 23, 32, 0.08) 240deg 360deg);
+      display: grid;
+      place-items: center;
+    }
+
+    .ring-inner {
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      background: var(--surface);
+      display: grid;
+      place-items: center;
+      color: var(--brand);
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: inset 0 0 0 1px var(--stroke);
+    }
+
+    .category-row {
+      display: grid;
+      gap: 6px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--stroke);
+    }
+
+    .progress-line {
+      height: 4px;
+      background: rgba(15, 23, 32, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-line span {
+      display: block;
+      height: 100%;
+      background: var(--brand);
+    }
+
+    .tab-page {
+      display: none;
+    }
+
+    .tab-page.active {
+      display: block;
+    }
+
+    ion-fab-button {
+      --background: var(--brand);
+      --color: #FFFFFF;
+      --box-shadow: var(--shadow-soft);
+    }
+
+    .fab-label {
+      background: var(--surface);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-left: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--stroke);
+    }
+
+    .fab-row {
+      display: flex;
+      align-items: center;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .ghost-button {
+      --background: transparent;
+      --color: var(--text);
+      --border-color: var(--stroke);
+    }
+
+    .preview {
+      width: 100%;
+      border-radius: var(--radius);
+      border: 1px solid var(--stroke);
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
 </head>
-<body class="theme-light">
+<body>
   <ion-app>
     <ion-header>
       <ion-toolbar>
-        <ion-title>UI Kit V5</ion-title>
-        <ion-buttons slot="end">
-          <span class="c-tooltip">
-            <button class="v5-icon-btn v5-icon-btn--sm" data-tooltip aria-label="Voltar" data-testid="tooltip-anchor">
-              <span class="msr" aria-hidden="true">arrow_back</span>
-            </button>
-            <span class="c-tooltip__content" role="tooltip">Voltar</span>
-          </span>
-          <span class="c-tooltip">
-            <button class="v5-icon-btn v5-icon-btn--sm" data-tooltip aria-label="Ajuda" data-testid="tooltip-anchor-secondary">
-              <span class="msr" aria-hidden="true">help</span>
-            </button>
-            <span class="c-tooltip__content" role="tooltip">Ajuda</span>
-          </span>
+        <ion-buttons slot="start" class="toolbar-actions">
+          <ion-button aria-label="Settings">
+            <span class="material-symbols-rounded">settings</span>
+          </ion-button>
+        </ion-buttons>
+        <ion-title class="topbar-title">Finance</ion-title>
+        <ion-buttons slot="end" class="toolbar-actions">
+          <ion-button aria-label="Search">
+            <span class="material-symbols-rounded">search</span>
+          </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="v5-content">
-      <section class="v3-section" id="manualtest-panel" hidden>
-        <div class="manualtest-panel">
-          <div class="manualtest-panel__row">
-            <strong id="manualtest-step">T1</strong>
-            <div class="manualtest-panel__timer" id="manualtest-timer">15s</div>
-          </div>
-          <div class="manualtest-panel__desc" id="manualtest-desc"></div>
-          <div class="manualtest-panel__status" id="manualtest-status">Aguardando</div>
-          <div class="manualtest-panel__actions">
-            <button class="v5-icon-btn" type="button" id="manualtest-start" aria-label="Start">
-              <span class="msr" aria-hidden="true">play_arrow</span>
-            </button>
-            <button class="v5-icon-btn" type="button" id="manualtest-retry" aria-label="Repetir">
-              <span class="msr" aria-hidden="true">replay</span>
-            </button>
-            <button class="v5-icon-btn" type="button" id="manualtest-next" aria-label="Próxima etapa">
-              <span class="msr" aria-hidden="true">skip_next</span>
-            </button>
-          </div>
-        </div>
-      </section>
-      <section class="v3-section" id="selftest-panel" hidden>
-        <div class="selftest-panel">
-          <div class="selftest-panel__row">
-            <strong>SelfTest</strong>
-            <button class="v5-icon-btn" type="button" id="selftest-run" aria-label="Executar testes">
-              <span class="msr" aria-hidden="true">play_arrow</span>
-            </button>
-          </div>
-          <div class="selftest-panel__status" id="selftest-status">Pronto para executar</div>
-          <div class="selftest-results" id="selftest-results"></div>
-        </div>
-      </section>
-      <section class="v3-section" id="v6p-asserts">
-        <h2 class="v3-section__title">V6-P Asserts</h2>
-        <div class="selftest-panel">
-          <div class="selftest-panel__row">
-            <strong>Auto</strong>
-            <button class="v5-icon-btn" type="button" id="v6p-run" aria-label="Executar asserts">
-              <span class="msr" aria-hidden="true">play_arrow</span>
-            </button>
-          </div>
-          <div class="selftest-panel__status" id="v6p-status">Aguardando</div>
-          <div class="selftest-results" id="v6p-results"></div>
-          <div class="selftest-panel__row">
-            <strong>Manual (15s)</strong>
-            <button class="v5-icon-btn" type="button" id="v6p-manual-start" aria-label="Iniciar passo manual">
-              <span class="msr" aria-hidden="true">touch_app</span>
-            </button>
-            <span class="v6p-step__timer" id="v6p-manual-timer">15s</span>
-          </div>
-          <div class="selftest-panel__status" id="v6p-manual-status">Aguardando</div>
-          <div class="v6p-manual" id="v6p-manual-steps">
-            <div class="v6p-step is-active" data-step="0">
-              <div class="v6p-step__title">T1 Tooltip clamp (360px)</div>
-              <div class="v6p-step__desc">Pressione e segure no ícone Ajuda até abrir e confirme que não corta o viewport.</div>
-              <div class="v6p-step__actions">
-                <button class="v5-icon-btn" type="button" data-v6p-pass aria-label="Passei T1">
-                  <span class="msr" aria-hidden="true">check</span>
-                </button>
-                <button class="v5-icon-btn" type="button" data-v6p-fail aria-label="Falhou T1">
-                  <span class="msr" aria-hidden="true">close</span>
-                </button>
-              </div>
-              <div class="v6p-step__status">Aguardando</div>
-            </div>
-            <div class="v6p-step" data-step="1">
-              <div class="v6p-step__title">T2 Tooltip distance</div>
-              <div class="v6p-step__desc">Verifique que o tooltip fica até 16px do ícone (não flutua longe).</div>
-              <div class="v6p-step__actions">
-                <button class="v5-icon-btn" type="button" data-v6p-pass aria-label="Passei T2">
-                  <span class="msr" aria-hidden="true">check</span>
-                </button>
-                <button class="v5-icon-btn" type="button" data-v6p-fail aria-label="Falhou T2">
-                  <span class="msr" aria-hidden="true">close</span>
-                </button>
-              </div>
-              <div class="v6p-step__status">Aguardando</div>
-            </div>
-            <div class="v6p-step" data-step="2">
-              <div class="v6p-step__title">T3 Overlay close</div>
-              <div class="v6p-step__desc">Com tooltip aberto, abra o drawer. Tooltip deve fechar.</div>
-              <div class="v6p-step__actions">
-                <button class="v5-icon-btn" type="button" data-v6p-pass aria-label="Passei T3">
-                  <span class="msr" aria-hidden="true">check</span>
-                </button>
-                <button class="v5-icon-btn" type="button" data-v6p-fail aria-label="Falhou T3">
-                  <span class="msr" aria-hidden="true">close</span>
-                </button>
-              </div>
-              <div class="v6p-step__status">Aguardando</div>
-            </div>
-            <div class="v6p-step" data-step="3">
-              <div class="v6p-step__title">T4 Overlay block</div>
-              <div class="v6p-step__desc">Com drawer aberto, tooltip fora do drawer não deve abrir.</div>
-              <div class="v6p-step__actions">
-                <button class="v5-icon-btn" type="button" data-v6p-pass aria-label="Passei T4">
-                  <span class="msr" aria-hidden="true">check</span>
-                </button>
-                <button class="v5-icon-btn" type="button" data-v6p-fail aria-label="Falhou T4">
-                  <span class="msr" aria-hidden="true">close</span>
-                </button>
-              </div>
-              <div class="v6p-step__status">Aguardando</div>
-            </div>
-            <div class="v6p-step" data-step="4">
-              <div class="v6p-step__title">T5 Scroll closes tooltip</div>
-              <div class="v6p-step__desc">Abra tooltip e faça scroll. Tooltip deve fechar.</div>
-              <div class="v6p-step__actions">
-                <button class="v5-icon-btn" type="button" data-v6p-pass aria-label="Passei T5">
-                  <span class="msr" aria-hidden="true">check</span>
-                </button>
-                <button class="v5-icon-btn" type="button" data-v6p-fail aria-label="Falhou T5">
-                  <span class="msr" aria-hidden="true">close</span>
-                </button>
-              </div>
-              <div class="v6p-step__status">Aguardando</div>
-            </div>
-            <div class="v6p-step" data-step="5">
-              <div class="v6p-step__title">T6 Drawer hints local</div>
-              <div class="v6p-step__desc">Dentro do drawer, press-hold no ícone de Período. Hint deve aparecer.</div>
-              <div class="v6p-step__actions">
-                <button class="v5-icon-btn" type="button" data-v6p-pass aria-label="Passei T6">
-                  <span class="msr" aria-hidden="true">check</span>
-                </button>
-                <button class="v5-icon-btn" type="button" data-v6p-fail aria-label="Falhou T6">
-                  <span class="msr" aria-hidden="true">close</span>
-                </button>
-              </div>
-              <div class="v6p-step__status">Aguardando</div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="v3-section" id="utf8-gate">
-        <h2 class="v3-section__title">UTF-8 Gate</h2>
-        <div class="v5-surface c-stack c-stack--sm utf8-gate__body">
-          <div class="utf8-gate__row">
-            <span class="v3-section__meta">document.characterSet</span>
-            <strong id="utf8-gate-charset">—</strong>
-          </div>
-          <div class="utf8-gate__row">
-            <span class="v3-section__meta">Sentinela</span>
-            <span id="utf8-gate-sentinel">canônicos, lançamentos, saídas, mês, São João, çáéíóú, ãõ</span>
-          </div>
-          <div class="utf8-gate__status" id="utf8-gate-status">CHECKING</div>
-          <div class="v3-section__meta" id="utf8-gate-hint"></div>
-        </div>
-      </section>
-      <section class="v3-section">
-        <h2 class="v3-section__title">BalanceHeader V5</h2>
-        <div class="v5-hero">
-          <div>
-            <p class="v4-balance__label">Saldo do período</p>
-            <p class="v4-balance__value">R$ 128.450,00</p>
-            <div class="v4-balance__delta">
-              <span>↑ 4,6%</span>
-              <span class="v3-section__meta">vs mês anterior</span>
-            </div>
-          </div>
-          <svg class="v3-sparkline" viewBox="0 0 160 42" aria-hidden="true">
-            <path d="M0 32 L18 28 L32 30 L50 22 L72 24 L92 16 L110 18 L128 10 L160 14"></path>
-          </svg>
-          <div class="v5-kpis">
-            <div class="v5-kpi-item">
-              <span class="v5-kpi-item__label">Entradas</span>
-              <span class="v5-kpi-item__value">R$ 210.840,00</span>
-            </div>
-            <div class="v5-kpi-item">
-              <span class="v5-kpi-item__label">Saídas</span>
-              <span class="v5-kpi-item__value">R$ 82.390,00</span>
-            </div>
-            <div class="v5-kpi-item">
-              <span class="v5-kpi-item__label">Pendências</span>
-              <span class="v5-kpi-item__value">3</span>
-            </div>
-          </div>
-          <div class="v3-insights">
-            <div class="v3-insight-row">
-              <span class="v3-insight-row__icon"><span class="msr" aria-hidden="true">error</span></span>
-              <span>Gasto alto em serviços</span>
-              <span class="v3-insight-row__value">+18%</span>
-            </div>
-            <div class="v3-insight-row">
-              <span class="v3-insight-row__icon"><span class="msr" aria-hidden="true">check_circle</span></span>
-              <span>Entradas estáveis</span>
-              <span class="v3-insight-row__value">+2%</span>
-            </div>
-            <div class="v3-insight-row">
-              <span class="v3-insight-row__icon"><span class="msr" aria-hidden="true">schedule</span></span>
-              <span>Pendência relevante</span>
-              <span class="v3-insight-row__value">R$ 4.920,00</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="v5-divider"></div>
-
-      <section class="v3-section">
-        <h2 class="v3-section__title">SmartFiltersTrigger V5</h2>
-        <div class="v5-filter-bar">
-          <div class="v5-filter-bar__row">
-            <span class="c-tooltip">
-              <button class="v5-icon-btn" id="filters-trigger" data-tooltip aria-label="Filtros" data-testid="filters-trigger">
-                <span class="msr" aria-hidden="true">tune</span>
-              </button>
-              <span class="c-tooltip__content" role="tooltip">Filtros</span>
-            </span>
-            <span class="v5-filter-summary">Mês atual · Tipo: Todos · Categoria: Todas</span>
-            <span class="c-tooltip">
-              <button class="v5-icon-btn v5-icon-btn--sm" data-tooltip aria-label="Limpar filtros">
-                <span class="msr" aria-hidden="true">close</span>
-              </button>
-              <span class="c-tooltip__content" role="tooltip">Limpar filtros</span>
-            </span>
-          </div>
-          <span class="v5-filter-indicator">2 filtros ativos</span>
-        </div>
-
-        <ion-modal trigger="filters-trigger" data-breakpoints="0,0.5,0.85" data-initial-breakpoint="0.85" handle="true">
-          <ion-content class="v5-content">
-            <div class="v4-drawer">
-              <div class="v4-drawer__header">
-                <span class="v3-section__title">Filtros</span>
-                <div class="v4-drawer__actions">
-                  <span class="c-tooltip">
-                    <button class="v5-icon-btn v5-icon-btn--sm" data-drawer-hint="Aplicar filtros" aria-label="Aplicar filtros">
-                      <span class="msr" aria-hidden="true">check</span>
-                    </button>
-                    <span class="c-tooltip__content" role="tooltip">Aplicar</span>
-                  </span>
-                  <span class="c-tooltip">
-                    <button class="v5-icon-btn v5-icon-btn--sm" data-drawer-hint="Limpar filtros" aria-label="Limpar filtros">
-                      <span class="msr" aria-hidden="true">close</span>
-                    </button>
-                    <span class="c-tooltip__content" role="tooltip">Limpar</span>
-                  </span>
-                  <span class="c-tooltip">
-                    <button class="v5-icon-btn v5-icon-btn--sm" data-drawer-hint="Fechar filtros" aria-label="Fechar filtros">
-                      <span class="msr" aria-hidden="true">expand_more</span>
-                    </button>
-                    <span class="c-tooltip__content" role="tooltip">Fechar</span>
-                  </span>
-                </div>
-              </div>
-
-              <div class="v4-drawer__section">
-                <span class="v4-drawer__label">Tipo</span>
-                <div class="v4-drawer__actions">
-                  <span class="c-tooltip">
-                    <button class="v5-icon-btn" data-drawer-hint="Todos" aria-label="Todos">
-                      <span class="msr" aria-hidden="true">all_inclusive</span>
-                    </button>
-                    <span class="c-tooltip__content" role="tooltip">Todos</span>
-                  </span>
-                  <span class="c-tooltip">
-                    <button class="v5-icon-btn" data-drawer-hint="Entradas" aria-label="Entradas">
-                      <span class="msr" aria-hidden="true">north</span>
-                    </button>
-                    <span class="c-tooltip__content" role="tooltip">Entradas</span>
-                  </span>
-                  <span class="c-tooltip">
-                    <button class="v5-icon-btn" data-drawer-hint="Saídas" aria-label="Saídas">
-                      <span class="msr" aria-hidden="true">south</span>
-                    </button>
-                    <span class="c-tooltip__content" role="tooltip">Saídas</span>
-                  </span>
-                </div>
-              </div>
-
-              <div class="v4-drawer__section" data-date-range data-inline-panel>
-                <div class="v4-drawer__row">
-                  <span class="v4-drawer__label">Período</span>
-                  <div class="v4-drawer__summary">Este mês</div>
-                  <span class="c-tooltip">
-                    <button class="v5-icon-btn v2-date-range__trigger" type="button" data-icon-only="true" data-drawer-hint="Escolher período" aria-label="Escolher período">
-                      <span class="msr" aria-hidden="true">event</span>
-                    </button>
-                    <span class="c-tooltip__content" role="tooltip">Período</span>
-                  </span>
-                </div>
-                <div class="v4-drawer__panel v2-date-range__panel" hidden>
-                  <div class="v2-date-range__presets">
-                    <span class="c-tooltip">
-                      <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-range-preset="today" data-drawer-hint="Hoje" aria-label="Hoje">
-                        <span class="msr" aria-hidden="true">today</span>
-                      </button>
-                      <span class="c-tooltip__content" role="tooltip">Hoje</span>
-                    </span>
-                    <span class="c-tooltip">
-                      <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-range-preset="thisMonth" data-drawer-hint="Este mês" aria-label="Este mês">
-                        <span class="msr" aria-hidden="true">calendar_month</span>
-                      </button>
-                      <span class="c-tooltip__content" role="tooltip">Este mês</span>
-                    </span>
-                    <span class="c-tooltip">
-                      <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-range-preset="lastMonth" data-drawer-hint="Mês passado" aria-label="Mês passado">
-                        <span class="msr" aria-hidden="true">calendar_view_month</span>
-                      </button>
-                      <span class="c-tooltip__content" role="tooltip">Mês passado</span>
-                    </span>
-                    <span class="c-tooltip">
-                      <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-range-preset="last7" data-drawer-hint="Últimos 7" aria-label="Últimos 7">
-                        <span class="msr" aria-hidden="true">date_range</span>
-                      </button>
-                      <span class="c-tooltip__content" role="tooltip">Últimos 7</span>
-                    </span>
-                    <span class="c-tooltip">
-                      <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-range-preset="last30" data-drawer-hint="Últimos 30" aria-label="Últimos 30">
-                        <span class="msr" aria-hidden="true">view_week</span>
-                      </button>
-                      <span class="c-tooltip__content" role="tooltip">Últimos 30</span>
-                    </span>
-                    <span class="c-tooltip">
-                      <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-range-preset="last90" data-drawer-hint="Últimos 90" aria-label="Últimos 90">
-                        <span class="msr" aria-hidden="true">view_agenda</span>
-                      </button>
-                      <span class="c-tooltip__content" role="tooltip">Últimos 90</span>
-                    </span>
-                  </div>
-                  <div class="v2-date-range__custom is-collapsed">
-                    <div class="v4-drawer__row">
-                      <span class="v2-date-range__label">Personalizado</span>
-                      <span class="c-tooltip">
-                        <button class="v5-icon-btn v5-icon-btn--sm v2-date-range__custom-trigger" type="button" data-drawer-hint="Personalizar período" aria-label="Personalizar período">
-                          <span class="msr" aria-hidden="true">tune</span>
-                        </button>
-                        <span class="c-tooltip__content" role="tooltip">Personalizar</span>
-                      </span>
-                    </div>
-                    <div class="v2-date-range__pickers">
-                      <div class="c-stack c-stack--sm">
-                        <span class="v2-date-range__label">Início</span>
-                        <ion-datetime id="date-range-start" presentation="date"></ion-datetime>
-                      </div>
-                      <div class="c-stack c-stack--sm">
-                        <span class="v2-date-range__label">Fim</span>
-                        <ion-datetime id="date-range-end" presentation="date"></ion-datetime>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="v2-date-range__footer">
-                    <button class="v5-icon-btn v2-date-range__apply" type="button" aria-label="Aplicar período">
-                      <span class="msr" aria-hidden="true">check</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="v4-drawer__section">
-                <span class="v4-drawer__label">Categoria</span>
-                <div class="v2-search-select" data-search-select data-inline-panel data-demo-recent="servicos,impostos">
-                  <div class="v4-drawer__row">
-                    <div class="v4-drawer__summary">Todas</div>
-                    <span class="c-tooltip">
-                      <button type="button" class="v5-icon-btn v2-search-select__trigger" data-icon-only="true" data-drawer-hint="Buscar categoria" aria-label="Buscar categoria">
-                        <span class="msr" aria-hidden="true">search</span>
-                      </button>
-                      <span class="c-tooltip__content" role="tooltip">Buscar</span>
-                    </span>
-                  </div>
-                  <select id="search-select-bar">
-                    <option value="">Categoria</option>
-                    <option value="honorarios">Honorários</option>
-                    <option value="servicos">Serviços</option>
-                    <option value="impostos">Impostos</option>
-                    <option value="despesas">Despesas operacionais</option>
-                    <option value="folha">Folha de pagamento</option>
-                  </select>
-                  <div class="v4-drawer__panel v2-search-select__panel" hidden>
-                    <ion-searchbar placeholder="Buscar categoria"></ion-searchbar>
-                    <div class="v2-search-select__loading" hidden>Carregando opções...</div>
-                    <div class="v2-search-select__options" role="listbox"></div>
-                    <div class="v2-search-select__empty" hidden>Sem resultados</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ion-content>
-        </ion-modal>
-      </section>
-
-      <section class="v3-section">
-        <h2 class="v3-section__title">DualActionDock V6</h2>
-        <div class="v6d-actions v6d-actions--dock">
-          <button class="v6d-action v6d-action--in" type="button" data-tooltip aria-label="Nova entrada">
-            <span class="msr" aria-hidden="true">north</span>
-          </button>
-          <button class="v6d-action v6d-action--out" type="button" data-tooltip aria-label="Nova saída">
-            <span class="msr" aria-hidden="true">south</span>
-          </button>
-        </div>
-      </section>
-
-      <section class="v3-section">
-        <h2 class="v3-section__title">EntryRow V5 (swipe + long-press)</h2>
-        <div class="v5-list">
-          <div class="v5-entry-wrap">
-            <div class="v4-entry-row" data-swipe-row>
-              <div class="v4-entry-row__icon">S</div>
-              <div>
-                <p class="v4-entry-row__title">Serviços contábeis</p>
-                <span class="v4-entry-row__meta">09/01/2026 • Conta PJ</span>
-              </div>
-              <div class="v4-entry-row__end">
-                <span class="c-tooltip">
-                  <button class="v4-status-icon is-success" data-tooltip aria-label="Consolidado">
-                    <span class="msr" aria-hidden="true">check_circle</span>
-                    <span class="visually-hidden">Consolidado</span>
-                  </button>
-                  <span class="c-tooltip__content" role="tooltip">Consolidado</span>
-                </span>
-                <span class="v4-entry-value is-in">+ R$ 2.450,00</span>
-              </div>
-              <div class="v5-context-menu">
-                <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Editar">
-                  <span class="msr" aria-hidden="true">edit</span>
-                </button>
-                <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Anexar">
-                  <span class="msr" aria-hidden="true">attach_file</span>
-                </button>
-                <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Excluir">
-                  <span class="msr" aria-hidden="true">delete</span>
-                </button>
-              </div>
-            </div>
-            <div class="v5-swipe-actions">
-              <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Editar">
-                <span class="msr" aria-hidden="true">edit</span>
-              </button>
-              <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Anexar">
-                <span class="msr" aria-hidden="true">attach_file</span>
-              </button>
-              <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Excluir">
-                <span class="msr" aria-hidden="true">delete</span>
-              </button>
-            </div>
-          </div>
-          <div class="v5-entry-wrap">
-            <div class="v4-entry-row" data-swipe-row>
-              <div class="v4-entry-row__icon">F</div>
-              <div>
-                <p class="v4-entry-row__title">Fornecedor</p>
-                <span class="v4-entry-row__meta">08/01/2026 • Fatura 083</span>
-              </div>
-              <div class="v4-entry-row__end">
-                <span class="c-tooltip">
-                  <button class="v4-status-icon" data-tooltip aria-label="Pendente">
-                    <span class="msr" aria-hidden="true">schedule</span>
-                    <span class="visually-hidden">Pendente</span>
-                  </button>
-                  <span class="c-tooltip__content" role="tooltip">Pendente</span>
-                </span>
-                <span class="v4-entry-value is-out">- R$ 1.120,00</span>
-              </div>
-              <div class="v5-context-menu">
-                <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Editar">
-                  <span class="msr" aria-hidden="true">edit</span>
-                </button>
-                <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Anexar">
-                  <span class="msr" aria-hidden="true">attach_file</span>
-                </button>
-                <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Excluir">
-                  <span class="msr" aria-hidden="true">delete</span>
-                </button>
-              </div>
-            </div>
-            <div class="v5-swipe-actions">
-              <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Editar">
-                <span class="msr" aria-hidden="true">edit</span>
-              </button>
-              <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Anexar">
-                <span class="msr" aria-hidden="true">attach_file</span>
-              </button>
-              <button class="v5-icon-btn v5-icon-btn--sm" aria-label="Excluir">
-                <span class="msr" aria-hidden="true">delete</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="v3-section">
-        <h2 class="v3-section__title">North Star V6D</h2>
-        <div class="v6d-compare">
-          <div class="v6d-screen v6d-theme v6d-dashboard">
-            <div class="v6d-topbar">
-              <div class="v6d-topbar__left">
-                <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-tooltip aria-label="Voltar">
-                  <span class="msr" aria-hidden="true">arrow_back</span>
-                </button>
-                <div class="v6d-topbar__title">Dashboard</div>
-              </div>
-              <div class="v6d-topbar__actions">
-                <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-tooltip aria-label="Ajuda" data-testid="tooltip-anchor">
-                  <span class="msr" aria-hidden="true">help</span>
-                </button>
-                <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-tooltip aria-label="Notificações">
-                  <span class="msr" aria-hidden="true">notifications</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="v6d-balance">
-              <span class="v6d-balance__label">Saldo do período</span>
-              <div class="v6d-balance__value">R$ 128.450,00</div>
-              <div class="v6d-balance__meta">
-                <span class="v6d-delta is-up">
-                  <span class="msr" aria-hidden="true">north_east</span>
-                  4,6%
-                </span>
-                <span class="v6d-balance__note">vs mês anterior</span>
-              </div>
-              <svg class="v6d-sparkline" viewBox="0 0 160 42" aria-hidden="true">
-                <path d="M0 32 L18 28 L32 30 L50 22 L72 24 L92 16 L110 18 L128 10 L160 14"></path>
-              </svg>
-            </div>
-
-            <div class="v6d-kpis">
-              <div class="v6d-kpi">
-                <span class="v6d-kpi__label">Entradas</span>
-                <span class="v6d-kpi__value">R$ 210.840,00</span>
-              </div>
-              <div class="v6d-kpi">
-                <span class="v6d-kpi__label">Saídas</span>
-                <span class="v6d-kpi__value">R$ 82.390,00</span>
-              </div>
-              <div class="v6d-kpi">
-                <span class="v6d-kpi__label">Pendências</span>
-                <span class="v6d-kpi__value">3</span>
-              </div>
-            </div>
-
-            <div class="v6d-insights">
-              <div class="v6d-insight">
-                <span class="msr" aria-hidden="true">error</span>
-                <span>Gasto alto em serviços</span>
-                <span>+18%</span>
-              </div>
-              <div class="v6d-insight">
-                <span class="msr" aria-hidden="true">check_circle</span>
-                <span>Entradas estáveis</span>
-                <span>+2%</span>
-              </div>
-              <div class="v6d-insight">
-                <span class="msr" aria-hidden="true">schedule</span>
-                <span>Pendência relevante</span>
-                <span>R$ 4.920,00</span>
-              </div>
-            </div>
-
-            <div class="v6d-filter-bar">
-              <div class="v6d-filter-bar__row">
-                <button class="v5-icon-btn v5-icon-btn--sm v6d-filter-trigger" id="filters-trigger-v6d" type="button" data-tooltip aria-label="Filtros" data-testid="filters-trigger-v6d">
-                  <span class="msr" aria-hidden="true">tune</span>
-                  <span class="v6d-filter-dot" aria-hidden="true"></span>
-                </button>
-                <span class="v6d-filter-summary">Mês atual · Tipo: Todos · Categoria: Todas</span>
-                <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-tooltip aria-label="Limpar filtros">
-                  <span class="msr" aria-hidden="true">close</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="v6d-list">
-              <div class="v6d-row">
-                <div class="v4-entry-row__icon">S</div>
-                <div>
-                  <div class="v6d-row__title">Serviços contábeis</div>
-                  <div class="v6d-row__meta">09/01/2026 · Conta PJ</div>
-                </div>
-                <div class="v4-entry-row__end">
-                  <button class="v4-status-icon is-success" type="button" data-tooltip aria-label="Consolidado">
-                    <span class="msr" aria-hidden="true">check_circle</span>
-                  </button>
-                  <span class="v6d-row__value is-positive">R$ 2.400,00</span>
-                </div>
-              </div>
-              <div class="v6d-row">
-                <div class="v4-entry-row__icon">I</div>
-                <div>
-                  <div class="v6d-row__title">Impostos federais</div>
-                  <div class="v6d-row__meta">06/01/2026 · Conta PJ</div>
-                </div>
-                <div class="v4-entry-row__end">
-                  <button class="v4-status-icon" type="button" data-tooltip aria-label="Pendente">
-                    <span class="msr" aria-hidden="true">schedule</span>
-                  </button>
-                  <span class="v6d-row__value is-negative">R$ 980,00</span>
-                </div>
-              </div>
-              <div class="v6d-row">
-                <div class="v4-entry-row__icon">A</div>
-                <div>
-                  <div class="v6d-row__title">Ajuste de contrato</div>
-                  <div class="v6d-row__meta">02/01/2026 · Conta PJ</div>
-                </div>
-                <div class="v4-entry-row__end">
-                  <button class="v4-status-icon" type="button" data-tooltip aria-label="Com anexo">
-                    <span class="msr" aria-hidden="true">attach_file</span>
-                  </button>
-                  <span class="v6d-row__value is-positive">R$ 1.240,00</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="v6d-actions v6d-actions--dock" id="v6d-dual-dock">
-              <button class="v6d-action v6d-action--in" type="button" data-tooltip aria-label="Nova entrada">
-                <span class="msr" aria-hidden="true">north</span>
-              </button>
-              <button class="v6d-action v6d-action--out" type="button" data-tooltip aria-label="Nova saída">
-                <span class="msr" aria-hidden="true">south</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <ion-modal trigger="filters-trigger-v6d" data-breakpoints="0,0.5,0.85" data-initial-breakpoint="0.85" handle="true">
-          <ion-content class="v5-content v6d-theme">
-            <div class="v4-drawer v6d-drawer">
-              <div class="v6d-drawer__header">
-                <span class="v6d-drawer__title">Filtros</span>
-                <div class="v6d-drawer__actions">
-                  <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-drawer-hint="Aplicar filtros" aria-label="Aplicar filtros">
-                    <span class="msr" aria-hidden="true">check</span>
-                  </button>
-                  <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-drawer-hint="Limpar filtros" aria-label="Limpar filtros">
-                    <span class="msr" aria-hidden="true">close</span>
-                  </button>
-                  <button class="v5-icon-btn v5-icon-btn--sm" type="button" data-drawer-hint="Fechar filtros" aria-label="Fechar filtros">
-                    <span class="msr" aria-hidden="true">expand_more</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="v6d-drawer__group">
-                <span class="v6d-drawer__label">Tipo</span>
-                <div class="v6d-chip-row">
-                  <button class="v6d-chip is-active" type="button" data-drawer-hint="Todos" aria-label="Todos">
-                    <span class="msr" aria-hidden="true">all_inclusive</span>
-                  </button>
-                  <button class="v6d-chip" type="button" data-drawer-hint="Entradas" aria-label="Entradas">
-                    <span class="msr" aria-hidden="true">north</span>
-                  </button>
-                  <button class="v6d-chip" type="button" data-drawer-hint="Saídas" aria-label="Saídas">
-                    <span class="msr" aria-hidden="true">south</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="v6d-drawer__group" data-date-range data-inline-panel>
-                <span class="v6d-drawer__label">Período</span>
-                <div class="v4-drawer__row">
-                  <div class="v4-drawer__summary">Este mês</div>
-                  <button class="v5-icon-btn v2-date-range__trigger" type="button" data-icon-only="true" data-drawer-hint="Escolher período" aria-label="Escolher período" data-testid="drawer-hint-periodo">
-                    <span class="msr" aria-hidden="true">event</span>
-                  </button>
-                </div>
-                <div class="v4-drawer__panel v2-date-range__panel" hidden>
-                  <div class="v2-date-range__presets">
-                    <button class="v6d-chip" type="button" data-range-preset="today" data-drawer-hint="Hoje" aria-label="Hoje">
-                      <span class="msr" aria-hidden="true">today</span>
-                    </button>
-                    <button class="v6d-chip is-active" type="button" data-range-preset="thisMonth" data-drawer-hint="Este mês" aria-label="Este mês">
-                      <span class="msr" aria-hidden="true">calendar_month</span>
-                    </button>
-                    <button class="v6d-chip" type="button" data-range-preset="lastMonth" data-drawer-hint="Mês passado" aria-label="Mês passado">
-                      <span class="msr" aria-hidden="true">calendar_view_month</span>
-                    </button>
-                    <button class="v6d-chip" type="button" data-range-preset="last7" data-drawer-hint="Últimos 7" aria-label="Últimos 7">
-                      <span class="msr" aria-hidden="true">date_range</span>
-                    </button>
-                    <button class="v6d-chip" type="button" data-range-preset="last30" data-drawer-hint="Últimos 30" aria-label="Últimos 30">
-                      <span class="msr" aria-hidden="true">view_week</span>
-                    </button>
-                    <button class="v6d-chip" type="button" data-range-preset="last90" data-drawer-hint="Últimos 90" aria-label="Últimos 90">
-                      <span class="msr" aria-hidden="true">view_agenda</span>
-                    </button>
-                  </div>
-                  <div class="v2-date-range__custom is-collapsed">
-                    <div class="v4-drawer__row">
-                      <span class="v2-date-range__label">Personalizado</span>
-                      <button class="v6d-chip" type="button" data-drawer-hint="Personalizar período" aria-label="Personalizar período">
-                        <span class="msr" aria-hidden="true">tune</span>
-                      </button>
-                    </div>
-                    <div class="v2-date-range__pickers">
-                      <div class="c-stack c-stack--sm">
-                        <span class="v2-date-range__label">Início</span>
-                        <ion-datetime id="date-range-start" presentation="date"></ion-datetime>
-                      </div>
-                      <div class="c-stack c-stack--sm">
-                        <span class="v2-date-range__label">Fim</span>
-                        <ion-datetime id="date-range-end" presentation="date"></ion-datetime>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="v2-date-range__footer">
-                    <button class="v5-icon-btn v2-date-range__apply" type="button" aria-label="Aplicar período">
-                      <span class="msr" aria-hidden="true">check</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="v6d-drawer__group">
-                <span class="v6d-drawer__label">Categoria</span>
-                <div class="v2-search-select" data-search-select data-inline-panel data-demo-recent="servicos,impostos">
-                  <div class="v4-drawer__row">
-                    <div class="v4-drawer__summary">Todas</div>
-                    <button type="button" class="v6d-chip" data-icon-only="true" data-drawer-hint="Buscar categoria" aria-label="Buscar categoria">
-                      <span class="msr" aria-hidden="true">search</span>
-                    </button>
-                  </div>
-                  <select id="search-select-v6d">
-                    <option value="">Categoria</option>
-                    <option value="honorarios">Honorários</option>
-                    <option value="servicos">Serviços</option>
-                    <option value="impostos">Impostos</option>
-                    <option value="despesas">Despesas operacionais</option>
-                    <option value="folha">Folha de pagamento</option>
-                  </select>
-                  <div class="v4-drawer__panel v2-search-select__panel" hidden>
-                    <ion-searchbar placeholder="Buscar categoria"></ion-searchbar>
-                    <div class="v2-search-select__loading" hidden>Carregando opções...</div>
-                    <div class="v2-search-select__options" role="listbox"></div>
-                    <div class="v2-search-select__empty" hidden>Sem resultados</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ion-content>
-        </ion-modal>
-      </section>
-
-      <div class="selftest-anchors" id="selftest-anchors" hidden>
-        <span class="c-tooltip selftest-anchor--tl">
-          <button class="v5-icon-btn" type="button" data-tooltip aria-label="Topo esquerdo">
-            <span class="msr" aria-hidden="true">north_west</span>
-          </button>
-          <span class="c-tooltip__content" role="tooltip">Topo esquerdo</span>
-        </span>
-        <span class="c-tooltip selftest-anchor--tr">
-          <button class="v5-icon-btn" type="button" data-tooltip aria-label="Topo direito">
-            <span class="msr" aria-hidden="true">north_east</span>
-          </button>
-          <span class="c-tooltip__content" role="tooltip">Topo direito</span>
-        </span>
-        <span class="c-tooltip selftest-anchor--bl">
-          <button class="v5-icon-btn" type="button" data-tooltip aria-label="Base esquerdo">
-            <span class="msr" aria-hidden="true">south_west</span>
-          </button>
-          <span class="c-tooltip__content" role="tooltip">Base esquerdo</span>
-        </span>
-        <span class="c-tooltip selftest-anchor--br">
-          <button class="v5-icon-btn" type="button" data-tooltip aria-label="Base direito">
-            <span class="msr" aria-hidden="true">south_east</span>
-          </button>
-          <span class="c-tooltip__content" role="tooltip">Base direito</span>
-        </span>
+    <ion-content>
+      <div class="tabs" id="top-tabs">
+        <button class="tab" data-tab="transactions">Transactions</button>
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="categories">Categories</button>
+        <button class="tab" data-tab="recurring">Recurring</button>
       </div>
 
-      <section class="v3-section">
-        <h2 class="v3-section__title">UI Spec V5</h2>
-                <div class="v5-spec">
-          <strong>Icon Spec</strong>
-          <span>Material Symbols Rounded, 20px, weight 400, fill 0, opsz 24, containers 44px (radius-md).</span>
-          <strong>Superfícies</strong>
-          <span>Seções com divisores e borda sutil, sem sombra dominante.</span>
-          <strong>Listas</strong>
-          <span>Inset-grouped com separadores e valores alinhados à direita.</span>
+      <section class="tab-page" data-tab="transactions">
+        <ion-searchbar class="search-min" placeholder="Search"></ion-searchbar>
+        <div class="chip-row">
+          <span class="chip active">All</span>
+          <span class="chip">Review</span>
+          <span class="chip">Income</span>
+          <span class="chip">Spent</span>
         </div>
-        <div class="v5-surface v4-icon-legend">
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">check_circle</span>Consolidado</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">schedule</span>Pendente</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">attach_file</span>Com anexo</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">error</span>Pendência</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">tune</span>Filtros</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">search</span>Buscar</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">north</span>Entrada</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">south</span>Saída</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">delete</span>Excluir</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">edit</span>Editar</div>
-          <div class="v4-icon-legend__row"><span class="msr" aria-hidden="true">event</span>Período</div>
+
+        <div class="section-title">Today</div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">shopping_bag</span></div>
+          <div>
+            <div class="row-title">Mercado Central</div>
+            <div class="row-meta">Groceries - Itauba</div>
+          </div>
+          <div class="row-value neg">- 186,20</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">payments</span></div>
+          <div>
+            <div class="row-title">Pix Recebido</div>
+            <div class="row-meta">Income - Banco Inter</div>
+          </div>
+          <div class="row-value pos">+ 1.200,00</div>
+        </div>
+
+        <div class="section-title">Yesterday</div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">restaurant</span></div>
+          <div>
+            <div class="row-title">Restaurante Onda</div>
+            <div class="row-meta">Dining - Cartao Visa</div>
+          </div>
+          <div class="row-value neg">- 92,40</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">local_taxi</span></div>
+          <div>
+            <div class="row-title">Uber</div>
+            <div class="row-meta">Transport - Itauba</div>
+          </div>
+          <div class="row-value neg">- 34,80</div>
         </div>
       </section>
+
+      <section class="tab-page active" data-tab="dashboard">
+        <ion-card class="hero">
+          <div class="hero-label">Saldo do mes</div>
+          <div class="hero-value">R$ 4.820,15</div>
+          <div class="hero-meta">R$ 6.700 budgeted this month</div>
+          <div class="sparkline">
+            <svg viewBox="0 0 200 64" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#2E87C2" stroke-width="3" points="0,52 24,34 48,38 72,20 96,26 120,18 144,28 168,14 200,22" />
+            </svg>
+          </div>
+          <div class="badge-soft">Net this month</div>
+        </ion-card>
+
+        <div class="section-title">To Review</div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">storefront</span></div>
+          <div>
+            <div class="row-title">Cafe Mercado</div>
+            <div class="row-meta">Food</div>
+          </div>
+          <div class="row-value neg">- 24,90</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">home</span></div>
+          <div>
+            <div class="row-title">Movel Casa</div>
+            <div class="row-meta">Home</div>
+          </div>
+          <div class="row-value neg">- 312,00</div>
+        </div>
+        <div class="review-action">Mark reviewed</div>
+
+        <div class="section-title">Budgets</div>
+        <div class="budget-strip">
+          <div class="budget-item">
+            <div class="budget-ring"><span><span class="material-symbols-rounded">shopping_cart</span></span></div>
+            R$ 1.240
+          </div>
+          <div class="budget-item">
+            <div class="budget-ring"><span><span class="material-symbols-rounded">local_taxi</span></span></div>
+            R$ 420
+          </div>
+          <div class="budget-item">
+            <div class="budget-ring"><span><span class="material-symbols-rounded">subscriptions</span></span></div>
+            R$ 220
+          </div>
+          <div class="budget-item">
+            <div class="budget-ring"><span><span class="material-symbols-rounded">movie</span></span></div>
+            R$ 310
+          </div>
+        </div>
+
+        <div class="section-title">Upcoming</div>
+        <div class="upcoming-list">
+          <div class="row">
+            <div class="icon-circle"><span class="material-symbols-rounded">wifi</span></div>
+            <div>
+              <div class="row-title">Internet Vivo</div>
+              <div class="row-meta">Due in 3 days</div>
+            </div>
+            <div class="row-value neg">- 119,90</div>
+          </div>
+          <div class="row">
+            <div class="icon-circle"><span class="material-symbols-rounded">music_note</span></div>
+            <div>
+              <div class="row-title">Spotify</div>
+              <div class="row-meta">Monthly - 2 days</div>
+            </div>
+            <div class="row-value neg">- 21,90</div>
+          </div>
+          <div class="row">
+            <div class="icon-circle"><span class="material-symbols-rounded">fitness_center</span></div>
+            <div>
+              <div class="row-title">Gym Pulse</div>
+              <div class="row-meta">Monthly - 6 days</div>
+            </div>
+            <div class="row-value neg">- 129,00</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-page" data-tab="categories">
+        <div class="ring-summary">
+          <div class="ring"><div class="ring-inner">72%</div></div>
+          <div class="row-meta">Total do mes</div>
+        </div>
+
+        <div class="section-title">Categories</div>
+        <div class="category-row">
+          <div class="row-title">Groceries</div>
+          <div class="row-meta">R$ 1.240</div>
+          <div class="progress-line"><span style="width:78%"></span></div>
+        </div>
+        <div class="category-row">
+          <div class="row-title">Transport</div>
+          <div class="row-meta">R$ 420</div>
+          <div class="progress-line"><span style="width:60%"></span></div>
+        </div>
+        <div class="category-row">
+          <div class="row-title">Entertainment</div>
+          <div class="row-meta">R$ 310</div>
+          <div class="progress-line"><span style="width:52%"></span></div>
+        </div>
+      </section>
+
+      <section class="tab-page" data-tab="recurring">
+        <div class="section-title">Recurring</div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">wifi</span></div>
+          <div>
+            <div class="row-title">Internet Vivo</div>
+            <div class="row-meta">Monthly - Next on 23 Jul</div>
+          </div>
+          <div class="row-value neg">- 119,90</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">fitness_center</span></div>
+          <div>
+            <div class="row-title">Gym Pulse</div>
+            <div class="row-meta">Monthly - Next on 26 Jul</div>
+          </div>
+          <div class="row-value neg">- 129,00</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">directions_car</span></div>
+          <div>
+            <div class="row-title">Car Insurance</div>
+            <div class="row-meta">Annual - Next on 12 Aug</div>
+          </div>
+          <div class="row-value neg">- 1.200,00</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">palette</span></div>
+          <div>
+            <div class="row-title">Adobe Creative</div>
+            <div class="row-meta">Monthly - Next on 28 Jul</div>
+          </div>
+          <div class="row-value neg">- 89,00</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">movie</span></div>
+          <div>
+            <div class="row-title">Prime Video</div>
+            <div class="row-meta">Monthly - Next on 29 Jul</div>
+          </div>
+          <div class="row-value neg">- 14,90</div>
+        </div>
+        <div class="row">
+          <div class="icon-circle"><span class="material-symbols-rounded">cloud</span></div>
+          <div>
+            <div class="row-title">Cloud Storage</div>
+            <div class="row-meta">Monthly - Next on 30 Jul</div>
+          </div>
+          <div class="row-value neg">- 29,90</div>
+        </div>
+      </section>
+
+      <ion-fab vertical="bottom" horizontal="start" slot="fixed">
+        <div class="fab-row">
+          <ion-fab-button id="open-entry" aria-label="Adicionar entrada">
+            <span class="material-symbols-rounded">add</span>
+          </ion-fab-button>
+          <div class="fab-label">Entrada</div>
+        </div>
+      </ion-fab>
     </ion-content>
+
+    <ion-modal id="entry-modal">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="topbar-title">Nova entrada</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-entry" aria-label="Fechar">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <ion-item lines="full">
+          <ion-label position="stacked">Valor</ion-label>
+          <ion-input type="number" placeholder="0,00"></ion-input>
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Data</ion-label>
+          <ion-datetime presentation="date"></ion-datetime>
+        </ion-item>
+        <ion-item button id="open-category" lines="full">
+          <ion-label>Categoria</ion-label>
+          <ion-note slot="end" id="selected-category">Selecionar</ion-note>
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Anexo</ion-label>
+          <input type="file" id="receipt-input" accept="image/*" />
+          <img id="receipt-preview" class="preview" alt="Preview" />
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Observacao</ion-label>
+          <ion-textarea auto-grow placeholder="Adicionar observacao"></ion-textarea>
+        </ion-item>
+        <div class="modal-actions">
+          <ion-button class="ghost-button" fill="outline" id="cancel-entry">Cancelar</ion-button>
+          <ion-button color="primary">Salvar</ion-button>
+        </div>
+      </ion-content>
+    </ion-modal>
+
+    <ion-modal id="category-modal">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="topbar-title">Selecionar categoria</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-category" aria-label="Fechar">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <ion-searchbar id="category-search" class="search-min" placeholder="Buscar categoria"></ion-searchbar>
+        <div id="category-list">
+          <div class="row" data-category="Groceries">
+            <div class="icon-circle"><span class="material-symbols-rounded">shopping_cart</span></div>
+            <div>
+              <div class="row-title">Groceries</div>
+              <div class="row-meta">Food</div>
+            </div>
+            <div class="row-value">R$ 1.240</div>
+          </div>
+          <div class="row" data-category="Transport">
+            <div class="icon-circle"><span class="material-symbols-rounded">local_taxi</span></div>
+            <div>
+              <div class="row-title">Transport</div>
+              <div class="row-meta">Mobility</div>
+            </div>
+            <div class="row-value">R$ 420</div>
+          </div>
+          <div class="row" data-category="Dining">
+            <div class="icon-circle"><span class="material-symbols-rounded">restaurant</span></div>
+            <div>
+              <div class="row-title">Dining</div>
+              <div class="row-meta">Meals</div>
+            </div>
+            <div class="row-value">R$ 310</div>
+          </div>
+          <div class="row" data-category="Subscriptions">
+            <div class="icon-circle"><span class="material-symbols-rounded">subscriptions</span></div>
+            <div>
+              <div class="row-title">Subscriptions</div>
+              <div class="row-meta">Services</div>
+            </div>
+            <div class="row-value">R$ 220</div>
+          </div>
+          <div class="row" data-category="Entertainment">
+            <div class="icon-circle"><span class="material-symbols-rounded">movie</span></div>
+            <div>
+              <div class="row-title">Entertainment</div>
+              <div class="row-meta">Leisure</div>
+            </div>
+            <div class="row-value">R$ 310</div>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
   </ion-app>
 
-  <script src="/assets/js/ui.js"></script>
-  <script src="/assets/js/v2-components.js"></script>
+  <script type="module" src="assets/vendor/ionic/dist/ionic/ionic.esm.js"></script>
+  <script nomodule src="assets/vendor/ionic/dist/ionic/ionic.js"></script>
+  <script>
+    const topTabs = document.getElementById("top-tabs");
+    const tabPages = document.querySelectorAll(".tab-page");
+
+    function showTab(tab) {
+      document.querySelectorAll(".tab").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+      tabPages.forEach((page) => {
+        page.classList.toggle("active", page.dataset.tab === tab);
+      });
+    }
+
+    topTabs.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".tab");
+      if (!btn) return;
+      showTab(btn.dataset.tab);
+    });
+
+    showTab("dashboard");
+
+    const entryModal = document.getElementById("entry-modal");
+    const openEntry = document.getElementById("open-entry");
+    const closeEntry = document.getElementById("close-entry");
+    const cancelEntry = document.getElementById("cancel-entry");
+
+    openEntry.addEventListener("click", () => entryModal.present());
+    closeEntry.addEventListener("click", () => entryModal.dismiss());
+    cancelEntry.addEventListener("click", () => entryModal.dismiss());
+
+    const categoryModal = document.getElementById("category-modal");
+    const openCategory = document.getElementById("open-category");
+    const closeCategory = document.getElementById("close-category");
+    const categoryList = document.getElementById("category-list");
+    const categorySearch = document.getElementById("category-search");
+    const selectedCategory = document.getElementById("selected-category");
+
+    openCategory.addEventListener("click", () => categoryModal.present());
+    closeCategory.addEventListener("click", () => categoryModal.dismiss());
+
+    categoryList.querySelectorAll(".row").forEach((item) => {
+      item.addEventListener("click", () => {
+        selectedCategory.textContent = item.dataset.category;
+        categoryModal.dismiss();
+      });
+    });
+
+    categorySearch.addEventListener("ionInput", (ev) => {
+      const query = (ev.target.value || "").toLowerCase();
+      categoryList.querySelectorAll(".row").forEach((item) => {
+        const matches = item.dataset.category.toLowerCase().includes(query);
+        item.style.display = matches ? "grid" : "none";
+      });
+    });
+
+    const receiptInput = document.getElementById("receipt-input");
+    const receiptPreview = document.getElementById("receipt-preview");
+
+    receiptInput.addEventListener("change", (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        receiptPreview.src = reader.result;
+        receiptPreview.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    const cardCount = document.querySelectorAll("ion-card").length;
+    const hasTabBar = document.querySelectorAll("ion-tab-bar").length > 0;
+    const contentEl = document.querySelector("ion-content");
+
+    console.log("ui-kit checks", {
+      cardCount,
+      hasTabBar,
+      scrollOk: !!contentEl,
+    });
+  </script>
 </body>
 </html>
