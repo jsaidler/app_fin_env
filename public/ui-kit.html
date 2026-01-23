@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Copilot Light Preview</title>
+  <title data-i18n="titleDocument"></title>
   <link rel="stylesheet" href="assets/vendor/ionic/css/ionic.bundle.css" />
   <style>
     @font-face {
@@ -90,31 +90,45 @@
       --padding-end: 8px;
     }
 
-    .tabs {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+    
+    
+    .tabs-toolbar {
+      --background: var(--canvas);
+      --border-color: transparent;
+    }
+
+    ion-segment.top-tabs {
+      display: flex;
+      gap: 6px;
       padding: 6px;
+      margin: 2px 16px 10px;
       background: rgba(15, 23, 32, 0.05);
       border-radius: 999px;
-      margin: 8px 0 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
     }
 
-    .tab {
-      min-height: 44px;
-      border-radius: 999px;
-      border: none;
-      background: transparent;
+    ion-segment.top-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    ion-segment-button.top-tab {
+      --color: var(--muted);
+      --color-checked: var(--brand);
+      --indicator-color: transparent;
+      text-transform: none;
       font-size: 13px;
       font-weight: 600;
-      color: var(--muted);
-      text-align: center;
-      padding: 8px 10px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+      min-height: 34px;
+      min-width: 120px;
     }
 
-    .tab.active {
+    ion-segment-button.top-tab::part(indicator-background) {
       background: rgba(0, 93, 151, 0.12);
-      color: var(--brand);
+      border-radius: 999px;
       box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
     }
 
@@ -355,13 +369,41 @@
       background: var(--brand);
     }
 
-    .tab-page {
+    
+    
+    .view-stack {
+      position: relative;
+      touch-action: pan-y;
+      overflow-x: hidden;
+    }
+
+    .view {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 200ms ease, transform 200ms ease;
+      pointer-events: none;
+    }
+
+    .view.is-active {
+      position: relative;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .view.is-hidden {
       display: none;
     }
 
-    .tab-page.active {
-      display: block;
+    @media (prefers-reduced-motion: reduce) {
+      .view {
+        transition: opacity 160ms ease;
+        transform: none;
+      }
     }
+}
 
     ion-fab-button {
       --background: var(--brand);
@@ -391,6 +433,134 @@
       margin-top: 16px;
     }
 
+    .entry-sheet ion-select::part(icon) {
+      display: none;
+    }
+
+    .entry-actions .modal-actions {
+      margin-top: 0;
+      padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
+    }
+
+
+    .form-list {
+      margin: 6px 0 14px;
+      padding: 0;
+      background: transparent;
+    }
+
+    .form-list ion-item {
+      --background: transparent;
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      --inner-border-width: 0 0 1px 0;
+      --border-color: rgba(15, 23, 32, 0.06);
+    }
+
+    .form-list ion-item:last-of-type {
+      --inner-border-width: 0;
+    }
+
+    .form-list .material-symbols-rounded {
+      font-size: 20px;
+      color: var(--muted);
+    }
+
+    .file-input {
+      display: none;
+    }
+
+
+    .entry-sheet::part(content) {
+      --background: var(--surface);
+      border-radius: 22px 22px 0 0;
+      height: 90vh;
+      max-height: 90vh;
+      align-self: flex-end;
+      box-shadow: 0 -12px 28px rgba(15, 23, 32, 0.12);
+    }
+
+    .entry-sheet ion-header ion-toolbar {
+      --min-height: 48px;
+    }
+
+    .entry-sheet ion-content {
+      --padding-bottom: 112px;
+    }
+
+    @media (min-width: 768px) {
+      .entry-sheet::part(content) {
+        width: 520px;
+        max-width: 520px;
+        margin: 0 auto;
+        border-radius: 22px;
+      }
+    }
+
+    .entry-sheet::part(backdrop) {
+      background: rgba(15, 23, 32, 0.28);
+    }
+
+    .entry-hero {
+      --background: transparent;
+      --inner-padding-end: 0;
+      --padding-start: 0;
+      margin-bottom: 10px;
+    }
+
+    .entry-hero ion-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .entry-hero ion-input::part(native) {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text);
+      padding-left: 0;
+    }
+
+    .currency-prefix {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-right: 6px;
+    }
+
+    .notes-item ion-textarea::part(native) {
+      min-height: 48px;
+    }
+
+    .entry-actions ion-toolbar {
+      --background: var(--surface);
+      border-top: 1px solid rgba(15, 23, 32, 0.08);
+    }
+
+    .entry-actions ion-button {
+      --border-radius: 16px;
+      --padding-start: 18px;
+      --padding-end: 18px;
+    }
+
+    .date-sheet::part(content) {
+      --background: var(--surface);
+      border-radius: 16px;
+      height: 360px;
+      max-height: 360px;
+    }
+    .attachment-note {
+      max-width: 160px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .date-note {
+      color: var(--muted);
+    }
     .ghost-button {
       --background: transparent;
       --color: var(--text);
@@ -411,408 +581,771 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start" class="toolbar-actions">
-          <ion-button aria-label="Settings">
+          <ion-button aria-label="" data-i18n-aria="ariaSettings">
             <span class="material-symbols-rounded">settings</span>
           </ion-button>
         </ion-buttons>
-        <ion-title class="topbar-title">Finance</ion-title>
+        <ion-title class="topbar-title" data-i18n="titleMain"></ion-title>
         <ion-buttons slot="end" class="toolbar-actions">
-          <ion-button aria-label="Search">
+          <ion-button aria-label="" data-i18n-aria="ariaSearch">
             <span class="material-symbols-rounded">search</span>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
+      
+      
+      <ion-toolbar class="tabs-toolbar">
+        <ion-segment id="top-tabs" class="top-tabs" value="painel" scrollable="true">
+          <ion-segment-button class="top-tab" value="lancamentos" data-i18n="tabLancamentos"></ion-segment-button>
+          <ion-segment-button class="top-tab" value="painel" data-i18n="tabPainel"></ion-segment-button>
+          <ion-segment-button class="top-tab" value="categorias" data-i18n="tabCategorias"></ion-segment-button>
+          <ion-segment-button class="top-tab" value="recorrentes" data-i18n="tabRecorrentes"></ion-segment-button>
+          <ion-segment-button class="top-tab" value="orcamentos" data-i18n="tabOrcamentos"></ion-segment-button>
+          <ion-segment-button class="top-tab" value="relatorios" data-i18n="tabRelatorios"></ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
+
+
     </ion-header>
 
     <ion-content>
-      <div class="tabs" id="top-tabs">
-        <button class="tab" data-tab="transactions">Transactions</button>
-        <button class="tab active" data-tab="dashboard">Dashboard</button>
-        <button class="tab" data-tab="categories">Categories</button>
-        <button class="tab" data-tab="recurring">Recurring</button>
-      </div>
-
-      <section class="tab-page" data-tab="transactions">
-        <ion-searchbar class="search-min" placeholder="Search"></ion-searchbar>
+      <div class="view-stack" id="view-stack">
+      <section class="view is-hidden" data-view="lancamentos" id="view-lancamentos">
+        <ion-searchbar class="search-min" placeholder="" data-i18n-placeholder="placeholderSearch"></ion-searchbar>
         <div class="chip-row">
-          <span class="chip active">All</span>
-          <span class="chip">Review</span>
-          <span class="chip">Income</span>
-          <span class="chip">Spent</span>
+          <span class="chip active" data-i18n="chipAll"></span>
+          <span class="chip" data-i18n="chipReview"></span>
+          <span class="chip" data-i18n="chipIncome"></span>
+          <span class="chip" data-i18n="chipSpent"></span>
         </div>
 
-        <div class="section-title">Today</div>
+        <div class="section-title" data-i18n="sectionToday"></div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">shopping_bag</span></div>
           <div>
-            <div class="row-title">Mercado Central</div>
-            <div class="row-meta">Groceries - Itauba</div>
+            <div class="row-title" data-i18n="rowTitleMarketCentral"></div>
+            <div class="row-meta" data-i18n="rowMetaMarketCentral"></div>
           </div>
-          <div class="row-value neg">- 186,20</div>
+          <div class="row-value neg" data-i18n="rowValueMarketCentral"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">payments</span></div>
           <div>
-            <div class="row-title">Pix Recebido</div>
-            <div class="row-meta">Income - Banco Inter</div>
+            <div class="row-title" data-i18n="rowTitlePix"></div>
+            <div class="row-meta" data-i18n="rowMetaPix"></div>
           </div>
-          <div class="row-value pos">+ 1.200,00</div>
+          <div class="row-value pos" data-i18n="rowValuePix"></div>
         </div>
 
-        <div class="section-title">Yesterday</div>
+        <div class="section-title" data-i18n="sectionYesterday"></div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">restaurant</span></div>
           <div>
-            <div class="row-title">Restaurante Onda</div>
-            <div class="row-meta">Dining - Cartao Visa</div>
+            <div class="row-title" data-i18n="rowTitleRestaurantOnda"></div>
+            <div class="row-meta" data-i18n="rowMetaRestaurantOnda"></div>
           </div>
-          <div class="row-value neg">- 92,40</div>
+          <div class="row-value neg" data-i18n="rowValueRestaurantOnda"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">local_taxi</span></div>
           <div>
-            <div class="row-title">Uber</div>
-            <div class="row-meta">Transport - Itauba</div>
+            <div class="row-title" data-i18n="rowTitleUber"></div>
+            <div class="row-meta" data-i18n="rowMetaUber"></div>
           </div>
-          <div class="row-value neg">- 34,80</div>
+          <div class="row-value neg" data-i18n="rowValueUber"></div>
         </div>
       </section>
 
-      <section class="tab-page active" data-tab="dashboard">
+      <section class="view is-active" data-view="painel" id="view-painel">
         <ion-card class="hero">
-          <div class="hero-label">Saldo do mes</div>
-          <div class="hero-value">R$ 4.820,15</div>
-          <div class="hero-meta">R$ 6.700 budgeted this month</div>
+          <div class="hero-label" data-i18n="heroBalanceLabel"></div>
+          <div class="hero-value" data-i18n="heroBalanceValue"></div>
+          <div class="hero-meta" data-i18n="heroBudgetedMeta"></div>
           <div class="sparkline">
             <svg viewBox="0 0 200 64" preserveAspectRatio="none">
               <polyline fill="none" stroke="#2E87C2" stroke-width="3" points="0,52 24,34 48,38 72,20 96,26 120,18 144,28 168,14 200,22" />
             </svg>
           </div>
-          <div class="badge-soft">Net this month</div>
+          <div class="badge-soft" data-i18n="badgeNetMonth"></div>
         </ion-card>
 
-        <div class="section-title">To Review</div>
+        <div class="section-title" data-i18n="sectionToReview"></div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">storefront</span></div>
           <div>
-            <div class="row-title">Cafe Mercado</div>
-            <div class="row-meta">Food</div>
+            <div class="row-title" data-i18n="rowTitleCafeMarket"></div>
+            <div class="row-meta" data-i18n="rowMetaCafeMarket"></div>
           </div>
-          <div class="row-value neg">- 24,90</div>
+          <div class="row-value neg" data-i18n="rowValueCafeMarket"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">home</span></div>
           <div>
-            <div class="row-title">Movel Casa</div>
-            <div class="row-meta">Home</div>
+            <div class="row-title" data-i18n="rowTitleMovelCasa"></div>
+            <div class="row-meta" data-i18n="rowMetaMovelCasa"></div>
           </div>
-          <div class="row-value neg">- 312,00</div>
+          <div class="row-value neg" data-i18n="rowValueMovelCasa"></div>
         </div>
-        <div class="review-action">Mark reviewed</div>
+        <div class="review-action" data-i18n="reviewAction"></div>
 
-        <div class="section-title">Budgets</div>
+        <div class="section-title" data-i18n="sectionBudgets"></div>
         <div class="budget-strip">
           <div class="budget-item">
             <div class="budget-ring"><span><span class="material-symbols-rounded">shopping_cart</span></span></div>
-            R$ 1.240
+            <span data-i18n="budgetGroceries"></span>
           </div>
           <div class="budget-item">
             <div class="budget-ring"><span><span class="material-symbols-rounded">local_taxi</span></span></div>
-            R$ 420
+            <span data-i18n="budgetTransport"></span>
           </div>
           <div class="budget-item">
             <div class="budget-ring"><span><span class="material-symbols-rounded">subscriptions</span></span></div>
-            R$ 220
+            <span data-i18n="budgetSubscriptions"></span>
           </div>
           <div class="budget-item">
             <div class="budget-ring"><span><span class="material-symbols-rounded">movie</span></span></div>
-            R$ 310
+            <span data-i18n="budgetEntertainment"></span>
           </div>
         </div>
 
-        <div class="section-title">Upcoming</div>
+        <div class="section-title" data-i18n="sectionUpcoming"></div>
         <div class="upcoming-list">
           <div class="row">
             <div class="icon-circle"><span class="material-symbols-rounded">wifi</span></div>
             <div>
-              <div class="row-title">Internet Vivo</div>
-              <div class="row-meta">Due in 3 days</div>
+              <div class="row-title" data-i18n="rowTitleInternetVivo"></div>
+              <div class="row-meta" data-i18n="rowMetaInternetVivo"></div>
             </div>
-            <div class="row-value neg">- 119,90</div>
+            <div class="row-value neg" data-i18n="rowValueInternetVivo"></div>
           </div>
           <div class="row">
             <div class="icon-circle"><span class="material-symbols-rounded">music_note</span></div>
             <div>
-              <div class="row-title">Spotify</div>
-              <div class="row-meta">Monthly - 2 days</div>
+              <div class="row-title" data-i18n="rowTitleSpotify"></div>
+              <div class="row-meta" data-i18n="rowMetaSpotify"></div>
             </div>
-            <div class="row-value neg">- 21,90</div>
+            <div class="row-value neg" data-i18n="rowValueSpotify"></div>
           </div>
           <div class="row">
             <div class="icon-circle"><span class="material-symbols-rounded">fitness_center</span></div>
             <div>
-              <div class="row-title">Gym Pulse</div>
-              <div class="row-meta">Monthly - 6 days</div>
+              <div class="row-title" data-i18n="rowTitleGymPulse"></div>
+              <div class="row-meta" data-i18n="rowMetaGymPulse"></div>
             </div>
-            <div class="row-value neg">- 129,00</div>
+            <div class="row-value neg" data-i18n="rowValueGymPulse"></div>
           </div>
         </div>
       </section>
 
-      <section class="tab-page" data-tab="categories">
+      <section class="view is-hidden" data-view="categorias" id="view-categorias">
         <div class="ring-summary">
           <div class="ring"><div class="ring-inner">72%</div></div>
-          <div class="row-meta">Total do mes</div>
+          <div class="row-meta" data-i18n="summaryTotalMes"></div>
         </div>
 
-        <div class="section-title">Categories</div>
+        <div class="section-title" data-i18n="sectionCategories"></div>
         <div class="category-row">
-          <div class="row-title">Groceries</div>
-          <div class="row-meta">R$ 1.240</div>
+          <div class="row-title" data-i18n="categoryGroceriesTitle"></div>
+          <div class="row-meta" data-i18n="categoryGroceriesValue"></div>
           <div class="progress-line"><span style="width:78%"></span></div>
         </div>
         <div class="category-row">
-          <div class="row-title">Transport</div>
-          <div class="row-meta">R$ 420</div>
+          <div class="row-title" data-i18n="categoryTransportTitle"></div>
+          <div class="row-meta" data-i18n="categoryTransportValue"></div>
           <div class="progress-line"><span style="width:60%"></span></div>
         </div>
         <div class="category-row">
-          <div class="row-title">Entertainment</div>
-          <div class="row-meta">R$ 310</div>
+          <div class="row-title" data-i18n="categoryEntertainmentTitle"></div>
+          <div class="row-meta" data-i18n="categoryEntertainmentValue"></div>
           <div class="progress-line"><span style="width:52%"></span></div>
         </div>
       </section>
 
-      <section class="tab-page" data-tab="recurring">
-        <div class="section-title">Recurring</div>
+      <section class="view is-hidden" data-view="recorrentes" id="view-recorrentes">
+        <div class="section-title" data-i18n="sectionRecurring"></div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">wifi</span></div>
           <div>
-            <div class="row-title">Internet Vivo</div>
-            <div class="row-meta">Monthly - Next on 23 Jul</div>
+            <div class="row-title" data-i18n="rowTitleRecurringInternet"></div>
+            <div class="row-meta" data-i18n="rowMetaRecurringInternet"></div>
           </div>
-          <div class="row-value neg">- 119,90</div>
+          <div class="row-value neg" data-i18n="rowValueRecurringInternet"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">fitness_center</span></div>
           <div>
-            <div class="row-title">Gym Pulse</div>
-            <div class="row-meta">Monthly - Next on 26 Jul</div>
+            <div class="row-title" data-i18n="rowTitleRecurringGym"></div>
+            <div class="row-meta" data-i18n="rowMetaRecurringGym"></div>
           </div>
-          <div class="row-value neg">- 129,00</div>
+          <div class="row-value neg" data-i18n="rowValueRecurringGym"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">directions_car</span></div>
           <div>
-            <div class="row-title">Car Insurance</div>
-            <div class="row-meta">Annual - Next on 12 Aug</div>
+            <div class="row-title" data-i18n="rowTitleRecurringCar"></div>
+            <div class="row-meta" data-i18n="rowMetaRecurringCar"></div>
           </div>
-          <div class="row-value neg">- 1.200,00</div>
+          <div class="row-value neg" data-i18n="rowValueRecurringCar"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">palette</span></div>
           <div>
-            <div class="row-title">Adobe Creative</div>
-            <div class="row-meta">Monthly - Next on 28 Jul</div>
+            <div class="row-title" data-i18n="rowTitleRecurringAdobe"></div>
+            <div class="row-meta" data-i18n="rowMetaRecurringAdobe"></div>
           </div>
-          <div class="row-value neg">- 89,00</div>
+          <div class="row-value neg" data-i18n="rowValueRecurringAdobe"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">movie</span></div>
           <div>
-            <div class="row-title">Prime Video</div>
-            <div class="row-meta">Monthly - Next on 29 Jul</div>
+            <div class="row-title" data-i18n="rowTitleRecurringPrime"></div>
+            <div class="row-meta" data-i18n="rowMetaRecurringPrime"></div>
           </div>
-          <div class="row-value neg">- 14,90</div>
+          <div class="row-value neg" data-i18n="rowValueRecurringPrime"></div>
         </div>
         <div class="row">
           <div class="icon-circle"><span class="material-symbols-rounded">cloud</span></div>
           <div>
-            <div class="row-title">Cloud Storage</div>
-            <div class="row-meta">Monthly - Next on 30 Jul</div>
+            <div class="row-title" data-i18n="rowTitleRecurringCloud"></div>
+            <div class="row-meta" data-i18n="rowMetaRecurringCloud"></div>
           </div>
-          <div class="row-value neg">- 29,90</div>
+          <div class="row-value neg" data-i18n="rowValueRecurringCloud"></div>
         </div>
       </section>
 
+      <section class="view is-hidden" data-view="orcamentos" id="view-orcamentos">
+        <div class="section-title" data-i18n="sectionOrcamentos"></div>
+        <div class="row-meta" data-i18n="placeholderOrcamentos"></div>
+      </section>
+
+      <section class="view is-hidden" data-view="relatorios" id="view-relatorios">
+        <div class="section-title" data-i18n="sectionRelatorios"></div>
+        <div class="row-meta" data-i18n="placeholderRelatorios"></div>
+      </section>
+      </div>
+
       <ion-fab vertical="bottom" horizontal="start" slot="fixed">
         <div class="fab-row">
-          <ion-fab-button id="open-entry" aria-label="Adicionar entrada">
+          <ion-fab-button id="open-entry" aria-label="" data-i18n-aria="ariaAddEntry">
             <span class="material-symbols-rounded">add</span>
           </ion-fab-button>
-          <div class="fab-label">Entrada</div>
         </div>
       </ion-fab>
     </ion-content>
 
-    <ion-modal id="entry-modal">
+    
+    
+    <ion-modal id="entry-modal" class="entry-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="topbar-title">Nova entrada</ion-title>
+          <ion-title class="topbar-title" data-i18n="titleEntryModal"></ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-entry" aria-label="Fechar">
+            <ion-button id="close-entry" aria-label="" data-i18n-aria="ariaCloseEntry">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <ion-content class="ion-padding">
-        <ion-item lines="full">
-          <ion-label position="stacked">Valor</ion-label>
-          <ion-input type="number" placeholder="0,00"></ion-input>
+        <ion-item class="entry-hero" lines="none">
+          <ion-label position="stacked" data-i18n="labelValor"></ion-label>
+          <ion-text slot="start" class="currency-prefix">R$</ion-text>
+          <ion-input id="entry-value" inputmode="decimal" type="text" placeholder="" data-i18n-placeholder="placeholderValor"></ion-input>
         </ion-item>
-        <ion-item lines="full">
-          <ion-label position="stacked">Data</ion-label>
-          <ion-datetime presentation="date"></ion-datetime>
-        </ion-item>
-        <ion-item button id="open-category" lines="full">
-          <ion-label>Categoria</ion-label>
-          <ion-note slot="end" id="selected-category">Selecionar</ion-note>
-        </ion-item>
-        <ion-item lines="full">
-          <ion-label position="stacked">Anexo</ion-label>
-          <input type="file" id="receipt-input" accept="image/*" />
-          <img id="receipt-preview" class="preview" alt="Preview" />
-        </ion-item>
-        <ion-item lines="full">
-          <ion-label position="stacked">Observacao</ion-label>
-          <ion-textarea auto-grow placeholder="Adicionar observacao"></ion-textarea>
-        </ion-item>
-        <div class="modal-actions">
-          <ion-button class="ghost-button" fill="outline" id="cancel-entry">Cancelar</ion-button>
-          <ion-button color="primary">Salvar</ion-button>
-        </div>
+        <ion-list class="form-list">
+          <ion-item lines="full" button id="open-date">
+            <span class="material-symbols-rounded" slot="start">event</span>
+            <ion-label data-i18n="labelData"></ion-label>
+            <ion-note slot="end" id="selected-date" class="date-note" data-i18n="placeholderData"></ion-note>
+            <span class="material-symbols-rounded" slot="end">chevron_right</span>
+          </ion-item>
+          <ion-item lines="full">
+            <span class="material-symbols-rounded" slot="start">category</span>
+            <ion-label data-i18n="labelCategoria"></ion-label>
+            <ion-select id="entry-category" interface="action-sheet" value="sem" placeholder="" data-i18n-placeholder="placeholderCategoria">
+              <ion-select-option value="sem" data-i18n="categoriaSem"></ion-select-option>
+              <ion-select-option value="mercado" data-i18n="categoriaMercado"></ion-select-option>
+              <ion-select-option value="transporte" data-i18n="categoriaTransporte"></ion-select-option>
+              <ion-select-option value="lazer" data-i18n="categoriaLazer"></ion-select-option>
+              <ion-select-option value="casa" data-i18n="categoriaCasa"></ion-select-option>
+              <ion-select-option value="saude" data-i18n="categoriaSaude"></ion-select-option>
+              <ion-select-option value="outros" data-i18n="categoriaOutros"></ion-select-option>
+            </ion-select>
+            <span class="material-symbols-rounded" slot="end">chevron_right</span>
+          </ion-item>
+          <ion-item lines="full" button id="open-attachment">
+            <span class="material-symbols-rounded" slot="start">attach_file</span>
+            <ion-label data-i18n="labelAnexo"></ion-label>
+            <ion-note slot="end" id="attachment-name" class="attachment-note" data-i18n="attachmentNone"></ion-note>
+            <span class="material-symbols-rounded" slot="end">chevron_right</span>
+          </ion-item>
+          <input type="file" id="receipt-input" accept="image/*" class="file-input" />
+          <ion-item lines="full" class="notes-item">
+            <span class="material-symbols-rounded" slot="start">notes</span>
+            <ion-label position="stacked" data-i18n="labelObservacao"></ion-label>
+            <ion-textarea id="entry-notes" auto-grow placeholder="" data-i18n-placeholder="placeholderObservacao"></ion-textarea>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button class="ghost-button" fill="outline" id="cancel-entry" data-i18n="buttonCancelar"></ion-button>
+            <ion-button color="primary" id="save-entry" data-i18n="buttonSalvar" disabled></ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="entry-date-modal" class="date-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="topbar-title" data-i18n="titleDateModal"></ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-date" aria-label="" data-i18n-aria="ariaCloseDate">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <ion-datetime id="entry-date" presentation="date" locale="pt-BR" show-default-buttons="true"></ion-datetime>
       </ion-content>
     </ion-modal>
 
-    <ion-modal id="category-modal">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title class="topbar-title">Selecionar categoria</ion-title>
-          <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-category" aria-label="Fechar">
-              <span class="material-symbols-rounded">close</span>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding">
-        <ion-searchbar id="category-search" class="search-min" placeholder="Buscar categoria"></ion-searchbar>
-        <div id="category-list">
-          <div class="row" data-category="Groceries">
-            <div class="icon-circle"><span class="material-symbols-rounded">shopping_cart</span></div>
-            <div>
-              <div class="row-title">Groceries</div>
-              <div class="row-meta">Food</div>
-            </div>
-            <div class="row-value">R$ 1.240</div>
-          </div>
-          <div class="row" data-category="Transport">
-            <div class="icon-circle"><span class="material-symbols-rounded">local_taxi</span></div>
-            <div>
-              <div class="row-title">Transport</div>
-              <div class="row-meta">Mobility</div>
-            </div>
-            <div class="row-value">R$ 420</div>
-          </div>
-          <div class="row" data-category="Dining">
-            <div class="icon-circle"><span class="material-symbols-rounded">restaurant</span></div>
-            <div>
-              <div class="row-title">Dining</div>
-              <div class="row-meta">Meals</div>
-            </div>
-            <div class="row-value">R$ 310</div>
-          </div>
-          <div class="row" data-category="Subscriptions">
-            <div class="icon-circle"><span class="material-symbols-rounded">subscriptions</span></div>
-            <div>
-              <div class="row-title">Subscriptions</div>
-              <div class="row-meta">Services</div>
-            </div>
-            <div class="row-value">R$ 220</div>
-          </div>
-          <div class="row" data-category="Entertainment">
-            <div class="icon-circle"><span class="material-symbols-rounded">movie</span></div>
-            <div>
-              <div class="row-title">Entertainment</div>
-              <div class="row-meta">Leisure</div>
-            </div>
-            <div class="row-value">R$ 310</div>
-          </div>
-        </div>
-      </ion-content>
-    </ion-modal>
-  </ion-app>
+</ion-app>
 
   <script type="module" src="assets/vendor/ionic/dist/ionic/ionic.esm.js"></script>
   <script nomodule src="assets/vendor/ionic/dist/ionic/ionic.js"></script>
-  <script>
-    const topTabs = document.getElementById("top-tabs");
-    const tabPages = document.querySelectorAll(".tab-page");
+  <script>    const uiText = {
+      titleDocument: "Finan\u00e7as",
+      titleMain: "Finan\u00e7as",
+      ariaSettings: "Configura\u00e7\u00f5es",
+      ariaSearch: "Buscar",
+      tabLancamentos: "Lan\u00e7amentos",
+      tabPainel: "Painel",
+      tabCategorias: "Categorias",
+      tabRecorrentes: "Recorrentes",
+      tabOrcamentos: "Or\u00e7amentos",
+      tabRelatorios: "Relat\u00f3rios",
+      placeholderSearch: "Buscar",
+      chipAll: "Tudo",
+      chipReview: "Revisar",
+      chipIncome: "Entradas",
+      chipSpent: "Sa\u00eddas",
+      sectionRecentes: "Recentes",
+      sectionToday: "Hoje",
+      sectionYesterday: "Ontem",
+      rowTitleMarketCentral: "Mercado Central",
+      rowMetaMarketCentral: "Mercado - Ita\u00faba",
+      rowValueMarketCentral: "- R$ 186,20",
+      rowTitlePix: "Pix Recebido",
+      rowMetaPix: "Entrada - Banco Inter",
+      rowValuePix: "+ R$ 1.200,00",
+      rowTitleRestaurantOnda: "Restaurante Onda",
+      rowMetaRestaurantOnda: "Restaurante - Cart\u00e3o Visa",
+      rowValueRestaurantOnda: "- R$ 92,40",
+      rowTitleUber: "Uber",
+      rowMetaUber: "Transporte - Ita\u00faba",
+      rowValueUber: "- R$ 34,80",
+      heroBalanceLabel: "Saldo do m\u00eas",
+      heroBalanceValue: "R$ 4.820,15",
+      heroBudgetedMeta: "R$ 6.700,00 or\u00e7ado no m\u00eas",
+      badgeNetMonth: "Resultado do m\u00eas",
+      sectionToReview: "Para revisar",
+      rowTitleCafeMarket: "Caf\u00e9 Mercado",
+      rowMetaCafeMarket: "Alimenta\u00e7\u00e3o",
+      rowValueCafeMarket: "- R$ 24,90",
+      rowTitleMovelCasa: "M\u00f3vel Casa",
+      rowMetaMovelCasa: "Casa",
+      rowValueMovelCasa: "- R$ 312,00",
+      reviewAction: "Marcar como revisado",
+      sectionBudgets: "Or\u00e7amentos",
+      budgetGroceries: "R$ 1.240,00",
+      budgetTransport: "R$ 420,00",
+      budgetSubscriptions: "R$ 220,00",
+      budgetEntertainment: "R$ 310,00",
+      sectionUpcoming: "Pr\u00f3ximos",
+      rowTitleInternetVivo: "Internet Vivo",
+      rowMetaInternetVivo: "Vence em 3 dias",
+      rowValueInternetVivo: "- R$ 119,90",
+      rowTitleSpotify: "Spotify",
+      rowMetaSpotify: "Mensal - 2 dias",
+      rowValueSpotify: "- R$ 21,90",
+      rowTitleGymPulse: "Gym Pulse",
+      rowMetaGymPulse: "Mensal - 6 dias",
+      rowValueGymPulse: "- R$ 129,00",
+      summaryTotalMes: "Total do m\u00eas",
+      sectionCategories: "Categorias",
+      categoryGroceriesTitle: "Mercado",
+      categoryGroceriesValue: "R$ 1.240,00",
+      categoryTransportTitle: "Transporte",
+      categoryTransportValue: "R$ 420,00",
+      categoryEntertainmentTitle: "Lazer",
+      categoryEntertainmentValue: "R$ 310,00",
+      sectionRecurring: "Recorrentes",
+      sectionOrcamentos: "Or\u00e7amentos",
+      placeholderOrcamentos: "Em breve",
+      sectionRelatorios: "Relat\u00f3rios",
+      placeholderRelatorios: "Em breve",
+      rowTitleRecurringInternet: "Internet Vivo",
+      rowMetaRecurringInternet: "Mensal - Pr\u00f3ximo em 23 jul",
+      rowValueRecurringInternet: "- R$ 119,90",
+      rowTitleRecurringGym: "Gym Pulse",
+      rowMetaRecurringGym: "Mensal - Pr\u00f3ximo em 26 jul",
+      rowValueRecurringGym: "- R$ 129,00",
+      rowTitleRecurringCar: "Seguro do carro",
+      rowMetaRecurringCar: "Anual - Pr\u00f3ximo em 12 ago",
+      rowValueRecurringCar: "- R$ 1.200,00",
+      rowTitleRecurringAdobe: "Adobe Creative",
+      rowMetaRecurringAdobe: "Mensal - Pr\u00f3ximo em 28 jul",
+      rowValueRecurringAdobe: "- R$ 89,00",
+      rowTitleRecurringPrime: "Prime Video",
+      rowMetaRecurringPrime: "Mensal - Pr\u00f3ximo em 29 jul",
+      rowValueRecurringPrime: "- R$ 14,90",
+      rowTitleRecurringCloud: "Armazenamento em nuvem",
+      rowMetaRecurringCloud: "Mensal - Pr\u00f3ximo em 30 jul",
+      rowValueRecurringCloud: "- R$ 29,90",
+      entryTitle: "Entrada",
+      entryNoCategory: "Sem categoria",
+      ariaAddEntry: "Adicionar entrada",
+      titleEntryModal: "Nova entrada",
+      ariaCloseEntry: "Fechar",
+      titleDateModal: "Selecionar data",
+      ariaCloseDate: "Fechar",
+      labelValor: "Valor",
+      placeholderValor: "0,00",
+      labelData: "Data",
+      placeholderData: "Selecionar data",
+      labelCategoria: "Categoria",
+      placeholderCategoria: "Selecionar",
+      categoriaSem: "Sem categoria",
+      categoriaMercado: "Mercado",
+      categoriaTransporte: "Transporte",
+      categoriaLazer: "Lazer",
+      categoriaCasa: "Casa",
+      categoriaSaude: "Sa\u00fade",
+      categoriaOutros: "Outros",
+      labelAnexo: "Anexo",
+      attachmentNone: "Nenhum arquivo",
+      labelObservacao: "Observa\u00e7\u00e3o",
+      placeholderObservacao: "Adicionar observa\u00e7\u00e3o",
+      buttonCancelar: "Cancelar",
+      buttonSalvar: "Salvar",
+      titleCategoryModal: "Selecionar categoria",
+      ariaCloseCategory: "Fechar",
+      placeholderBuscarCategoria: "Buscar categoria",
+      modalCategoryGroceriesTitle: "Mercado",
+      modalCategoryGroceriesMeta: "Alimenta\u00e7\u00e3o",
+      modalCategoryGroceriesValue: "R$ 1.240,00",
+      modalCategoryTransportTitle: "Transporte",
+      modalCategoryTransportMeta: "Mobilidade",
+      modalCategoryTransportValue: "R$ 420,00",
+      modalCategoryDiningTitle: "Refei\u00e7\u00f5es",
+      modalCategoryDiningMeta: "Refei\u00e7\u00f5es",
+      modalCategoryDiningValue: "R$ 310,00",
+      modalCategorySubscriptionsTitle: "Assinaturas",
+      modalCategorySubscriptionsMeta: "Servi\u00e7os",
+      modalCategorySubscriptionsValue: "R$ 220,00",
+      modalCategoryEntertainmentTitle: "Lazer",
+      modalCategoryEntertainmentMeta: "Lazer",
+      modalCategoryEntertainmentValue: "R$ 310,00",
+    };
 
-    function showTab(tab) {
-      document.querySelectorAll(".tab").forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.tab === tab);
+    const applyI18n = () => {
+      document.title = uiText.titleDocument || document.title;
+
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.dataset.i18n;
+        if (uiText[key]) {
+          el.textContent = uiText[key];
+        }
       });
-      tabPages.forEach((page) => {
-        page.classList.toggle("active", page.dataset.tab === tab);
+
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        const key = el.dataset.i18nPlaceholder;
+        if (uiText[key]) {
+          el.setAttribute("placeholder", uiText[key]);
+        }
       });
+
+      document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+        const key = el.dataset.i18nAria;
+        if (uiText[key]) {
+          el.setAttribute("aria-label", uiText[key]);
+        }
+      });
+
+      document.querySelectorAll("[data-i18n-alt]").forEach((el) => {
+        const key = el.dataset.i18nAlt;
+        if (uiText[key]) {
+          el.setAttribute("alt", uiText[key]);
+        }
+      });
+    };
+
+    applyI18n();
+
+    
+    
+    const topTabs = document.getElementById("top-tabs");
+    const viewStack = document.getElementById("view-stack");
+    const views = Array.from(viewStack.querySelectorAll(".view"));
+    const viewByKey = new Map(views.map((view) => [view.dataset.view, view]));
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const transitionMs = reducedMotion ? 160 : 200;
+    let activeView = topTabs.value || "painel";
+
+    function centerActiveTab(key) {
+      const btn = topTabs.querySelector(
+        `ion-segment-button[value="${key}"]`
+      );
+      if (!btn || !btn.scrollIntoView) return;
+      btn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     }
 
-    topTabs.addEventListener("click", (ev) => {
-      const btn = ev.target.closest(".tab");
-      if (!btn) return;
-      showTab(btn.dataset.tab);
+    function setActiveView(key) {
+      if (key === activeView) return;
+      const current = viewByKey.get(activeView);
+      const next = viewByKey.get(key);
+      if (!next || !current) return;
+
+      next.classList.remove("is-hidden");
+      next.classList.add("is-active");
+
+      const finalize = () => {
+        current.classList.remove("is-active");
+        current.classList.add("is-hidden");
+        activeView = key;
+        centerActiveTab(key);
+      };
+
+      if (reducedMotion) {
+        finalize();
+        return;
+      }
+
+      window.setTimeout(finalize, transitionMs);
+    }
+
+    topTabs.addEventListener("ionChange", (ev) => {
+      const key = ev.detail.value;
+      if (!key) return;
+      setActiveView(key);
     });
 
-    showTab("dashboard");
+    centerActiveTab(activeView);
+
+
+    
+    const STORAGE_KEY = "finance_lancamentos";
 
     const entryModal = document.getElementById("entry-modal");
     const openEntry = document.getElementById("open-entry");
     const closeEntry = document.getElementById("close-entry");
     const cancelEntry = document.getElementById("cancel-entry");
+    const saveEntry = document.getElementById("save-entry");
+    const entryValue = document.getElementById("entry-value");
+    const entryNotes = document.getElementById("entry-notes");
+    const entryCategory = document.getElementById("entry-category");
+    const openAttachment = document.getElementById("open-attachment");
+    const attachmentInput = document.getElementById("receipt-input");
+    const attachmentName = document.getElementById("attachment-name");
+    const openDate = document.getElementById("open-date");
+    const dateModal = document.getElementById("entry-date-modal");
+    const dateClose = document.getElementById("close-date");
+    const datePicker = document.getElementById("entry-date");
+    const selectedDate = document.getElementById("selected-date");
+    const transactionsItems = document.getElementById("transactions-items");
 
-    openEntry.addEventListener("click", () => entryModal.present());
-    closeEntry.addEventListener("click", () => entryModal.dismiss());
-    cancelEntry.addEventListener("click", () => entryModal.dismiss());
+    let selectedDateISO = "";
+    let entries = [];
 
-    const categoryModal = document.getElementById("category-modal");
-    const openCategory = document.getElementById("open-category");
-    const closeCategory = document.getElementById("close-category");
-    const categoryList = document.getElementById("category-list");
-    const categorySearch = document.getElementById("category-search");
-    const selectedCategory = document.getElementById("selected-category");
-
-    openCategory.addEventListener("click", () => categoryModal.present());
-    closeCategory.addEventListener("click", () => categoryModal.dismiss());
-
-    categoryList.querySelectorAll(".row").forEach((item) => {
-      item.addEventListener("click", () => {
-        selectedCategory.textContent = item.dataset.category;
-        categoryModal.dismiss();
-      });
+    const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     });
 
-    categorySearch.addEventListener("ionInput", (ev) => {
-      const query = (ev.target.value || "").toLowerCase();
-      categoryList.querySelectorAll(".row").forEach((item) => {
-        const matches = item.dataset.category.toLowerCase().includes(query);
-        item.style.display = matches ? "grid" : "none";
-      });
+    const categoryLabels = {
+      sem: uiText.entryNoCategory,
+      mercado: uiText.categoriaMercado,
+      transporte: uiText.categoriaTransporte,
+      lazer: uiText.categoriaLazer,
+      casa: uiText.categoriaCasa,
+      saude: uiText.categoriaSaude,
+      outros: uiText.categoriaOutros,
+    };
+
+    function parseCurrency(value) {
+      const cleaned = (value || "")
+        .replace(/[^0-9,\.]/g, "")
+        .replace(/\./g, "")
+        .replace(/,/, ".");
+      const parsed = parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "";
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleDateString("pt-BR");
+    }
+
+    function updateSaveState() {
+      const hasValue = parseCurrency(entryValue.value) > 0;
+      const hasDate = !!selectedDateISO;
+      saveEntry.disabled = !(hasValue && hasDate);
+    }
+
+    function resetEntryForm() {
+      entryValue.value = "";
+      entryNotes.value = "";
+      entryCategory.value = "sem";
+      attachmentInput.value = "";
+      attachmentName.textContent = uiText.attachmentNone;
+      selectedDateISO = "";
+      selectedDate.textContent = uiText.placeholderData;
+      saveEntry.disabled = true;
+    }
+
+    function renderEntry(entry, prepend) {
+      if (!transactionsItems) return;
+      const row = document.createElement("div");
+      row.className = "row";
+
+      const icon = document.createElement("div");
+      icon.className = "icon-circle";
+      const iconSpan = document.createElement("span");
+      iconSpan.className = "material-symbols-rounded";
+      iconSpan.textContent = "payments";
+      icon.appendChild(iconSpan);
+
+      const content = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "row-title";
+      title.textContent = uiText.entryTitle;
+      const meta = document.createElement("div");
+      meta.className = "row-meta";
+      const categoryLabel = entry.categoria || uiText.entryNoCategory;
+      meta.textContent = categoryLabel + " - " + formatDate(entry.dataISO);
+      content.appendChild(title);
+      content.appendChild(meta);
+
+      const value = document.createElement("div");
+      value.className = "row-value pos";
+      value.textContent = "+ " + currencyFormatter.format(entry.valor || 0);
+
+      row.appendChild(icon);
+      row.appendChild(content);
+      row.appendChild(value);
+
+      if (prepend) {
+        transactionsItems.prepend(row);
+      } else {
+        transactionsItems.appendChild(row);
+      }
+    }
+
+    function loadEntries() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function saveEntries() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    }
+
+    entries = loadEntries();
+    entries.forEach((entry) => renderEntry(entry));
+
+    openEntry.addEventListener("click", () => {
+      resetEntryForm();
+      entryModal.present();
     });
 
-    const receiptInput = document.getElementById("receipt-input");
-    const receiptPreview = document.getElementById("receipt-preview");
+    entryModal.addEventListener("ionModalDidPresent", () => {
+      if (entryValue && entryValue.setFocus) {
+        entryValue.setFocus();
+      }
+    });
+    closeEntry.addEventListener("click", () => {
+      entryModal.dismiss();
+    });
+    cancelEntry.addEventListener("click", () => {
+      entryModal.dismiss();
+    });
 
-    receiptInput.addEventListener("change", (ev) => {
+    openDate.addEventListener("click", () => {
+      dateModal.present();
+    });
+    dateClose.addEventListener("click", () => {
+      dateModal.dismiss();
+    });
+
+    datePicker.addEventListener("ionChange", (ev) => {
+      selectedDateISO = ev.detail.value || "";
+      selectedDate.textContent = formatDate(selectedDateISO) || uiText.placeholderData;
+      updateSaveState();
+    });
+
+    datePicker.addEventListener("ionConfirm", (ev) => {
+      const value = ev.detail.value || datePicker.value || "";
+      selectedDateISO = value;
+      selectedDate.textContent = formatDate(value) || uiText.placeholderData;
+      updateSaveState();
+      dateModal.dismiss();
+    });
+
+    datePicker.addEventListener("ionCancel", () => {
+      dateModal.dismiss();
+    });
+
+    entryValue.addEventListener("ionBlur", () => {
+      const parsed = parseCurrency(entryValue.value);
+      entryValue.value = parsed > 0 ? currencyFormatter.format(parsed) : "";
+      updateSaveState();
+    });
+
+    entryValue.addEventListener("ionInput", updateSaveState);
+
+    openAttachment.addEventListener("click", () => {
+      attachmentInput.click();
+    });
+
+    attachmentInput.addEventListener("change", (ev) => {
       const file = ev.target.files && ev.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        receiptPreview.src = reader.result;
-        receiptPreview.style.display = "block";
+      attachmentName.textContent = file ? file.name : uiText.attachmentNone;
+    });
+
+    saveEntry.addEventListener("click", () => {
+      const valor = parseCurrency(entryValue.value);
+      if (!valor || !selectedDateISO) return;
+      const categoriaKey = entryCategory.value || "sem";
+      const categoriaLabel = categoryLabels[categoriaKey] || uiText.entryNoCategory;
+      const anexoNome = attachmentInput.files && attachmentInput.files[0]
+        ? attachmentInput.files[0].name
+        : "";
+
+      const entry = {
+        id: String(Date.now()),
+        tipo: "entrada",
+        valor,
+        dataISO: selectedDateISO,
+        categoria: categoriaLabel,
+        anexoNome,
+        observacao: entryNotes.value || "",
       };
-      reader.readAsDataURL(file);
+
+      entries.unshift(entry);
+      saveEntries();
+      renderEntry(entry, true);
+      entryModal.dismiss();
     });
 
     const cardCount = document.querySelectorAll("ion-card").length;
