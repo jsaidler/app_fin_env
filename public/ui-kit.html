@@ -54,7 +54,7 @@
       --padding-top: 12px;
       --padding-start: 16px;
       --padding-end: 16px;
-      --padding-bottom: 96px;
+      --padding-bottom: 120px;
     }
 
     ion-toolbar {
@@ -97,38 +97,64 @@
       --border-color: transparent;
     }
 
-    ion-segment.top-tabs {
-      display: flex;
-      gap: 6px;
-      padding: 6px;
+    .tab-strip {
+      position: relative;
       margin: 2px 16px 10px;
+    }
+
+    .tab-strip::before,
+    .tab-strip::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 24px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .tab-strip::before {
+      left: 0;
+      background: linear-gradient(90deg, var(--canvas), transparent);
+    }
+
+    .tab-strip::after {
+      right: 0;
+      background: linear-gradient(270deg, var(--canvas), transparent);
+    }
+
+    .tab-strip-scroll {
+      display: flex;
+      gap: 8px;
+      padding: 6px;
       background: rgba(15, 23, 32, 0.05);
       border-radius: 999px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scroll-behavior: smooth;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 32, 0.04);
     }
 
-    ion-segment.top-tabs::-webkit-scrollbar {
+    .tab-strip-scroll::-webkit-scrollbar {
       display: none;
     }
 
-    ion-segment-button.top-tab {
+    .tab-pill {
+      --background: transparent;
       --color: var(--muted);
-      --color-checked: var(--brand);
-      --indicator-color: transparent;
+      --border-radius: 999px;
+      --padding-start: 14px;
+      --padding-end: 14px;
       text-transform: none;
       font-size: 13px;
       font-weight: 600;
-      border-radius: 999px;
+      height: 40px;
       flex: 0 0 auto;
-      min-height: 34px;
-      min-width: 120px;
     }
 
-    ion-segment-button.top-tab::part(indicator-background) {
-      background: rgba(0, 93, 151, 0.12);
-      border-radius: 999px;
+    .tab-pill.is-active {
+      --background: rgba(0, 93, 151, 0.12);
+      --color: var(--brand);
       box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
     }
 
@@ -380,17 +406,33 @@
     .view {
       position: absolute;
       inset: 0;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 200ms ease, transform 200ms ease;
+      opacity: 1;
+      transform: translateX(8px);
+      transition: transform 160ms ease;
       pointer-events: none;
     }
 
     .view.is-active {
       position: relative;
       opacity: 1;
-      transform: translateY(0);
+      transform: translateX(0);
       pointer-events: auto;
+    }
+
+    .view.from-left {
+      transform: translateX(-8px);
+    }
+
+    .view.is-active.from-left {
+      transform: translateX(0);
+    }
+
+    .view.is-exit-left {
+      transform: translateX(-8px);
+    }
+
+    .view.is-exit-right {
+      transform: translateX(8px);
     }
 
     .view.is-hidden {
@@ -399,7 +441,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       .view {
-        transition: opacity 160ms ease;
+        transition: none;
         transform: none;
       }
     }
@@ -408,7 +450,7 @@
     ion-fab-button {
       --background: var(--brand);
       --color: #FFFFFF;
-      --box-shadow: var(--shadow-soft);
+      --box-shadow: 0 0 0 10px var(--canvas), var(--shadow-soft);
     }
 
     .fab-label {
@@ -545,6 +587,83 @@
       --padding-end: 18px;
     }
 
+    .chat-view {
+      display: grid;
+      gap: 12px;
+    }
+
+    .chat-thread {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 72px;
+    }
+
+    .chat-bubble {
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.4;
+      box-shadow: 0 6px 14px rgba(15, 23, 32, 0.06);
+    }
+
+    .chat-bubble.agent {
+      background: #FFFFFF;
+      border: 1px solid rgba(15, 23, 32, 0.06);
+      justify-self: start;
+    }
+
+    .chat-bubble.user {
+      background: rgba(0, 93, 151, 0.12);
+      color: var(--text);
+      justify-self: end;
+    }
+
+    .chat-attachment {
+      display: grid;
+      gap: 6px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(15, 23, 32, 0.04);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .chat-attachment strong {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .chat-image {
+      height: 120px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(0, 93, 151, 0.18), rgba(15, 23, 32, 0.04));
+    }
+
+    .chat-input {
+      position: sticky;
+      bottom: 0;
+      background: var(--surface);
+      padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chat-input ion-input {
+      flex: 1;
+      --padding-start: 14px;
+      --padding-end: 14px;
+      --background: rgba(15, 23, 32, 0.04);
+      border-radius: 999px;
+    }
+
+    .entry-actions ion-button {
+      --border-radius: 16px;
+      --padding-start: 18px;
+      --padding-end: 18px;
+    }
+
     .date-sheet::part(content) {
       --background: var(--surface);
       border-radius: 16px;
@@ -595,14 +714,19 @@
       
       
       <ion-toolbar class="tabs-toolbar">
-        <ion-segment id="top-tabs" class="top-tabs" value="painel" scrollable="true">
-          <ion-segment-button class="top-tab" value="lancamentos" data-i18n="tabLancamentos"></ion-segment-button>
-          <ion-segment-button class="top-tab" value="painel" data-i18n="tabPainel"></ion-segment-button>
-          <ion-segment-button class="top-tab" value="categorias" data-i18n="tabCategorias"></ion-segment-button>
-          <ion-segment-button class="top-tab" value="recorrentes" data-i18n="tabRecorrentes"></ion-segment-button>
-          <ion-segment-button class="top-tab" value="orcamentos" data-i18n="tabOrcamentos"></ion-segment-button>
-          <ion-segment-button class="top-tab" value="relatorios" data-i18n="tabRelatorios"></ion-segment-button>
-        </ion-segment>
+        <div class="tab-strip">
+          <div class="tab-strip-scroll" id="tab-strip">
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="lancamentos" data-i18n="tabLancamentos"></ion-button>
+            <ion-button class="tab-pill is-active" fill="clear" mode="ios" data-view="painel" data-i18n="tabPainel"></ion-button>
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="categorias" data-i18n="tabCategorias"></ion-button>
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="recorrentes" data-i18n="tabRecorrentes"></ion-button>
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="orcamentos" data-i18n="tabOrcamentos"></ion-button>
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="contas" data-i18n="tabContas"></ion-button>
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="relatorios" data-i18n="tabRelatorios"></ion-button>
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="pendencias" data-i18n="tabPendencias"></ion-button>
+            <ion-button class="tab-pill" fill="clear" mode="ios" data-view="chat" data-i18n="tabChat"></ion-button>
+          </div>
+        </div>
       </ion-toolbar>
 
 
@@ -818,9 +942,50 @@
         <div class="row-meta" data-i18n="placeholderOrcamentos"></div>
       </section>
 
+      <section class="view is-hidden" data-view="contas" id="view-contas">
+        <div class="section-title" data-i18n="sectionContas"></div>
+        <div class="row-meta" data-i18n="placeholderContas"></div>
+      </section>
+
       <section class="view is-hidden" data-view="relatorios" id="view-relatorios">
         <div class="section-title" data-i18n="sectionRelatorios"></div>
         <div class="row-meta" data-i18n="placeholderRelatorios"></div>
+      </section>
+
+      <section class="view is-hidden" data-view="pendencias" id="view-pendencias">
+        <div class="section-title" data-i18n="sectionPendencias"></div>
+        <div class="row-meta" data-i18n="placeholderPendencias"></div>
+      </section>
+
+      <section class="view is-hidden" data-view="chat" id="view-chat">
+        <div class="chat-view">
+          <div class="section-title" data-i18n="sectionChat"></div>
+          <div class="chat-thread">
+            <div class="chat-bubble agent" data-i18n="chatMsgAgent1"></div>
+            <div class="chat-bubble user" data-i18n="chatMsgUser1"></div>
+            <div class="chat-bubble agent">
+              <div class="chat-attachment">
+                <strong data-i18n="chatAttachmentTitle"></strong>
+                <div data-i18n="chatAttachmentMeta"></div>
+              </div>
+            </div>
+            <div class="chat-bubble user">
+              <div class="chat-attachment">
+                <strong data-i18n="chatImageTitle"></strong>
+                <div class="chat-image"></div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input">
+            <ion-button fill="clear" aria-label="" data-i18n-aria="ariaAttach">
+              <span class="material-symbols-rounded">attach_file</span>
+            </ion-button>
+            <ion-input placeholder="" data-i18n-placeholder="placeholderChat"></ion-input>
+            <ion-button fill="clear" aria-label="" data-i18n-aria="ariaSend">
+              <span class="material-symbols-rounded">send</span>
+            </ion-button>
+          </div>
+        </div>
       </section>
       </div>
 
@@ -927,7 +1092,10 @@
       tabCategorias: "Categorias",
       tabRecorrentes: "Recorrentes",
       tabOrcamentos: "Or\u00e7amentos",
+      tabContas: "Contas",
       tabRelatorios: "Relat\u00f3rios",
+      tabPendencias: "Pend\u00eancias",
+      tabChat: "Chat",
       placeholderSearch: "Buscar",
       chipAll: "Tudo",
       chipReview: "Revisar",
@@ -986,8 +1154,21 @@
       sectionRecurring: "Recorrentes",
       sectionOrcamentos: "Or\u00e7amentos",
       placeholderOrcamentos: "Em breve",
+      sectionContas: "Contas",
+      placeholderContas: "Em breve",
       sectionRelatorios: "Relat\u00f3rios",
       placeholderRelatorios: "Em breve",
+      sectionPendencias: "Pend\u00eancias",
+      placeholderPendencias: "Em breve",
+      sectionChat: "Chat com contador",
+      chatMsgAgent1: "Oi! Sou o contador. Posso revisar seus lan\u00e7amentos?",
+      chatMsgUser1: "Claro, estou enviando os comprovantes.",
+      chatAttachmentTitle: "Transa\u00e7\u00e3o anexada",
+      chatAttachmentMeta: "R$ 420,00 \u2022 18/01/2026",
+      chatImageTitle: "Comprovante",
+      placeholderChat: "Escrever mensagem",
+      ariaAttach: "Anexar",
+      ariaSend: "Enviar",
       rowTitleRecurringInternet: "Internet Vivo",
       rowMetaRecurringInternet: "Mensal - Pr\u00f3ximo em 23 jul",
       rowValueRecurringInternet: "- R$ 119,90",
@@ -1088,18 +1269,18 @@
 
     
     
-    const topTabs = document.getElementById("top-tabs");
+    const tabStrip = document.getElementById("tab-strip");
+    const tabButtons = Array.from(tabStrip.querySelectorAll(".tab-pill"));
     const viewStack = document.getElementById("view-stack");
     const views = Array.from(viewStack.querySelectorAll(".view"));
     const viewByKey = new Map(views.map((view) => [view.dataset.view, view]));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const transitionMs = reducedMotion ? 160 : 200;
-    let activeView = topTabs.value || "painel";
+    const viewOrder = tabButtons.map((btn) => btn.dataset.view);
+    let activeView = "painel";
 
     function centerActiveTab(key) {
-      const btn = topTabs.querySelector(
-        `ion-segment-button[value="${key}"]`
-      );
+      const btn = tabButtons.find((item) => item.dataset.view === key);
       if (!btn || !btn.scrollIntoView) return;
       btn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     }
@@ -1110,14 +1291,27 @@
       const next = viewByKey.get(key);
       if (!next || !current) return;
 
+      const currentIndex = viewOrder.indexOf(activeView);
+      const nextIndex = viewOrder.indexOf(key);
+      const movingForward = nextIndex >= currentIndex;
+
       next.classList.remove("is-hidden");
       next.classList.add("is-active");
+      next.classList.toggle("from-left", !movingForward);
+
+      current.classList.remove("is-exit-left", "is-exit-right");
+      current.classList.add(movingForward ? "is-exit-left" : "is-exit-right");
 
       const finalize = () => {
         current.classList.remove("is-active");
         current.classList.add("is-hidden");
+        current.classList.remove("is-exit-left", "is-exit-right");
+        next.classList.remove("from-left");
         activeView = key;
         centerActiveTab(key);
+        tabButtons.forEach((btn) => {
+          btn.classList.toggle("is-active", btn.dataset.view === key);
+        });
       };
 
       if (reducedMotion) {
@@ -1128,10 +1322,10 @@
       window.setTimeout(finalize, transitionMs);
     }
 
-    topTabs.addEventListener("ionChange", (ev) => {
-      const key = ev.detail.value;
-      if (!key) return;
-      setActiveView(key);
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setActiveView(btn.dataset.view);
+      });
     });
 
     centerActiveTab(activeView);
