@@ -53,6 +53,9 @@ class AdminEntryService
         }
         $merged = array_merge($entry->toArray(), $input);
         $this->assertValid($merged);
+        if (array_key_exists('attachment_path', $input)) {
+            $this->assertAttachmentOwner($input['attachment_path'], $userId);
+        }
         $merged['needs_review'] = 0;
         $merged['reviewed_at'] = date('c');
         $updated = $this->entries->updateAdmin($id, $merged);
@@ -70,6 +73,9 @@ class AdminEntryService
             Response::json(['error' => 'Usuario invalido'], 422);
         }
         $this->assertValid($input);
+        if (array_key_exists('attachment_path', $input)) {
+            $this->assertAttachmentOwner($input['attachment_path'], $userId);
+        }
         $input['needs_review'] = 0;
         $input['reviewed_at'] = date('c');
         $entry = $this->entries->create($userId, $input);
@@ -167,6 +173,27 @@ class AdminEntryService
                 @unlink($target);
                 return;
             }
+        }
+    }
+
+    private function assertAttachmentOwner(?string $path, int $userId): void
+    {
+        $path = trim((string)$path);
+        if ($path === '') {
+            return;
+        }
+        $rel = ltrim(str_replace('\\', '/', $path), '/');
+        $prefix = $userId . '/';
+        if (!str_starts_with($rel, $prefix) || !str_contains($rel, '/uploads/')) {
+            Response::json(['error' => 'Anexo invalido'], 422);
+        }
+        $base = $this->uploadDir ? rtrim($this->uploadDir, '/\\') : null;
+        if (!$base) {
+            Response::json(['error' => 'Upload indisponivel'], 422);
+        }
+        $target = $base . '/' . $rel;
+        if (!is_file($target)) {
+            Response::json(['error' => 'Anexo invalido'], 422);
         }
     }
 }

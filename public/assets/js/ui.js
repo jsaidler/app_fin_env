@@ -2,10 +2,11 @@ const ui = {
   show(el) { el.hidden = false; },
   hide(el) { el.hidden = true; },
   toast(message, ms = 2200) {
-    const t = document.getElementById('toast');
-    t.textContent = message;
-    t.hidden = false;
-    setTimeout(() => t.hidden = true, ms);
+    const t = document.getElementById('app-toast');
+    if (!t) return;
+    t.message = message;
+    t.duration = ms;
+    t.present();
   },
   enhanceSelect(selectOrId, options = {}) {
     const select = typeof selectOrId === 'string'

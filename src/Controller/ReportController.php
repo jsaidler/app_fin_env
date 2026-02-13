@@ -18,6 +18,20 @@ class ReportController extends BaseController
         Response::json($summary);
     }
 
+    public function aggregate(): void
+    {
+        $uid = $this->requireAuth();
+        $filters = [
+            'start' => $_GET['start'] ?? null,
+            'end' => $_GET['end'] ?? null,
+            'type' => $_GET['type'] ?? null,
+            'category' => $_GET['category'] ?? null,
+        ];
+        $service = new ReportService($this->entryRepo());
+        $data = $service->aggregateReport($uid, $filters);
+        Response::json($data);
+    }
+
     public function closure(): void
     {
         $uid = $this->requireAuth();

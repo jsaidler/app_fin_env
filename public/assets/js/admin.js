@@ -1,9 +1,6 @@
 const state = {
 
 
-  token: null,
-
-
   user: null,
 
 
@@ -54,8 +51,6 @@ const state = {
 
 const API_BASE = '/api';
 
-
-const STORAGE_AUTH = 'auth';
 
 
 const STORAGE_ADMIN_PANEL = 'adminPanel';
@@ -672,15 +667,7 @@ function goToPanel(panel) {
 
 function clearAuth() {
 
-
-  state.token = null;
-
-
   state.user = null;
-
-
-  localStorage.removeItem(STORAGE_AUTH);
-
 
 }
 
@@ -689,18 +676,13 @@ function clearAuth() {
 
 
 function logout() {
-
-
-  clearAuth();
-
-
-  ui.toast('Sessão encerrada');
-
-
-  redirectToLogin();
-
-
+  api.post(`${API_BASE}/auth/logout`).finally(() => {
+    clearAuth();
+    ui.toast('Sess?o encerrada');
+    redirectToLogin();
+  });
 }
+
 
 
 
@@ -3229,16 +3211,9 @@ async function exportAlterdata(e) {
   if (userId) params.set('user_id', userId);
 
 
-  const headers = {};
-
-
-  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-
-
   const url = `${API_BASE}/admin/export/alterdata?${params.toString()}`;
 
-
-  const res = await fetch(url, { headers }).catch(() => null);
+  const res = await fetch(url, { credentials: 'same-origin' }).catch(() => null);
 
 
   if (!res || !res.ok) {
@@ -3679,8 +3654,6 @@ async function uploadFile(file, userId = null) {
 
   const headers = {};
 
-  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-
   let res = null;
 
   try {
@@ -3690,7 +3663,7 @@ async function uploadFile(file, userId = null) {
       method: 'POST',
 
       headers,
-
+      credentials: 'same-origin',
       body: (() => {
         const f = new FormData();
         f.append('file', file);
@@ -3756,13 +3729,11 @@ async function uploadSupportAttachment(controller, userId) {
 
 async function fetchAttachmentUrl(relPath) {
 
-  if (!relPath || !state.token) return null;
+  if (!relPath || !state.user) return null;
 
   if (attachmentCache.has(relPath)) return attachmentCache.get(relPath);
 
-  const headers = { Authorization: 'Bearer ' + state.token };
-
-  const res = await fetch('/uploads/' + relPath.replace(/^\/+/, ''), { headers }).catch(() => null);
+  const res = await fetch('/uploads/' + relPath.replace(/^\/+/, ''), { credentials: 'same-origin' }).catch(() => null);
 
   if (!res || !res.ok) return null;
 
@@ -3991,28 +3962,8 @@ async function init() {
   setDefaultMonths();
 
 
-  const saved = JSON.parse(localStorage.getItem(STORAGE_AUTH) || 'null');
-
-
-  if (saved?.token) {
-
-
-    state.token = saved.token;
-
-
-    state.user = saved.user;
-
-
-    await ensureSession();
-
-
-  } else {
-
-
-    redirectToLogin();
-
-
-  }
+  const ok = await ensureSession();
+  if (!ok) redirectToLogin();
 
 
 }

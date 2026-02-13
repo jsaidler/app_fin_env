@@ -46,6 +46,35 @@ class EntryController extends BaseController
         Response::json($data);
     }
 
+    public function summary(): void
+    {
+        $uid = $this->requireAuth();
+        if (($this->authPayload['role'] ?? 'user') === 'admin') {
+            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
+        }
+        $filters = [
+            'start' => $_GET['start'] ?? null,
+            'end' => $_GET['end'] ?? null,
+            'type' => $_GET['type'] ?? null,
+            'category' => $_GET['category'] ?? null,
+        ];
+        $service = new \App\Service\ReportService($this->entryRepo());
+        $summary = $service->aggregateEntriesView($uid, $filters);
+        $filtered = $service->filterEntriesForUser($uid, $filters);
+        $closed = array_filter($this->lockService()->listClosed(), fn($l) => $l['user_id'] === $uid && $l['closed']);
+        $closedMonths = array_map(fn($l) => $l['month'], $closed);
+        $hasLocked = false;
+        foreach ($filtered as $entry) {
+            $month = substr((string)$entry->date, 0, 7);
+            if (in_array($month, $closedMonths, true)) {
+                $hasLocked = true;
+                break;
+            }
+        }
+        $summary['has_locked'] = $hasLocked;
+        Response::json($summary);
+    }
+
     public function create(): void
     {
         $uid = $this->requireAuth();

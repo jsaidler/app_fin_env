@@ -21,6 +21,17 @@
       --text: #0F1720;
       --muted: #657181;
       --stroke: rgba(15, 23, 32, 0.08);
+      --fab-size: 56px;
+      --radius-lg: 22px;
+      --radius-pill: 999px;
+      --shadow-faint: 0 6px 14px rgba(15, 23, 32, 0.06);
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --font-title: 16px;
+      --font-body: 14px;
+      --font-muted: 12px;
       --pos: #2E8B5A;
       --neg: #C65757;
       --warn: #D28B3C;
@@ -54,7 +65,7 @@
       --padding-top: 12px;
       --padding-start: 16px;
       --padding-end: 16px;
-      --padding-bottom: 120px;
+      --padding-bottom: calc(var(--fab-size) + 24px + env(safe-area-inset-bottom));
     }
 
     ion-toolbar {
@@ -78,7 +89,7 @@
     }
 
     .topbar-title {
-      font-size: 16px;
+      font-size: var(--font-title);
       font-weight: 700;
       letter-spacing: 0.02em;
     }
@@ -102,37 +113,20 @@
       margin: 2px 16px 10px;
     }
 
-    .tab-strip::before,
-    .tab-strip::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 24px;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    .tab-strip::before {
-      left: 0;
-      background: linear-gradient(90deg, var(--canvas), transparent);
-    }
-
-    .tab-strip::after {
-      right: 0;
-      background: linear-gradient(270deg, var(--canvas), transparent);
-    }
 
     .tab-strip-scroll {
       display: flex;
       gap: 8px;
       padding: 6px;
       background: rgba(15, 23, 32, 0.05);
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scroll-behavior: smooth;
-      box-shadow: inset 0 0 0 1px rgba(15, 23, 32, 0.04);
+      border: 1px solid rgba(15, 23, 32, 0.05);
+      box-shadow: none;
+      white-space: nowrap;
+      scrollbar-width: none;
     }
 
     .tab-strip-scroll::-webkit-scrollbar {
@@ -142,12 +136,15 @@
     .tab-pill {
       --background: transparent;
       --color: var(--muted);
-      --border-radius: 999px;
+      --border-width: 0;
+      --box-shadow: none;
+      --border-radius: var(--radius-pill);
       --padding-start: 14px;
       --padding-end: 14px;
       text-transform: none;
-      font-size: 13px;
+      font-size: var(--font-body);
       font-weight: 600;
+      border: 0;
       height: 40px;
       flex: 0 0 auto;
     }
@@ -155,11 +152,21 @@
     .tab-pill.is-active {
       --background: rgba(0, 93, 151, 0.12);
       --color: var(--brand);
-      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
+      box-shadow: none;
+    }
+
+    .tab-pill::part(native) {
+      border: 0;
+      box-shadow: none;
+    }
+
+    .tab-pill:focus-visible {
+      outline: 2px solid rgba(0, 93, 151, 0.35);
+      outline-offset: 2px;
     }
 
     .section-title {
-      font-size: 12px;
+      font-size: var(--font-muted);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.14em;
@@ -239,7 +246,7 @@
     }
 
     .row-meta {
-      font-size: 13px;
+      font-size: var(--font-muted);
       color: var(--muted);
       margin-top: 2px;
     }
@@ -450,7 +457,29 @@
     ion-fab-button {
       --background: var(--brand);
       --color: #FFFFFF;
-      --box-shadow: 0 0 0 10px var(--canvas), var(--shadow-soft);
+      --box-shadow: 0 10px 22px rgba(12, 22, 34, 0.18);
+    }
+
+    ion-fab {
+      position: fixed;
+      overflow: visible;
+      z-index: 10;
+      margin-left: calc(12px + env(safe-area-inset-left));
+      margin-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    ion-fab::before {
+      content: "";
+      position: absolute;
+      width: calc(var(--fab-size) + 24px);
+      height: calc(var(--fab-size) + 24px);
+      background: var(--canvas);
+      border-radius: 999px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: -1;
     }
 
     .fab-label {
@@ -487,25 +516,61 @@
 
     .form-list {
       margin: 6px 0 14px;
-      padding: 0;
-      background: transparent;
+      padding: 2px;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 32, 0.06);
     }
 
     .form-list ion-item {
       --background: transparent;
-      --padding-start: 0;
-      --inner-padding-end: 0;
+      --padding-start: 12px;
+      --padding-end: 10px;
+      --inner-padding-end: 10px;
       --inner-border-width: 0 0 1px 0;
       --border-color: rgba(15, 23, 32, 0.06);
+      --min-height: 52px;
+      --detail-icon-color: transparent;
     }
 
     .form-list ion-item:last-of-type {
       --inner-border-width: 0;
     }
 
+    .form-row ion-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .form-row ion-note {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .form-list ion-select {
+      margin-inline-start: auto;
+      text-align: right;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
     .form-list .material-symbols-rounded {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 32, 0.06);
       font-size: 20px;
       color: var(--muted);
+    }
+
+    .form-row .material-symbols-rounded[slot="end"] {
+      font-size: 20px;
+      color: rgba(15, 23, 32, 0.45);
     }
 
     .file-input {
@@ -515,15 +580,18 @@
 
     .entry-sheet::part(content) {
       --background: var(--surface);
-      border-radius: 22px 22px 0 0;
+      border-radius: 18px 18px 0 0;
       height: 90vh;
       max-height: 90vh;
       align-self: flex-end;
-      box-shadow: 0 -12px 28px rgba(15, 23, 32, 0.12);
+      box-shadow: 0 -12px 24px rgba(15, 23, 32, 0.12);
     }
 
     .entry-sheet ion-header ion-toolbar {
       --min-height: 48px;
+      --border-color: transparent;
+      --padding-start: 16px;
+      --padding-end: 12px;
     }
 
     .entry-sheet ion-content {
@@ -543,37 +611,115 @@
       background: rgba(15, 23, 32, 0.28);
     }
 
-    .entry-hero {
-      --background: transparent;
-      --inner-padding-end: 0;
-      --padding-start: 0;
-      margin-bottom: 10px;
+    .entry-amount {
+      width: 100%;
+      border-radius: 16px;
+      background: #fff;
+      padding: 16px 18px;
+      box-shadow: 0 10px 26px rgba(15, 35, 55, 0.08);
+      border: 1px solid rgba(15, 35, 55, 0.06);
+      margin-bottom: 12px;
+      min-height: 120px;
     }
 
-    .entry-hero ion-label {
+    .entry-amount:focus-within {
+      border-color: rgba(0, 93, 151, 0.45);
+      box-shadow: 0 0 0 1px rgba(0, 93, 151, 0.22);
+    }
+
+    .entry-amount .amount-label {
+      font-size: 12px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: rgba(20, 40, 60, 0.55);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .entry-amount .amount-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    .entry-amount .amount-currency {
+      font-size: 18px;
+      font-weight: 800;
+      color: rgba(20, 40, 60, 0.55);
+      line-height: 1;
+      transform: translateY(-2px);
+    }
+
+    ion-input.amount-input {
+      flex: 1;
+      font-family: var(--ion-font-family, inherit);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      text-align: right;
+      font-size: 52px;
+      font-weight: 900;
+      line-height: 1;
+      --padding-start: 0px;
+      --padding-end: 0px;
+      --padding-top: 0px;
+      --padding-bottom: 0px;
+      --placeholder-color: rgba(20, 40, 60, 0.35);
+      --placeholder-opacity: 1;
+    }
+
+    ion-modal#entry-modal ion-input.amount-input::part(native) {
+      font-size: 52px !important;
+      font-weight: 900 !important;
+      font-family: inherit;
+      color: var(--brand);
+      line-height: 1;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      text-align: right;
+      caret-color: var(--brand);
+    }
+
+    ion-modal#entry-modal ion-input.amount-input::part(native):focus {
+      outline: none;
+      box-shadow: none;
+    }
+
+    ion-modal#entry-modal ion-input.amount-input::part(native)::placeholder {
+      color: rgba(20, 40, 60, 0.35);
+      opacity: 1;
+      font-weight: 900;
+    }
+
+    ion-modal#entry-modal ion-input.amount-input::part(input) {
+      font-size: 52px !important;
+      font-weight: 900 !important;
+      font-family: inherit;
+      color: var(--brand);
+      line-height: 1;
+      text-align: right;
+    }
+
+    .notes-item {
+      --padding-top: 10px;
+      --padding-bottom: 12px;
+      --min-height: 88px;
+    }
+
+    .notes-item ion-label {
       font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
       color: var(--muted);
-    }
-
-    .entry-hero ion-input::part(native) {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text);
-      padding-left: 0;
-    }
-
-    .currency-prefix {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-right: 6px;
+      letter-spacing: 0.02em;
     }
 
     .notes-item ion-textarea::part(native) {
-      min-height: 48px;
+      min-height: 40px;
+      font-size: 14px;
+      padding: 0;
+      background: transparent;
+      color: var(--text);
     }
 
     .entry-actions ion-toolbar {
@@ -582,9 +728,15 @@
     }
 
     .entry-actions ion-button {
-      --border-radius: 16px;
+      --border-radius: var(--radius-pill);
       --padding-start: 18px;
       --padding-end: 18px;
+      height: 44px;
+    }
+
+    .entry-actions .ghost-button {
+      --border-color: rgba(15, 23, 32, 0.18);
+      --color: var(--text);
     }
 
     .chat-view {
@@ -599,12 +751,12 @@
     }
 
     .chat-bubble {
-      max-width: 78%;
+      max-width: 70%;
       padding: 10px 12px;
-      border-radius: 16px;
-      font-size: 14px;
+      border-radius: var(--radius-lg);
+      font-size: var(--font-body);
       line-height: 1.4;
-      box-shadow: 0 6px 14px rgba(15, 23, 32, 0.06);
+      box-shadow: var(--shadow-faint);
     }
 
     .chat-bubble.agent {
@@ -625,7 +777,8 @@
       padding: 10px 12px;
       border-radius: 14px;
       background: rgba(15, 23, 32, 0.04);
-      font-size: 12px;
+      border: 1px solid rgba(15, 23, 32, 0.06);
+      font-size: var(--font-muted);
       color: var(--muted);
     }
 
@@ -655,7 +808,20 @@
       --padding-start: 14px;
       --padding-end: 14px;
       --background: rgba(15, 23, 32, 0.04);
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
+      font-size: var(--font-body);
+    }
+
+    .hide-fab {
+      display: none;
+    }
+
+    .chat-time {
+      display: block;
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
     }
 
     .entry-actions ion-button {
@@ -669,6 +835,79 @@
       border-radius: 16px;
       height: 360px;
       max-height: 360px;
+    }
+
+    .date-sheet ion-content {
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --padding-top: 8px;
+      --padding-bottom: 12px;
+    }
+
+    .date-sheet ion-toolbar {
+      --background: var(--surface);
+      --border-color: transparent;
+    }
+
+    .date-sheet ion-datetime {
+      --background: var(--surface);
+      --ion-color-primary: var(--brand);
+      --ion-color-primary-contrast: #ffffff;
+      --ion-color-primary-tint: #1a6ea2;
+      --wheel-highlight-background: rgba(0, 93, 151, 0.08);
+      --wheel-fade-background-rgb: 242, 245, 249;
+      color: var(--text);
+    }
+
+    .date-sheet ion-datetime::part(calendar-header) {
+      padding-bottom: 6px;
+    }
+
+    .date-sheet ion-datetime::part(month-year-button) {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .date-sheet ion-datetime::part(calendar-weekday) {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .date-sheet ion-datetime::part(calendar-day) {
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .date-sheet ion-datetime::part(calendar-day-active) {
+      background: var(--brand);
+      color: #ffffff;
+    }
+
+    .date-sheet ion-datetime::part(calendar-day-today) {
+      color: var(--brand);
+      border: 1px solid rgba(0, 93, 151, 0.45);
+    }
+
+    .date-sheet ion-datetime::part(calendar-day-disabled) {
+      color: rgba(15, 23, 32, 0.35);
+    }
+
+    .date-sheet ion-datetime::part(button) {
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    ion-action-sheet {
+      --button-color: var(--text);
+      --button-background: var(--surface);
+      --button-background-activated: rgba(0, 93, 151, 0.08);
+      --cancel-button-color: var(--text);
+      --backdrop-opacity: 0.28;
     }
     .attachment-note {
       max-width: 160px;
@@ -961,19 +1200,25 @@
         <div class="chat-view">
           <div class="section-title" data-i18n="sectionChat"></div>
           <div class="chat-thread">
-            <div class="chat-bubble agent" data-i18n="chatMsgAgent1"></div>
-            <div class="chat-bubble user" data-i18n="chatMsgUser1"></div>
+            <div class="chat-bubble agent" data-i18n="chatMsgAgent1">
+              <span class="chat-time" data-i18n="chatTimeAgent1"></span>
+            </div>
+            <div class="chat-bubble user" data-i18n="chatMsgUser1">
+              <span class="chat-time" data-i18n="chatTimeUser1"></span>
+            </div>
             <div class="chat-bubble agent">
               <div class="chat-attachment">
                 <strong data-i18n="chatAttachmentTitle"></strong>
                 <div data-i18n="chatAttachmentMeta"></div>
               </div>
+              <span class="chat-time" data-i18n="chatTimeAgent2"></span>
             </div>
             <div class="chat-bubble user">
               <div class="chat-attachment">
                 <strong data-i18n="chatImageTitle"></strong>
                 <div class="chat-image"></div>
               </div>
+              <span class="chat-time" data-i18n="chatTimeUser2"></span>
             </div>
           </div>
           <div class="chat-input">
@@ -1012,23 +1257,25 @@
         </ion-toolbar>
       </ion-header>
       <ion-content class="ion-padding">
-        <ion-item class="entry-hero" lines="none">
-          <ion-label position="stacked" data-i18n="labelValor"></ion-label>
-          <ion-text slot="start" class="currency-prefix">R$</ion-text>
-          <ion-input id="entry-value" inputmode="decimal" type="text" placeholder="" data-i18n-placeholder="placeholderValor"></ion-input>
-        </ion-item>
+        <div class="entry-amount">
+          <div class="amount-label" data-i18n="labelValor"></div>
+          <div class="amount-row">
+            <span class="amount-currency">R$</span>
+            <ion-input id="entry-value" class="amount-input" inputmode="decimal" type="tel" placeholder="" data-i18n-placeholder="placeholderValor" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" autofocus></ion-input>
+          </div>
+        </div>
         <ion-list class="form-list">
-          <ion-item lines="full" button id="open-date">
-            <span class="material-symbols-rounded" slot="start">event</span>
-            <ion-label data-i18n="labelData"></ion-label>
-            <ion-note slot="end" id="selected-date" class="date-note" data-i18n="placeholderData"></ion-note>
-            <span class="material-symbols-rounded" slot="end">chevron_right</span>
-          </ion-item>
-          <ion-item lines="full">
-            <span class="material-symbols-rounded" slot="start">category</span>
-            <ion-label data-i18n="labelCategoria"></ion-label>
-            <ion-select id="entry-category" interface="action-sheet" value="sem" placeholder="" data-i18n-placeholder="placeholderCategoria">
-              <ion-select-option value="sem" data-i18n="categoriaSem"></ion-select-option>
+            <ion-item class="form-row" lines="none" button detail="false" id="open-date">
+              <span class="material-symbols-rounded" slot="start">event</span>
+              <ion-label data-i18n="labelData"></ion-label>
+              <ion-note slot="end" id="selected-date" class="date-note" data-i18n="placeholderData"></ion-note>
+              <span class="material-symbols-rounded" slot="end">chevron_right</span>
+            </ion-item>
+            <ion-item class="form-row" lines="none" detail="false">
+              <span class="material-symbols-rounded" slot="start">category</span>
+              <ion-label data-i18n="labelCategoria"></ion-label>
+              <ion-select id="entry-category" interface="action-sheet" value="sem" placeholder="" data-i18n-placeholder="placeholderCategoria">
+                <ion-select-option value="sem" data-i18n="categoriaSem"></ion-select-option>
               <ion-select-option value="mercado" data-i18n="categoriaMercado"></ion-select-option>
               <ion-select-option value="transporte" data-i18n="categoriaTransporte"></ion-select-option>
               <ion-select-option value="lazer" data-i18n="categoriaLazer"></ion-select-option>
@@ -1038,14 +1285,14 @@
             </ion-select>
             <span class="material-symbols-rounded" slot="end">chevron_right</span>
           </ion-item>
-          <ion-item lines="full" button id="open-attachment">
-            <span class="material-symbols-rounded" slot="start">attach_file</span>
-            <ion-label data-i18n="labelAnexo"></ion-label>
-            <ion-note slot="end" id="attachment-name" class="attachment-note" data-i18n="attachmentNone"></ion-note>
-            <span class="material-symbols-rounded" slot="end">chevron_right</span>
-          </ion-item>
+            <ion-item class="form-row" lines="none" button detail="false" id="open-attachment">
+              <span class="material-symbols-rounded" slot="start">attach_file</span>
+              <ion-label data-i18n="labelAnexo"></ion-label>
+              <ion-note slot="end" id="attachment-name" class="attachment-note" data-i18n="attachmentNone"></ion-note>
+              <span class="material-symbols-rounded" slot="end">chevron_right</span>
+            </ion-item>
           <input type="file" id="receipt-input" accept="image/*" class="file-input" />
-          <ion-item lines="full" class="notes-item">
+          <ion-item lines="none" class="notes-item">
             <span class="material-symbols-rounded" slot="start">notes</span>
             <ion-label position="stacked" data-i18n="labelObservacao"></ion-label>
             <ion-textarea id="entry-notes" auto-grow placeholder="" data-i18n-placeholder="placeholderObservacao"></ion-textarea>
@@ -1074,7 +1321,7 @@
         </ion-toolbar>
       </ion-header>
       <ion-content class="ion-padding">
-        <ion-datetime id="entry-date" presentation="date" locale="pt-BR" show-default-buttons="true"></ion-datetime>
+        <ion-datetime id="entry-date" presentation="date" locale="pt-BR" show-default-buttons="true" done-text="Salvar" cancel-text="Cancelar"></ion-datetime>
       </ion-content>
     </ion-modal>
 
@@ -1166,7 +1413,11 @@
       chatAttachmentTitle: "Transa\u00e7\u00e3o anexada",
       chatAttachmentMeta: "R$ 420,00 \u2022 18/01/2026",
       chatImageTitle: "Comprovante",
-      placeholderChat: "Escrever mensagem",
+      chatTimeAgent1: "09:12",
+      chatTimeUser1: "09:13",
+      chatTimeAgent2: "09:14",
+      chatTimeUser2: "09:15",
+      placeholderChat: "Mensagem\u2026",
       ariaAttach: "Anexar",
       ariaSend: "Enviar",
       rowTitleRecurringInternet: "Internet Vivo",
@@ -1278,6 +1529,7 @@
     const transitionMs = reducedMotion ? 160 : 200;
     const viewOrder = tabButtons.map((btn) => btn.dataset.view);
     let activeView = "painel";
+    const floatingAction = document.querySelector("ion-fab");
 
     function centerActiveTab(key) {
       const btn = tabButtons.find((item) => item.dataset.view === key);
@@ -1312,6 +1564,9 @@
         tabButtons.forEach((btn) => {
           btn.classList.toggle("is-active", btn.dataset.view === key);
         });
+        if (floatingAction) {
+          floatingAction.classList.toggle("hide-fab", key === "chat");
+        }
       };
 
       if (reducedMotion) {
@@ -1329,6 +1584,9 @@
     });
 
     centerActiveTab(activeView);
+    if (floatingAction) {
+      floatingAction.classList.toggle("hide-fab", activeView === "chat");
+    }
 
 
     
@@ -1359,6 +1617,10 @@
       style: "currency",
       currency: "BRL",
     });
+    const amountFormatter = new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
     const categoryLabels = {
       sem: uiText.entryNoCategory,
@@ -1368,6 +1630,11 @@
       casa: uiText.categoriaCasa,
       saude: uiText.categoriaSaude,
       outros: uiText.categoriaOutros,
+    };
+
+    entryCategory.interfaceOptions = {
+      header: uiText.labelCategoria,
+      cancelText: uiText.buttonCancelar,
     };
 
     function parseCurrency(value) {
@@ -1502,11 +1769,27 @@
 
     entryValue.addEventListener("ionBlur", () => {
       const parsed = parseCurrency(entryValue.value);
-      entryValue.value = parsed > 0 ? currencyFormatter.format(parsed) : "";
+      entryValue.value = parsed > 0 ? amountFormatter.format(parsed) : "";
       updateSaveState();
     });
 
-    entryValue.addEventListener("ionInput", updateSaveState);
+    entryValue.addEventListener("ionInput", async () => {
+      const raw = entryValue.value || "";
+      const cleaned = raw.replace(/[^\d]/g, "");
+      if (!cleaned) {
+        entryValue.value = "";
+        updateSaveState();
+        return;
+      }
+      const numeric = Number(cleaned) / 100;
+      entryValue.value = amountFormatter.format(numeric);
+      updateSaveState();
+      if (entryValue.getInputElement) {
+        const inputEl = await entryValue.getInputElement();
+        const len = inputEl.value.length;
+        inputEl.setSelectionRange(len, len);
+      }
+    });
 
     openAttachment.addEventListener("click", () => {
       attachmentInput.click();

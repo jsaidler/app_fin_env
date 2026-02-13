@@ -38,6 +38,7 @@ class EntryService
     public function create(int $userId, array $input): array
     {
         $this->assertValid($input);
+        $this->assertAttachmentOwner($input['attachment_path'] ?? null, $userId);
         $month = substr($input['date'], 0, 7);
         $closed = $this->isClosed($month, $userId);
         $payload = $input;
@@ -62,6 +63,9 @@ class EntryService
             Response::json(['error' => 'Lancamento nao encontrado'], 404);
         }
         $this->assertValid(array_merge($existing->toArray(), $input));
+        if (array_key_exists('attachment_path', $input)) {
+            $this->assertAttachmentOwner($input['attachment_path'], $userId);
+        }
         $originalMonth = substr($existing->date, 0, 7);
         $targetDate = $input['date'] ?? $existing->date;
         $newMonth = substr($targetDate, 0, 7);
@@ -164,6 +168,27 @@ class EntryService
         }
         if (!Validator::date($input['date'] ?? '')) {
             Response::json(['error' => 'Data invalida'], 422);
+        }
+    }
+
+    private function assertAttachmentOwner(?string $path, int $userId): void
+    {
+        $path = trim((string)$path);
+        if ($path === '') {
+            return;
+        }
+        $rel = ltrim(str_replace('\\', '/', $path), '/');
+        $prefix = $userId . '/';
+        if (!str_starts_with($rel, $prefix) || !str_contains($rel, '/uploads/')) {
+            Response::json(['error' => 'Anexo invalido'], 422);
+        }
+        $base = $this->uploadDir ? rtrim($this->uploadDir, '/\\') : null;
+        if (!$base) {
+            Response::json(['error' => 'Upload indisponivel'], 422);
+        }
+        $target = $base . '/' . $rel;
+        if (!is_file($target)) {
+            Response::json(['error' => 'Anexo invalido'], 422);
         }
     }
 

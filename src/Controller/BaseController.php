@@ -29,12 +29,11 @@ abstract class BaseController
 
     protected function requireAuth(): int
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if (!str_starts_with($header, 'Bearer ')) {
-            Logger::warning('Auth header ausente ou malformado', ['path' => $_SERVER['REQUEST_URI'] ?? '']);
+        $token = $this->readAuthToken();
+        if (!$token) {
+            Logger::warning('Auth ausente ou malformado', ['path' => $_SERVER['REQUEST_URI'] ?? '']);
             Response::json(['error' => 'Unauthorized'], 401);
         }
-        $token = substr($header, 7);
         $payload = Token::verify($token, $this->config['secret']);
         if (!$payload || !isset($payload['uid'])) {
             Logger::warning('Token invalido ou expirado', ['path' => $_SERVER['REQUEST_URI'] ?? '', 'token' => substr($token, 0, 24) . '...']);
@@ -52,6 +51,16 @@ abstract class BaseController
         $role = $payload['role'] ?? $user->role ?? 'user';
         $this->authPayload['role'] = $role;
         return $uid;
+    }
+
+    private function readAuthToken(): ?string
+    {
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        if (str_starts_with($header, 'Bearer ')) {
+            return substr($header, 7);
+        }
+        $cookie = $_COOKIE['auth_token'] ?? '';
+        return $cookie !== '' ? $cookie : null;
     }
 
     protected function requireAdmin(): int

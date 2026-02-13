@@ -64,11 +64,16 @@ function userRepoForFront(array $config)
 
 function requireUploadAccess(string $relPath, array $config): void
 {
+    $token = null;
     $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (!str_starts_with($header, 'Bearer ')) {
+    if (str_starts_with($header, 'Bearer ')) {
+        $token = substr($header, 7);
+    } elseif (!empty($_COOKIE['auth_token'])) {
+        $token = $_COOKIE['auth_token'];
+    }
+    if (!$token) {
         Response::json(['error' => 'Unauthorized'], 401);
     }
-    $token = substr($header, 7);
     $payload = Token::verify($token, $config['secret']);
     if (!$payload || empty($payload['uid'])) {
         Response::json(['error' => 'Token invalido'], 401);
@@ -172,10 +177,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && is_file($staticFile)) {
 
 $router = new Router();
 $router->add('POST', '/api/auth/login', [AuthController::class, 'login']);
+$router->add('POST', '/api/auth/logout', [AuthController::class, 'logout']);
 $router->add('GET', '/api/account/profile', [AccountController::class, 'profile']);
 $router->add('PUT', '/api/account/password', [AccountController::class, 'updatePassword']);
 $router->add('PUT', '/api/account/preferences', [AccountController::class, 'preferences']);
 $router->add('GET', '/api/entries', [EntryController::class, 'list']);
+$router->add('GET', '/api/entries/summary', [EntryController::class, 'summary']);
 $router->add('POST', '/api/entries', [EntryController::class, 'create']);
 $router->add('PUT', '/api/entries/{id}', [EntryController::class, 'update']);
 $router->add('DELETE', '/api/entries/{id}', [EntryController::class, 'delete']);
@@ -184,6 +191,7 @@ $router->add('PUT', '/api/entries/{id}/restore', [EntryController::class, 'resto
 $router->add('DELETE', '/api/entries/{id}/purge', [EntryController::class, 'purge']);
 $router->add('GET', '/api/categories', [CategoryController::class, 'list']);
 $router->add('GET', '/api/reports/summary', [ReportController::class, 'summary']);
+$router->add('GET', '/api/reports/aggregate', [ReportController::class, 'aggregate']);
 $router->add('GET', '/api/reports/closure', [ReportController::class, 'closure']);
 $router->add('GET', '/api/export/pdf', [ExportController::class, 'pdf']);
 $router->add('POST', '/api/upload', [UploadController::class, 'upload']);

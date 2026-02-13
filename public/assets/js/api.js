@@ -1,10 +1,10 @@
 const api = {
   async request(method, url, body) {
     const headers = { 'Content-Type': 'application/json' };
-    if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
     const res = await fetch(url, {
       method,
       headers,
+      credentials: 'same-origin',
       body: body ? JSON.stringify(body) : undefined,
     }).catch(() => null);
     if (!res) return { ok: false, error: 'Sem conexão' };

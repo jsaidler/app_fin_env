@@ -1,0 +1,164 @@
+:where(.pwa-shell, .theme-light) {
+  color: var(--ui-color-text);
+  background: var(--ui-color-bg);
+  font-family: var(--ui-font-family);
+}
+
+:where(.pwa-content) {
+  --padding-bottom: calc(var(--ion-safe-area-bottom, 0px) + var(--ui-fab-safe));
+}
+
+:where(.ui-topbar, .app-topbar) ion-toolbar {
+  --background: var(--ui-color-surface);
+  --color: var(--ui-color-text);
+  --min-height: 56px;
+  --border-color: var(--ui-color-stroke);
+  border-bottom: 1px solid var(--ui-color-stroke);
+}
+
+:where(.ui-topbar, .app-topbar) ion-title,
+:where(.ui-topbar, .app-topbar) .topbar-title,
+:where(.ui-topbar, .app-topbar) .app-topbar__title {
+  font: var(--ui-font-title);
+  color: var(--ui-color-text);
+}
+
+:where(.ui-topbar, .app-topbar) ion-button {
+  --color: var(--ui-color-text);
+}
+
+:where(.ui-pillnav, .pill-nav) {
+  --background: var(--ui-color-bg);
+}
+
+:where(.ui-pillnav__scroll, .pill-nav__scroll) {
+  display: flex;
+  gap: var(--ui-space-8);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--ui-space-8) var(--ui-space-16) var(--ui-space-12);
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+:where(.ui-pillnav__scroll, .pill-nav__scroll)::-webkit-scrollbar {
+  display: none;
+}
+
+:where(.ui-pill, .pill-nav__pill) {
+  --background: var(--ui-color-surface);
+  --color: var(--ui-color-text);
+  --border-radius: var(--ui-radius-pill);
+  --border-color: var(--ui-color-stroke);
+  --border-style: solid;
+  --border-width: 1px;
+  --box-shadow: none;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 var(--ui-space-12);
+  letter-spacing: 0;
+  text-transform: none;
+  font: var(--ui-font-meta);
+  transition: background var(--ui-transition-fast) var(--ui-transition-ease),
+    border-color var(--ui-transition-fast) var(--ui-transition-ease),
+    color var(--ui-transition-fast) var(--ui-transition-ease),
+    transform var(--ui-transition-fast) var(--ui-transition-ease);
+}
+
+:where(.ui-pill.active, .pill-nav__pill.active, .pill-nav__pill.is-active) {
+  --background: var(--ui-color-primary-soft);
+  --border-color: rgba(0, 93, 151, 0.35);
+  --color: var(--ui-color-primary);
+}
+
+:where(.ui-row) {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-12);
+  padding: var(--ui-space-12) var(--ui-space-16);
+  border-bottom: 1px solid var(--ui-color-stroke);
+  background: var(--ui-color-surface);
+}
+
+:where(.entries-list .row, .support-thread-item.row) {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-12);
+  padding: var(--ui-space-12) var(--ui-space-16);
+  border-bottom: 1px solid var(--ui-color-stroke);
+  background: var(--ui-color-surface);
+}
+
+:where(.entries-list .row:last-child, .support-thread-item.row:last-child) {
+  border-bottom: 0;
+}
+
+:where(.row-title) {
+  font: var(--ui-font-body);
+  color: var(--ui-color-text);
+}
+
+:where(.row-meta, .hero-meta, .section-title) {
+  font: var(--ui-font-meta);
+  color: var(--ui-color-text-muted);
+}
+
+:where(.ui-chip, .filter-chip) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--ui-radius-pill);
+  border: 1px solid var(--ui-color-stroke);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  font: var(--ui-font-meta);
+  transition: background var(--ui-transition-fast) var(--ui-transition-ease),
+    border-color var(--ui-transition-fast) var(--ui-transition-ease),
+    color var(--ui-transition-fast) var(--ui-transition-ease),
+    transform var(--ui-transition-fast) var(--ui-transition-ease);
+}
+
+:where(ion-modal.ui-sheet, ion-modal.ui-modal, ion-modal.entry-sheet, ion-modal.sheet-base, ion-modal.date-sheet) {
+  --background: var(--ui-color-surface);
+  --border-radius: var(--ui-radius-sheet);
+  --box-shadow: var(--ui-shadow-sheet);
+}
+
+:where(ion-modal.ui-sheet::part(content), ion-modal.ui-modal::part(content), ion-modal.entry-sheet::part(content), ion-modal.sheet-base::part(content), ion-modal.date-sheet::part(content)) {
+  border-radius: var(--ui-radius-sheet);
+}
+
+:where(.ui-fab, .fab-safe) ion-fab-button {
+  --background: var(--ui-color-primary);
+  --color: #ffffff;
+  --box-shadow: none;
+  box-shadow: var(--ui-shadow-fab), 0 0 0 6px var(--ui-color-bg);
+  transition: transform var(--ui-transition-fast) var(--ui-transition-ease),
+    box-shadow var(--ui-transition-fast) var(--ui-transition-ease);
+}
+
+:where(.ui-pill:hover, .pill-nav__pill:hover, .ui-chip:hover) {
+  transform: translateY(-1px);
+}
+
+:where(.ui-pill:active, .pill-nav__pill:active, .ui-chip:active) {
+  transform: translateY(0);
+}
+
+:where(.ui-pill:focus-visible, .pill-nav__pill:focus-visible, .ui-chip:focus-visible, .ui-fab ion-fab-button:focus-visible) {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+:where(.ui-pill[disabled], .ui-chip[disabled], .pill-nav__pill[disabled]) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+:where(.ui-number, .ds-number) {
+  font-family: var(--ui-font-family);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

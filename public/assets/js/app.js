@@ -1,9 +1,6 @@
 const state = {
 
 
-  token: null,
-
-
   user: null,
 
 
@@ -43,6 +40,15 @@ const state = {
 
 
   closureEntries: [],
+  filterType: 'all',
+  filterCategory: '',
+  reportType: 'all',
+  entryEditingId: null,
+  entryCategoryLabel: '',
+  entryEditingAttachment: null,
+  chatEntryId: null,
+  entryType: 'in',
+  categoryModalTarget: null,
 
 
 };
@@ -54,18 +60,18 @@ const API_BASE = '/api';
 const views = [
   'view-auth',
   'view-dashboard',
+  'view-entries',
   'view-reports',
-  'view-support',
-  'view-support-chat',
-  'view-entry',
-  'view-entry-detail',
+  'view-categories',
+  'view-trash',
+  'view-chat',
   'view-user-options',
   'view-admin-users',
   'view-admin-categories',
   'view-admin-locks',
 ];
 
-const TRANSIENT_VIEWS = new Set(['view-entry', 'view-entry-detail', 'view-support-chat']);
+const TRANSIENT_VIEWS = new Set([]);
 
 
 const STORAGE_LAST_VIEW = 'lastView';
@@ -133,7 +139,7 @@ function resolveStartView(defaultView) {
   if (!views.includes(saved)) return defaultView;
 
 
-  if (!state.token) return defaultView;
+  if (!state.user) return defaultView;
 
 
   if (saved.startsWith('view-admin') && state.user?.role !== 'admin') return defaultView;
@@ -163,7 +169,7 @@ function persistView(view) {
   }
 
 
-  if (!state.token) return;
+  if (!state.user) return;
 
 
   if (!views.includes(view)) return;
@@ -191,7 +197,7 @@ function goTo(view) {
   const previousView = state.activeView;
 
 
-  const unauth = !state.token;
+  const unauth = !state.user;
 
 
   if (unauth && view !== 'view-auth') {
@@ -204,13 +210,6 @@ function goTo(view) {
 
 
   if (view.startsWith('view-admin') && state.user?.role !== 'admin') return;
-
-  if (previousView === 'view-entry' && view !== 'view-entry') {
-
-    cleanupEntryView();
-
-  }
-
 
   views.forEach(id => {
 
@@ -228,6 +227,7 @@ function goTo(view) {
 
 
     el.classList.toggle('active', active);
+    el.classList.toggle('is-active', active);
 
 
   });
@@ -236,34 +236,33 @@ function goTo(view) {
   document.body.classList.toggle('is-auth-view', view === 'view-auth');
 
 
-  const bottomNav = document.querySelector('.c-bottom-nav, .bottom-nav');
+  const dock = document.querySelector('.uikit-dock');
+  const tabs = document.getElementById('main-tabs');
+  const tabStrip = document.getElementById('tab-strip');
 
-
-  if (bottomNav) {
-
-
+  if (dock) {
     const isAuth = view === 'view-auth';
-
-
     const isAdmin = state.user?.role === 'admin';
+    dock.hidden = isAuth || isAdmin;
+  }
 
+  if (tabs) {
+    const isAuth = view === 'view-auth';
+    const isAdmin = state.user?.role === 'admin';
+    const isTransient = TRANSIENT_VIEWS.has(view);
+    tabs.hidden = isAuth || isAdmin || isTransient;
+  }
 
-    bottomNav.hidden = isAuth || isAdmin;
+  const filterBtn = document.getElementById('main-filter-btn');
+  if (filterBtn) {
+    filterBtn.hidden = !(view === 'view-entries' || view === 'view-reports');
+  }
 
-
-    bottomNav.querySelectorAll('[data-go-view]').forEach(btn => {
-
-
+  if (tabStrip) {
+    tabStrip.querySelectorAll('[data-go-view]').forEach(btn => {
       const target = btn.dataset.goView;
-
-
-      btn.classList.toggle('active', target === view);
       btn.classList.toggle('is-active', target === view);
-
-
     });
-
-
   }
 
 
@@ -298,17 +297,13 @@ function clearAttachmentCache() {
 
 async function fetchAttachmentUrl(relPath) {
 
-
-  if (!relPath || !state.token) return null;
+  if (!relPath || !state.user) return null;
 
 
   if (attachmentCache.has(relPath)) return attachmentCache.get(relPath);
 
 
-  const headers = { Authorization: 'Bearer ' + state.token };
-
-
-  const res = await fetch('/uploads/' + relPath.replace(/^\/+/, ''), { headers }).catch(() => null);
+  const res = await fetch('/uploads/' + relPath.replace(/^\/+/, ''), { credentials: 'same-origin' }).catch(() => null);
 
 
   if (!res || !res.ok) return null;
@@ -357,12 +352,31 @@ async function renderAttachmentPreview(container, relPath) {
     <a class="download-fab" href="${url}" download title="Baixar anexo" aria-label="Baixar anexo">
 
 
-      <span class="material-icons-outlined">download</span>
+      <span class="material-symbols-rounded">download</span>
 
 
     </a>`;
 
 
+}
+
+
+async function hydrateEntryAttachment(relPath) {
+  if (!relPath) return;
+  const preview = document.getElementById('entry-attachment-preview');
+  const thumb = document.getElementById('entry-attachment-thumb');
+  const name = document.getElementById('entry-attachment-name');
+  const note = document.getElementById('entry-attachment-note');
+  if (!preview || !thumb || !name) return;
+
+  const url = await fetchAttachmentUrl(relPath);
+  if (!url) return;
+
+  thumb.src = url;
+  preview.classList.remove('is-empty');
+  const label = String(relPath).split('/').pop() || 'Anexo';
+  name.textContent = label;
+  if (note) note.textContent = 'Anexo carregado';
 }
 
 
@@ -414,31 +428,8 @@ async function init() {
   setDefaultMonthFilters();
 
 
-  const saved = JSON.parse(localStorage.getItem('auth') || 'null');
-
-
-  if (saved?.token) {
-
-
-    state.token = saved.token;
-
-
-    state.user = saved.user;
-
-
-    const ok = await ensureSession(true);
-
-
-    if (!ok) goTo('view-auth');
-
-
-  } else {
-
-
-    goTo('view-auth');
-
-
-  }
+  const ok = await ensureSession(true);
+  if (!ok) goTo('view-auth');
 
 
 }
@@ -504,81 +495,61 @@ function wireEvents() {
   }
 
 
-  bind('btn-add', 'click', () => openEntryView('in'));
+  bind('nav-add', 'click', () => openEntryModal());
 
-
-  bind('btn-entry-back', 'click', () => closeEntryView());
-
-
-  bind('nav-add-in', 'click', () => openEntryView('in'));
-
-
-  bind('nav-add-out', 'click', () => openEntryView('out'));
-
-
-  bind('entry-type-in', 'click', () => setEntryType('in'));
-
-
-  bind('entry-type-out', 'click', () => setEntryType('out'));
-
-  bindEntrySheet();
-  bindFilterSheet();
-
-
+  bind('close-entry', 'click', () => closeEntryModal());
   bind('entry-form', 'submit', submitEntry);
 
+  const entryTypeSegment = document.getElementById('entry-type-segment');
+  if (entryTypeSegment) {
+    entryTypeSegment.addEventListener('ionChange', (ev) => {
+      setEntryType(ev.detail?.value || 'in');
+    });
+  }
 
-  bind('filter-type', 'change', renderEntries);
+  bind('entry-date-trigger', 'click', openEntryDateModal);
+  bind('close-entry-date', 'click', closeEntryDateModal);
 
+  bind('entry-category-trigger', 'click', () => openCategoryModal('entry'));
+  bind('filter-category-trigger', 'click', () => openCategoryModal('filter'));
+  bind('close-category-modal', 'click', closeCategoryModal);
 
-  ui.enhanceSelect('filter-type');
-
+  bind('entry-attachment-trigger', 'click', () => {
+    const input = document.getElementById('entry-attachment');
+    if (input) input.click();
+  });
 
   bind('filter-start', 'change', renderEntries);
-
-
   bind('filter-end', 'change', renderEntries);
-
-
   bind('filter-reset', 'click', resetUserFilters);
-
-
   bind('filter-toggle', 'click', (e) => toggleFilterPanel('filter-controls', e.currentTarget));
+  bind('main-filter-btn', 'click', () => {
+    if (state.activeView === 'view-entries') {
+      toggleFilterPanel('filter-controls', document.getElementById('filter-toggle'));
+    } else if (state.activeView === 'view-reports') {
+      toggleFilterPanel('report-controls', document.getElementById('report-toggle'));
+    }
+  });
 
-  bind('dashboard-filter-btn', 'click', () => openFilterSheet());
-
-  bind('filter-apply-sheet', 'click', applyFilterSheet);
-
-  bind('filter-close-sheet', 'click', closeFilterSheet);
-
-
-  bind('report-type', 'change', renderReports);
-
-
-  ui.enhanceSelect('report-type');
-
+  const filterTypeButtons = document.querySelectorAll('[data-filter-type]');
+  filterTypeButtons.forEach(btn => btn.addEventListener('click', () => setFilterType(btn.dataset.filterType)));
 
   bind('report-start', 'change', renderReports);
-
-
   bind('report-end', 'change', renderReports);
-
-
   bind('report-reset', 'click', resetReportFilters);
-
-
   bind('report-toggle', 'click', (e) => toggleFilterPanel('report-controls', e.currentTarget));
 
+  const reportTypeButtons = document.querySelectorAll('[data-report-type]');
+  reportTypeButtons.forEach(btn => btn.addEventListener('click', () => setReportType(btn.dataset.reportType)));
 
   bind('btn-report-pdf', 'click', exportReportTablePdf);
 
-
   bind('report-list', 'click', handleReportTableClick);
-  bind('report-closure-month', 'change', loadClosureReport);
-  bind('report-closure-refresh', 'click', loadClosureReport);
-  bind('support-new-form', 'submit', submitSupportThread);
   bind('support-reply-form', 'submit', submitSupportReply);
-  bind('btn-export', 'click', exportPdf);
+  bind('chat-attach-entry', 'click', openChatEntryModal);
+  bind('close-chat-entry-modal', 'click', closeChatEntryModal);
+  const categorySearch = document.getElementById('category-search');
+  if (categorySearch) categorySearch.addEventListener('ionInput', renderCategoryModalList);
 
 
   bind('entries-list', 'click', handleEntryClick);
@@ -631,97 +602,39 @@ function wireEvents() {
   bind('select-all-users', 'change', toggleSelectAllUsers);
 
 
-  bind('btn-entry-detail-back', 'click', () => toggleReportEntryModal(false));
-
-  const supportThreads = document.getElementById('support-thread-list');
-
-  if (supportThreads) supportThreads.addEventListener('click', handleSupportThreadClick);
-
-
-  bind('support-back', 'click', () => goTo('view-support'));
-
-  bind('support-entry-view', 'click', handleSupportEntryView);
-
-
   document.querySelectorAll('[data-go-view]').forEach(btn => btn.addEventListener('click', e => {
-
-    cleanupEntryView();
-
     goTo(e.currentTarget.dataset.goView);
-
   }));
 
-
-  bind('btn-go-admin', 'click', () => { cleanupEntryView(); goTo('view-admin-users'); });
-
-
-  bind('btn-go-admin-2', 'click', () => { cleanupEntryView(); goTo('view-admin-users'); });
-
-
-  const navOptions = document.getElementById('nav-options');
-
-
-  if (navOptions) navOptions.addEventListener('click', () => { cleanupEntryView(); goTo('view-user-options'); });
-
-
-  bind('btn-logout-options', 'click', () => { cleanupEntryView(); logout(); });
-
-
-  document.querySelectorAll('.c-bottom-nav [data-go-view], .bottom-nav [data-go-view]').forEach(btn => btn.addEventListener('click', e => {
-
-    cleanupEntryView();
-
-    goTo(e.target.closest('button').dataset.goView);
-
-  }));
-
-
-  document.querySelectorAll('input[name="amount"], input[data-mask="money"]').forEach(el => {
-
-
-    el.addEventListener('input', (ev) => { maskMoney(ev); validateEntryField(ev.target); });
-
-
-    el.addEventListener('blur', (ev) => { maskMoney(ev); validateEntryField(ev.target); });
-
-
-  });
-
-
-  const dateInput = document.getElementById('entry-date');
-
-
-  if (dateInput) {
-
-
-    dateInput.addEventListener('input', (ev) => { maskDate(ev); validateEntryField(ev.target); });
-
-
-    dateInput.addEventListener('blur', (ev) => { maskDate(ev); validateEntryField(ev.target); });
-
-
+  const tabStrip = document.getElementById('tab-strip');
+  if (tabStrip) {
+    tabStrip.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-go-view]');
+      if (!btn) return;
+      goTo(btn.dataset.goView);
+    });
   }
 
+
+  bind('btn-go-admin', 'click', () => { goTo('view-admin-users'); });
+  bind('btn-go-admin-2', 'click', () => { goTo('view-admin-users'); });
+  bind('btn-logout-options', 'click', () => { logout(); });
+
+  const entryAmount = document.getElementById('entry-amount');
+  if (entryAmount) {
+    entryAmount.addEventListener('ionInput', (ev) => { maskMoney(ev); validateEntryField(ev.target); });
+    entryAmount.addEventListener('ionBlur', (ev) => { maskMoney(ev); validateEntryField(ev.target); });
+  }
+
+  const entryDate = document.getElementById('entry-date');
+  if (entryDate) {
+    entryDate.addEventListener('ionChange', () => syncEntryDate());
+  }
 
   setDefaultEntryDate(true);
 
-
-  const categoryInput = document.getElementById('entry-category');
-
-
-  if (categoryInput) {
-
-
-    categoryInput.addEventListener('change', (ev) => validateEntryField(ev.target));
-
-
-  }
-
-
   setupAttachmentPreview();
-
   setupSupportAttachmentPreviews();
-
   clearAttachmentPreview(true);
 
 
@@ -785,25 +698,14 @@ function resetUserFilters() {
   const end = document.getElementById('filter-end');
 
 
-  const type = document.getElementById('filter-type');
-
-
   if (start) start.value = current;
 
 
   if (end) end.value = current;
 
 
-  if (type) {
-
-
-    type.value = 'all';
-
-
-    type.dispatchEvent(new Event('change', { bubbles: true }));
-
-
-  }
+  setFilterType('all', true);
+  setFilterCategory('', true);
 
 
   renderEntries();
@@ -827,25 +729,13 @@ function resetReportFilters() {
   const end = document.getElementById('report-end');
 
 
-  const type = document.getElementById('report-type');
-
-
   if (start) start.value = current;
 
 
   if (end) end.value = current;
 
 
-  if (type) {
-
-
-    type.value = 'all';
-
-
-    type.dispatchEvent(new Event('change', { bubbles: true }));
-
-
-  }
+  setReportType('all', true);
 
 
   renderReports();
@@ -884,6 +774,37 @@ function normalizeMonthRange(startMonth, endMonth) {
   return { start, end };
 
 
+}
+
+
+function setFilterType(value = 'all', silent = false) {
+  state.filterType = value || 'all';
+  document.querySelectorAll('[data-filter-type]').forEach(btn => {
+    const isActive = btn.dataset.filterType === state.filterType;
+    btn.classList.toggle('is-active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  if (!silent) renderEntries();
+}
+
+function setReportType(value = 'all', silent = false) {
+  state.reportType = value || 'all';
+  document.querySelectorAll('[data-report-type]').forEach(btn => {
+    const isActive = btn.dataset.reportType === state.reportType;
+    btn.classList.toggle('is-active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  if (!silent) renderReports();
+}
+
+function setFilterCategory(value = '', silent = false) {
+  state.filterCategory = value || '';
+  const note = document.getElementById('filter-category-note');
+  const summary = document.getElementById('filter-summary-category-text');
+  const label = state.filterCategory || 'Todas';
+  if (note) note.textContent = label;
+  if (summary) summary.textContent = `Categoria: ${label}`;
+  if (!silent) renderEntries();
 }
 
 
@@ -1032,6 +953,7 @@ function adjustKpiTextSizes() {
 
 
   fitTextToContainer(document.getElementById('total-out'), 18, 6);
+  fitTextToContainer(document.getElementById('total-result'), 18, 6);
 
 
   fitTextToContainer(document.getElementById('report-balance'), 48, 30);
@@ -1051,34 +973,29 @@ function adjustKpiTextSizes() {
 
 function maskMoney(e) {
 
-
-  const digits = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
-
+  const input = e.target;
+  const raw = String(e?.detail?.value ?? input?.value ?? '');
+  const digits = raw.replace(/\D/g, '').replace(/^0+/, '');
 
   if (!digits) {
 
-
-    e.target.value = '';
-
+    if (input) input.value = '';
 
     return;
 
-
   }
-
 
   const cents = Number(digits);
 
-
   const value = cents / 100;
 
-
-  e.target.value = 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  if (e.target.id === 'entry-amount') {
-    updateEntryAmountPreview();
+  if (input) {
+    input.value = 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  if (input?.id === 'entry-amount') {
+    updateEntryAmountPreview();
+  }
 
 }
 
@@ -1130,27 +1047,28 @@ function todayDateBR() {
 
 }
 
+function todayDateISO() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+
 
 
 
 
 function setDefaultEntryDate(force = false) {
 
-
   const input = document.getElementById('entry-date');
-
 
   if (!input) return;
 
+  if (!force && String(input.value || '').trim()) return;
 
-  if (!force && input.value.trim()) return;
-
-
-  input.value = todayDateBR();
-
-
-  maskDate({ target: input });
-
+  input.value = todayDateISO();
+  syncEntryDate();
 
 }
 
@@ -1421,66 +1339,45 @@ function showLoginFormError(form, message) {
 
 function validateEntryField(el) {
 
-
   if (!el) return false;
 
+  if (el.name === 'amount' || el.id === 'entry-amount') {
 
-  if (el.name === 'amount') {
-
-
-    const raw = el.value.trim();
-
+    const raw = String(el.value || '').trim();
 
     if (!raw) { markInvalid(el); return false; }
-
 
     const parsed = parseMoney(raw);
 
-
     if (parsed === null || parsed <= 0) { markInvalid(el); return false; }
-
 
     clearInvalidField(el); return true;
 
-
   }
-
 
   if (el.name === 'date' || el.id === 'entry-date') {
 
-
-    const raw = el.value.trim();
-
+    const raw = String(el.value || '').trim();
 
     if (!raw) { markInvalid(el); return false; }
 
-
-    const iso = parseDateBR(raw);
-
+    const iso = raw.includes('-') ? raw : parseDateBR(raw);
 
     if (!iso) { markInvalid(el); return false; }
 
-
     clearInvalidField(el); return true;
 
-
   }
-
 
   if (el.name === 'category' || el.id === 'entry-category') {
 
-
-    if (!el.value.trim()) { markInvalid(el); return false; }
-
+    if (!String(el.value || '').trim()) { markInvalid(el); return false; }
 
     clearInvalidField(el); return true;
 
-
   }
 
-
   return true;
-
 
 }
 
@@ -1543,9 +1440,18 @@ function validateUserOptionField(el) {
 
 
 function showConfirmModal(message, title = 'Confirmar') {
+  const alert = document.getElementById('app-alert');
+  if (!alert) return Promise.resolve(window.confirm(message));
 
-  return Promise.resolve(window.confirm(message));
-
+  return new Promise((resolve) => {
+    alert.header = title;
+    alert.message = message;
+    alert.buttons = [
+      { text: 'Cancelar', role: 'cancel', handler: () => resolve(false) },
+      { text: 'Confirmar', handler: () => resolve(true) },
+    ];
+    alert.present();
+  });
 }
 
 
@@ -1581,109 +1487,70 @@ function resolveConfirmModal(ok) {
 
 async function submitLogin(e) {
 
-
   e.preventDefault();
-
 
   const form = e.target;
 
-
-  const email = (form.email?.value || '').trim().toLowerCase();
-
-
-  const password = form.password?.value || '';
-
+  const emailInput = document.getElementById('login-email');
+  const passwordInput = document.getElementById('login-password');
+  const email = (emailInput?.value || '').trim().toLowerCase();
+  const password = passwordInput?.value || '';
 
   clearLoginErrors(form);
 
-
   let hasError = false;
-
 
   if (!email) {
 
-
     showLoginError(form, 'email', 'Informe seu email');
 
-
     hasError = true;
-
 
   } else if (!emailValid(email)) {
 
-
-    showLoginError(form, 'email', 'Use um email valido');
-
+    showLoginError(form, 'email', 'Use um email v?lido');
 
     hasError = true;
 
-
   }
-
 
   if (!password) {
 
-
     showLoginError(form, 'password', 'Digite sua senha');
 
-
     hasError = true;
-
 
   } else if (password.length < 6) {
 
-
-    showLoginError(form, 'password', 'Mínimo de 6 caracteres');
-
+    showLoginError(form, 'password', 'M?nimo de 6 caracteres');
 
     hasError = true;
 
-
   }
 
+  if (hasError) return;
 
-  if (hasError) {
-
-
-    showLoginFormError(form, 'Corrija os campos destacados antes de continuar.');
-
-
-    return;
-
-
-  }
-
+  setButtonLoading(form.querySelector('button[type="submit"]'), true);
 
   const res = await api.post(`${API_BASE}/auth/login`, { email, password });
 
-
   if (res.ok) {
-
-
-    state.token = res.data.token;
-
 
     state.user = res.data.user;
 
+    setRoleClass(state.user?.role);
 
-    localStorage.setItem('auth', JSON.stringify({ token: state.token, user: state.user }));
+    applyTheme(state.user?.theme || 'dark');
 
+    await ensureSession();
 
-    const ok = await ensureSession(true);
-
-
-    if (!ok) ui.toast('Não foi possível validar a sessão');
   } else {
 
-
-    showLoginError(form, 'password', 'Verifique email e senha');
-
-
-    showLoginFormError(form, res.error || 'Falha no login');
-
+    showLoginFormError(form, res.error || 'Falha ao autenticar');
 
   }
 
+  setButtonLoading(form.querySelector('button[type="submit"]'), false);
 
 }
 
@@ -1693,15 +1560,7 @@ async function submitLogin(e) {
 
 function clearAuth() {
 
-
-  state.token = null;
-
-
   state.user = null;
-
-
-  localStorage.removeItem('auth');
-
 
   localStorage.removeItem(STORAGE_LAST_VIEW);
 
@@ -1722,20 +1581,12 @@ function clearAuth() {
 
 
 function logout() {
-
-
-  clearAuth();
-
-
-  ui.toast('Sessão encerrada');
-
-
-  goTo('view-auth');
-
-
-  toggleModal(false);
-
-
+  api.post(`${API_BASE}/auth/logout`).finally(() => {
+    clearAuth();
+    ui.toast('Sessão encerrada');
+    goTo('view-auth');
+    closeEntryModal();
+  });
 }
 
 
@@ -1788,9 +1639,6 @@ async function ensureSession(fromInit = false) {
 
 
   state.user = res.data;
-
-
-  localStorage.setItem('auth', JSON.stringify({ token: state.token, user: state.user }));
 
 
   applyTheme(state.user.theme || 'dark');
@@ -1920,7 +1768,7 @@ async function loadSupportThreads() {
 
   }
 
-  const shouldLoadMessages = state.activeView === 'view-support-chat';
+  const shouldLoadMessages = state.activeView === 'view-chat';
 
   if (!shouldLoadMessages) return;
 
@@ -1967,7 +1815,7 @@ function renderSupportThreads() {
 
     const isActive = Number(state.supportActiveThreadId) === Number(thread.id);
 
-    btn.className = `support-thread-item${isActive ? ' active' : ''}`;
+    btn.className = `support-thread-item row${isActive ? ' is-active' : ''}`;
 
     btn.dataset.threadId = String(thread.id);
 
@@ -1979,17 +1827,15 @@ function renderSupportThreads() {
 
     const preview = escapeHtml(previewText);
 
-    btn.innerHTML = `<div class="support-thread-title">${escapeHtml(thread.subject || 'Atendimento')}</div>
-
-      <div class="support-thread-meta">
-
-        <span>${when || 'Sem data'}</span>
-
-        ${unread ? `<span class="count-badge">${unread}</span>` : ''}
-
+    const metaLine = `${when || 'Sem data'}${preview ? ` • ${preview}` : ''}`;
+    btn.innerHTML = `<div class="icon-circle" aria-hidden="true"><span class="material-symbols-rounded">forum</span></div>
+      <div>
+        <div class="row-title">${escapeHtml(thread.subject || 'Atendimento')}</div>
+        <div class="row-meta">${escapeHtml(metaLine)}</div>
       </div>
-
-      <div class="support-thread-preview">${preview}</div>`;
+      <div class="row-value">
+        ${unread ? `<span class="badge-soft">${unread}</span>` : ''}
+      </div>`;
 
     container.appendChild(btn);
 
@@ -2027,6 +1873,49 @@ async function loadSupportMessages(threadId) {
 
 function renderSupportMessages() {
 
+
+function buildChatEntryCard(message) {
+  const entrySnapshot = message?.entry_snapshot || message?.entry || null;
+  const entryId = message?.entry_id || message?.entryId || entrySnapshot?.id || null;
+  const entry = entrySnapshot || (entryId ? state.entries.find(item => Number(item.id) === Number(entryId)) : null);
+
+  if (!entry) return null;
+
+  const card = document.createElement('div');
+  card.className = 'chat-attachment chat-entry-card';
+  card.setAttribute('role', 'button');
+  card.tabIndex = 0;
+
+  const title = document.createElement('strong');
+  title.className = 'chat-entry-title';
+  title.textContent = entry.type === 'out' ? 'Sa?da' : 'Entrada';
+
+  const category = document.createElement('div');
+  category.className = 'chat-entry-category';
+  category.textContent = entry.category || 'Sem categoria';
+
+  const meta = document.createElement('div');
+  meta.className = 'chat-entry-meta';
+  meta.textContent = `${formatMoney(Number(entry.amount || 0))} ? ${formatDateBR(entry.date)}`;
+
+  card.appendChild(title);
+  card.appendChild(category);
+  card.appendChild(meta);
+
+  const open = () => openEntryModal(entry);
+  card.addEventListener('click', open);
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      open();
+    }
+  });
+
+  return card;
+}
+
+
+
   const list = document.getElementById('support-chat');
 
   const empty = document.getElementById('support-chat-empty');
@@ -2041,12 +1930,10 @@ function renderSupportMessages() {
 
   const active = state.supportThreads.find(t => Number(t.id) === Number(state.supportActiveThreadId));
 
-  if (subject) subject.textContent = active?.subject || 'Selecione um atendimento';
+  if (subject) subject.textContent = active?.subject || 'Chat com o contador';
 
   if (meta) {
-
-    meta.textContent = active ? formatDateTime(active.updated_at || active.created_at || '') : '-';
-
+    meta.textContent = active ? formatDateTime(active.updated_at || active.created_at || '') : 'Conversa privada.';
   }
 
   renderSupportEntrySummary(active);
@@ -2065,9 +1952,9 @@ function renderSupportMessages() {
 
     const wrapper = document.createElement('div');
 
-    const role = m.sender_role === 'admin' ? 'from-admin' : 'from-user';
+    const role = m.sender_role === 'admin' ? 'agent' : 'user';
 
-    wrapper.className = `support-message ${role}`;
+    wrapper.className = `chat-bubble ${role}`;
 
     const createdAt = m.created_at ? new Date(m.created_at) : null;
 
@@ -2077,19 +1964,30 @@ function renderSupportMessages() {
 
       : '';
 
-    const attachment = m.attachment_path
+    const message = String(m.message || '').trim();
 
-      ? `<div class="support-attachment" data-attachment="${m.attachment_path}"></div>`
+    if (message) {
+      const msg = document.createElement('div');
+      msg.textContent = message;
+      wrapper.appendChild(msg);
+    }
 
-      : '';
+    const entryCard = buildChatEntryCard(m);
+    if (entryCard) wrapper.appendChild(entryCard);
 
-    const message = escapeHtml(m.message || '');
+    if (m.attachment_path) {
+      const attachment = document.createElement('div');
+      attachment.className = 'chat-attachment support-attachment';
+      attachment.dataset.attachment = m.attachment_path;
+      wrapper.appendChild(attachment);
+    }
 
-    wrapper.innerHTML = `${message ? `<div class="support-bubble">${message}</div>` : ''}
-
-      ${attachment}
-
-      ${when ? `<div class="support-meta">${when}</div>` : ''}`;
+    if (when) {
+      const time = document.createElement('span');
+      time.className = 'chat-time';
+      time.textContent = when;
+      wrapper.appendChild(time);
+    }
 
     list.appendChild(wrapper);
 
@@ -2246,13 +2144,19 @@ async function submitSupportReply(e) {
 
   e.preventDefault();
 
-  if (!state.supportActiveThreadId) return ui.toast('Selecione um atendimento');
+  let threadId = state.supportActiveThreadId;
+  if (!threadId) {
+    const res = await api.post(`${API_BASE}/support/threads`, { subject: 'Chat com o contador' });
+    if (!res.ok) return ui.toast(res.error || 'Erro ao iniciar o chat');
+    threadId = res.data?.id;
+    state.supportActiveThreadId = threadId;
+  }
 
   const message = (e.target.message?.value || '').trim();
-
   const hasFile = supportReplyAttachment?.getFile?.();
+  const hasEntry = Boolean(state.chatEntryId);
 
-  if (!message && !hasFile) return ui.toast('Digite a mensagem ou anexe um arquivo');
+  if (!message && !hasFile && !hasEntry) return ui.toast('Digite a mensagem ou anexe um arquivo');
 
   const upload = await uploadSupportAttachment(supportReplyAttachment);
 
@@ -2260,11 +2164,12 @@ async function submitSupportReply(e) {
 
   const res = await api.post(`${API_BASE}/support/messages`, {
 
-    thread_id: state.supportActiveThreadId,
+    thread_id: threadId,
 
     message,
 
     attachment_path: upload.path || null,
+    entry_id: state.chatEntryId || null,
 
   });
 
@@ -2273,8 +2178,9 @@ async function submitSupportReply(e) {
     e.target.reset();
 
     supportReplyAttachment.clear(true);
+    state.chatEntryId = null;
 
-    await loadSupportMessages(state.supportActiveThreadId);
+    await loadSupportMessages(threadId);
 
     await loadSupportThreads();
 
@@ -2294,7 +2200,7 @@ async function openSupportChat(threadId) {
 
   state.supportActiveThreadId = id;
 
-  goTo('view-support-chat');
+  goTo('view-chat');
 
   await loadSupportMessages(id);
 
@@ -2316,120 +2222,220 @@ function handleSupportThreadClick(e) {
 }
 
 
-function renderEntries() {
+function createStatusTooltip(entry) {
+  const statusText = statusLabel(entry);
+  const wrap = document.createElement('span');
+  wrap.className = 'c-tooltip';
 
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'c-status-icon';
+  btn.setAttribute('aria-label', `Status: ${statusText}`);
+
+  const icon = document.createElement('span');
+  icon.className = 'material-symbols-rounded';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = statusIcon(entry);
+
+  btn.appendChild(icon);
+  wrap.appendChild(btn);
+
+  const content = document.createElement('span');
+  content.className = 'c-tooltip__content';
+  content.setAttribute('role', 'tooltip');
+  content.textContent = statusText;
+
+  wrap.appendChild(content);
+
+  return wrap;
+}
+
+function buildEntryRow(entry, opts = {}) {
+  const li = document.createElement('li');
+  li.className = 'row entry-row';
+  li.dataset.detailId = entry.id;
+
+  const icon = document.createElement('div');
+  icon.className = 'icon-circle';
+  const initial = document.createElement('span');
+  initial.className = 'row-initial';
+  const nameText = String(entry.category || '').trim();
+  initial.textContent = nameText ? nameText.charAt(0).toUpperCase() : '?';
+  icon.appendChild(initial);
+
+  const info = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'row-title';
+  title.textContent = nameText || 'Sem categoria';
+  const meta = document.createElement('div');
+  meta.className = 'row-meta';
+  meta.textContent = formatDateBR(entry.date);
+  info.appendChild(title);
+  info.appendChild(meta);
+
+  const valueWrap = document.createElement('div');
+  valueWrap.className = entry.type === 'in' ? 'row-value pos' : 'row-value neg';
+
+  if (opts.withStatus) {
+    valueWrap.appendChild(createStatusTooltip(entry));
+  }
+
+  const amount = document.createElement('span');
+  amount.className = 'row-amount';
+  const prefix = entry.type === 'out' ? '-' : '+';
+  amount.textContent = `${prefix}${formatMoney(Number(entry.amount || 0))}`;
+  valueWrap.appendChild(amount);
+
+  li.appendChild(icon);
+  li.appendChild(info);
+  li.appendChild(valueWrap);
+
+  return li;
+}
+
+
+
+
+function renderEntries() {
 
   const ul = document.getElementById('entries-list');
 
-
   const empty = document.getElementById('entries-empty');
-
 
   if (!ul) return;
 
-
   ul.innerHTML = '';
-
 
   if (empty) empty.hidden = true;
 
-
-  const typeFilter = document.getElementById('filter-type')?.value || 'all';
-
+  const typeFilter = state.filterType || 'all';
+  const categoryFilter = (state.filterCategory || '').trim().toLowerCase();
 
   const startMonth = document.getElementById('filter-start')?.value || '';
 
-
   const endMonth = document.getElementById('filter-end')?.value || '';
-
 
   const range = normalizeMonthRange(startMonth, endMonth);
 
-
   const rangeEntries = state.entries.filter(e => isDateInRange(e.date, range.start, range.end));
 
-
-  const filtered = rangeEntries.filter(e => typeFilter === 'all' || e.type === typeFilter);
-
+  const filtered = rangeEntries.filter(e => {
+    if (typeFilter !== 'all' && e.type !== typeFilter) return false;
+    if (categoryFilter && String(e.category || '').toLowerCase() !== categoryFilter) return false;
+    return true;
+  });
 
   updateFilterSummary('filter', startMonth, endMonth, typeFilter);
   updateFilterIndicator(startMonth, endMonth, typeFilter);
+  setFilterCategory(state.filterCategory, true);
 
-
-  const approvedEntries = filtered.filter(e => !e.needs_review);
-
-  renderPeriodInsights(approvedEntries);
-
-  renderBalance(approvedEntries, typeFilter);
-
-  updatePendingSummary('pending-summary', 'pending-summary-text', getPendingTotals(filtered));
-  const pendingEmpty = document.getElementById('pending-empty');
-  if (pendingEmpty) pendingEmpty.hidden = filtered.some(e => e.needs_review);
-
-
-  const lockedInfo = document.getElementById('locked-info');
-
-
-  if (lockedInfo) lockedInfo.hidden = !filtered.some(e => e.locked);
-
+  refreshEntrySummary({
+    startMonth,
+    endMonth,
+    typeFilter,
+    categoryFilter: state.filterCategory,
+  });
 
   if (filtered.length === 0) {
 
-
     if (empty) empty.hidden = false;
-
 
     return;
 
-
   }
 
+  filtered.forEach(e => {
+    ul.appendChild(buildEntryRow(e, { withStatus: true }));
+  });
 
-    filtered.forEach(e => {
-
-
-      const li = document.createElement('li');
-      li.classList.add('c-list-row');
-
-
-      const initial = (escapeHtml(e.category || '').charAt(0).toUpperCase() || '?');
-      const statusText = statusLabel(e);
-      const valueClass = e.type === 'in' ? 'c-badge c-badge--success' : 'c-badge c-badge--danger';
-      const valuePrefix = e.type === 'out' ? '-' : '+';
+}
 
 
-      li.dataset.detailId = e.id;
+
+async function refreshEntrySummary({ startMonth = '', endMonth = '', typeFilter = 'all', categoryFilter = '' } = {}) {
 
 
-      li.innerHTML = `<div class="c-list-row__leading" aria-hidden="true">${initial}</div>
-      <div>
-        <p class="c-list-row__title">${escapeHtml(e.category)}</p>
-        <div class="c-inline-actions">
-          <span class="c-list-row__meta">${formatDateBR(e.date)}</span>
-        </div>
-      </div>
-      <div class="c-list-row__value">
-        <span class="c-tooltip">
-          <button type="button" class="c-status-icon" aria-label="Status: ${escapeHtml(statusText)}">
-            <span class="material-icons-outlined" aria-hidden="true">${statusIcon(e)}</span>
-          </button>
-          <span class="c-tooltip__content" role="tooltip">${escapeHtml(statusText)}</span>
-        </span>
-        <span class="${valueClass}">${valuePrefix}${formatMoney(Number(e.amount))}</span>
-      </div>`;
+  const params = new URLSearchParams();
 
 
-      ul.appendChild(li);
+  if (startMonth) params.append('start', startMonth);
+  if (endMonth) params.append('end', endMonth);
+  if (typeFilter && typeFilter !== 'all') params.append('type', typeFilter);
+  if (categoryFilter) params.append('category', String(categoryFilter).trim());
 
 
-    });
+  const res = await api.get(`${API_BASE}/entries/summary?${params.toString()}`);
+  if (!res.ok) return;
+
+
+  applyEntrySummary(res.data || {}, typeFilter);
 
 
 }
 
 
 
+function applyEntrySummary(summary, typeFilter = 'all') {
 
+
+  const totals = summary.totals || { in: 0, out: 0, balance: 0 };
+  const pending = summary.pending || { in: 0, out: 0, balance: 0, count: 0 };
+  const insights = summary.insights || { max_in: 0, max_out: 0, avg: 0, count: 0 };
+
+
+  const balance = Number(totals.balance || 0);
+
+
+  const elIn = document.getElementById('total-in');
+  const elOut = document.getElementById('total-out');
+  const elResult = document.getElementById('total-result');
+  const balLabel = document.getElementById('balance-label');
+
+
+  if (elIn) elIn.innerHTML = `<span class="material-symbols-rounded">arrow_upward</span> ${formatMoney(Number(totals.in || 0))}`;
+  if (elOut) elOut.innerHTML = `<span class="material-symbols-rounded">arrow_downward</span> ${formatMoney(Number(totals.out || 0))}`;
+  if (elResult) elResult.textContent = formatMoney(balance);
+  if (balLabel) {
+    balLabel.textContent = typeFilter === 'all' ? 'Saldo do período' : 'Saldo filtrado';
+  }
+
+
+  const balanceEl = document.getElementById('balance');
+  if (balanceEl) balanceEl.textContent = formatMoney(balance);
+
+
+  updatePendingSummary('pending-summary', 'pending-summary-text', pending);
+  const pendingEmpty = document.getElementById('pending-empty');
+  if (pendingEmpty) pendingEmpty.hidden = Number(pending.count || 0) > 0;
+
+
+  const lockedInfo = document.getElementById('locked-info');
+  if (lockedInfo) lockedInfo.hidden = !summary.has_locked;
+
+
+  const maxInEl = document.getElementById('insight-max-in');
+  const maxOutEl = document.getElementById('insight-max-out');
+  const avgEl = document.getElementById('insight-avg');
+  const countEl = document.getElementById('insight-count');
+
+
+  if (maxInEl) {
+    maxInEl.textContent = insights.max_in ? `+${formatMoney(Number(insights.max_in || 0))}` : 'R$ 0,00';
+    maxInEl.className = 'badge-in';
+  }
+
+
+  if (maxOutEl) {
+    maxOutEl.textContent = insights.max_out ? `-${formatMoney(Number(insights.max_out || 0))}` : 'R$ 0,00';
+    maxOutEl.className = 'badge-out';
+  }
+
+
+  if (avgEl) avgEl.textContent = formatMoney(Number(insights.avg || 0));
+  if (countEl) countEl.textContent = String(insights.count || 0);
+
+
+}
 
 function renderBalance(entries = null, typeFilter = 'all') {
 
@@ -2472,12 +2478,14 @@ function renderBalance(entries = null, typeFilter = 'all') {
 
 
   const elOut = document.getElementById('total-out');
+  const elResult = document.getElementById('total-result');
 
 
-  if (elIn) elIn.innerHTML = `<span class="material-icons-outlined tiny-icon">arrow_upward</span> ${formatMoney(totalIn)}`;
+  if (elIn) elIn.innerHTML = `<span class="material-symbols-rounded">arrow_upward</span> ${formatMoney(totalIn)}`;
 
 
-  if (elOut) elOut.innerHTML = `<span class="material-icons-outlined tiny-icon">arrow_downward</span> ${formatMoney(totalOut)}`;
+  if (elOut) elOut.innerHTML = `<span class="material-symbols-rounded">arrow_downward</span> ${formatMoney(totalOut)}`;
+  if (elResult) elResult.textContent = formatMoney(balance);
 
 
   adjustKpiTextSizes();
@@ -2525,50 +2533,15 @@ function updatePendingSummary(wrapperId, textId, totals) {
 async function loadSummaryChart() {
 
 
-  const el = document.getElementById('chart');
+  const el = document.getElementById('dashboard-chart');
 
 
   if (!el) return;
 
 
-  const daily = {};
-
-
-  state.entries.forEach(e => {
-
-
-    const d = e.date;
-
-
-    if (!daily[d]) daily[d] = { in: 0, out: 0 };
-
-    if (e.needs_review) return;
-
-    daily[d][e.type] += Number(e.amount);
-
-
-  });
-
-
-  const sortedDates = Object.keys(daily).sort();
-
-
-  const series = sortedDates.map(d => ({
-
-
-    label: d,
-
-
-    in: Number(daily[d].in || 0),
-
-
-    out: Number(daily[d].out || 0),
-
-
-    total: Number((daily[d].in || 0) - (daily[d].out || 0)),
-
-
-  }));
+  const res = await api.get(`${API_BASE}/reports/summary`);
+  if (!res.ok) return;
+  const series = res.data.daily_series || [];
 
 
   chart.render(el, series);
@@ -2582,286 +2555,127 @@ async function loadSummaryChart() {
 
 async function submitEntry(e) {
 
-
   e.preventDefault();
-
 
   if (isSubmittingEntry) return;
 
-
   const form = e.target;
-
-
-  const fd = new FormData(form);
-
 
   clearInvalid(form);
 
-
-  const amountInput = form.querySelector('input[name="amount"]');
-
-
+  const amountInput = document.getElementById('entry-amount');
   const dateInput = document.getElementById('entry-date');
-
-
   const categoryInput = document.getElementById('entry-category');
-
+  const descInput = document.getElementById('entry-description');
 
   const errors = [];
 
-
-  const amountRaw = (fd.get('amount') || '').trim();
-
-
+  const amountRaw = String(amountInput?.value || '').trim();
   let amount = null;
 
-
   if (!amountRaw) {
-
-
     markInvalid(amountInput);
-
-
     errors.push('valor');
-
-
   } else {
-
-
     const parsed = parseMoney(amountRaw);
-
-
     if (parsed === null || parsed <= 0) {
-
-
       markInvalid(amountInput);
-
-
-      errors.push('valor vlido');
-
-
+      errors.push('valor v?lido');
     } else {
-
-
       amount = parsed;
-
-
       clearInvalidField(amountInput);
-
-
     }
-
-
   }
 
-
-  const dateRaw = (fd.get('date') || '').trim();
-
-
+  const dateRaw = String(dateInput?.value || '').trim();
   let dateIso = null;
 
-
   if (!dateRaw) {
-
-
     markInvalid(dateInput);
-
-
     errors.push('data');
-
-
+  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
+    markInvalid(dateInput);
+    errors.push('data v?lida');
   } else {
-
-
-    dateIso = parseDateBR(dateRaw);
-
-
-    if (!dateIso) {
-
-
-      markInvalid(dateInput);
-
-
-      errors.push('data vlida (dd/mm/aaaa)');
-
-
-    } else {
-
-
-      clearInvalidField(dateInput);
-
-
-    }
-
-
+    dateIso = dateRaw;
+    clearInvalidField(dateInput);
   }
 
-
-  const category = (fd.get('category') || '').trim();
-
+  const category = String(categoryInput?.value || '').trim();
 
   if (!category) {
-
-
     markInvalid(categoryInput);
-
-
     errors.push('categoria');
-
-
   } else {
-
-
     clearInvalidField(categoryInput);
-
-
   }
-
 
   if (errors.length) {
-
-
     ui.toast('Corrija: ' + errors.join(', '));
-
-
     return;
-
-
   }
-
-
-  let isLockedMonth = false;
-
-
-  if (dateIso) {
-
-
-    const month = dateIso.slice(0, 7);
-
-
-    const locked = state.closedMonths.find(l => l.user_id === state.user.id && l.month === month && l.closed);
-
-
-    if (locked) isLockedMonth = true;
-
-
-  }
-
 
   setEntrySubmitting(true);
 
-
   try {
+    const attachmentInput = document.getElementById('entry-attachment');
+    const attachment = attachmentInput?.files?.[0] || null;
 
-
-    const attachment = document.getElementById('attachment').files[0];
-
-
-    let fileName = null;
-
+    let fileName = state.entryEditingAttachment || null;
 
     if (attachment) {
-
-
       setAttachmentUploading(true);
-
-
       currentUploadController = new AbortController();
 
-
       const upRes = await uploadFile(attachment, currentUploadController.signal).catch((err) => {
-
-
         const aborted = err?.name === 'AbortError';
-
-
         return { ok: false, error: aborted ? 'Upload cancelado' : 'Erro no upload' };
-
-
       });
 
-
       setAttachmentUploading(false);
-
-
       currentUploadController = null;
-
 
       if (!upRes?.ok) throw new Error(upRes?.error || 'Erro no upload');
 
-
       fileName = upRes.data.file;
-
-
     }
 
-
     const payload = {
-
-
-      type: fd.get('type'),
-
-
+      type: state.entryType,
       amount: amount !== null ? Number(amount.toFixed(2)) : null,
-
-
       category: category || null,
-
-
-      description: fd.get('description') || '',
-
-
+      description: String(descInput?.value || ''),
       date: dateIso,
-
-
       attachment_path: fileName,
-
-
     };
 
-
-    const res = await api.post(`${API_BASE}/entries`, payload);
-
+    const isEdit = Boolean(state.entryEditingId);
+    const url = isEdit ? `${API_BASE}/entries/${state.entryEditingId}` : `${API_BASE}/entries`;
+    const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
 
     if (!res.ok) throw new Error(res.error || 'Erro ao salvar');
 
-
-    ui.toast(isLockedMonth ? 'Mês fechado. Lançamento enviado para revisão.' : 'Salvo');
-    toggleModal(false);
-
+    const needsReview = Boolean(res.data?.needs_review);
+    ui.toast(needsReview ? 'M?s fechado. Lan?amento enviado para revis?o.' : 'Salvo');
+    closeEntryModal();
 
     form.reset();
-
-
     clearAttachmentPreview(true);
-
-
     setEntryType('in');
 
-
     await loadEntries();
-
-
     await loadTrash();
-
 
   } catch (err) {
 
-
     ui.toast(err?.message || 'Erro ao salvar');
-
 
   } finally {
 
-
     currentUploadController = null;
-
-
     setEntrySubmitting(false);
 
-
   }
-
 
 }
 
@@ -2882,17 +2696,16 @@ async function handleEntryClick(e) {
 
   const entry = state.entries.find(item => item.id === id);
 
-  if (entry) showReportEntryDetails(entry);
+  if (entry) openEntryModal(entry);
 }
 
 function updateEntryAmountPreview() {
   const preview = document.getElementById('entry-amount-preview');
   const amountInput = document.getElementById('entry-amount');
-  const typeInput = document.getElementById('entry-type');
 
   if (!preview || !amountInput) return;
 
-  const type = typeInput?.value === 'out' ? 'out' : 'in';
+  const type = state.entryType === 'out' ? 'out' : 'in';
   const value = amountInput.value || 'R$ 0,00';
   const cleanValue = value.startsWith('R$') ? value : `R$ ${value}`;
   const prefix = type === 'out' ? '-' : '+';
@@ -2902,20 +2715,10 @@ function updateEntryAmountPreview() {
 
 function updateEntryAccent(type = 'in') {
   const t = type === 'out' ? 'out' : 'in';
-  const accents = document.querySelectorAll('#view-entry .c-entry-accent');
-  const label = document.getElementById('entry-type-badge-label');
-  const icon = document.getElementById('entry-type-badge-icon');
   const submitLabel = document.getElementById('entry-submit-label');
   const submitBtn = document.getElementById('entry-submit');
-  const submitText = t === 'in' ? 'Salvar entrada' : 'Salvar saída';
+  const submitText = t === 'in' ? 'Salvar entrada' : 'Salvar sa?da';
 
-  accents.forEach((el) => {
-    el.classList.toggle('c-badge--success', t === 'in');
-    el.classList.toggle('c-badge--danger', t === 'out');
-  });
-
-  if (label) label.textContent = t === 'in' ? 'Entrada' : 'Saída';
-  if (icon) icon.textContent = t === 'in' ? 'arrow_upward' : 'arrow_downward';
   if (submitLabel) submitLabel.textContent = submitText;
   if (submitBtn) submitBtn.setAttribute('aria-label', submitText);
 }
@@ -2933,7 +2736,7 @@ async function deleteEntry(id) {
   if (res.ok) {
 
 
-    ui.toast('Apagado');
+    ui.toast('Movido para a lixeira');
 
 
     await loadEntries();
@@ -2958,13 +2761,6 @@ async function deleteEntry(id) {
 
 async function uploadFile(file, signal, userId = null) {
 
-
-  const headers = {};
-
-
-  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-
-
   let res = null;
 
 
@@ -2973,15 +2769,10 @@ async function uploadFile(file, signal, userId = null) {
 
     res = await fetch(`${API_BASE}/upload`, {
 
-
       method: 'POST',
 
-
-      headers,
-
-
       signal,
-
+      credentials: 'same-origin',
 
       body: (() => {
         const f = new FormData();
@@ -3069,193 +2860,107 @@ async function uploadSupportAttachment(controller) {
 function cleanupEntryView() {
 
   if (currentUploadController) {
-
     currentUploadController.abort();
-
     currentUploadController = null;
-
   }
 
   clearAttachmentPreview(true);
-
   setEntryType('in');
-
-  setAttachmentUploading(false);
-
   setEntrySubmitting(false);
-
+  setAttachmentUploading(false);
+  state.entryEditingId = null;
+  state.entryEditingAttachment = null;
+  setEntryCategory('');
+  setDefaultEntryDate(true);
 }
 
-
-function openEntryView(type = 'in') {
-
+function openEntryModal(entry = null) {
   if (!state.categories.length) loadCategories();
 
-  state.entryReturnView = state.activeView || 'view-dashboard';
-
-  closeEntrySheet();
-
-  setEntryType(type);
-
-  setDefaultEntryDate(true);
-
-  setEntrySubmitting(false);
-
-  setAttachmentUploading(false);
-
-  goTo('view-entry');
-
-}
-
-
-function closeEntryView() {
+  const modal = document.getElementById('entry-modal');
+  if (!modal) return;
 
   cleanupEntryView();
 
-  const returnView = state.entryReturnView || 'view-dashboard';
+  if (entry) {
+    state.entryEditingId = entry.id;
+    state.entryEditingAttachment = entry.attachment_path || null;
+    const title = document.getElementById('entry-modal-title');
+    if (title) title.textContent = 'Editar transa?o';
+    const submitLabel = document.getElementById('entry-submit-label');
+    if (submitLabel) submitLabel.textContent = 'Salvar';
+    const deleteBtn = document.getElementById('entry-delete');
+    if (deleteBtn) deleteBtn.hidden = false;
 
-  state.entryReturnView = null;
+    const amountInput = document.getElementById('entry-amount');
+    if (amountInput) amountInput.value = entry.amount ? formatMoney(entry.amount) : '';
 
-  goTo(returnView);
+    setEntryType(entry.type || 'in');
+    setEntryCategory(entry.category || '');
 
-}
+    const dateInput = document.getElementById('entry-date');
+    if (dateInput) dateInput.value = entry.date || '';
+    syncEntryDate();
 
+    const desc = document.getElementById('entry-description');
+    if (desc) desc.value = entry.description || '';
 
-function toggleModal(show, type = 'in') {
+    if (entry.attachment_path) {
+      hydrateEntryAttachment(entry.attachment_path);
+    }
 
-  if (show) {
-
-    openEntryView(type);
-
+    if (deleteBtn) {
+      deleteBtn.onclick = async () => {
+        const ok = await deleteEntry(entry.id);
+        if (ok) closeEntryModal();
+      };
+    }
   } else {
-
-    closeEntryView();
-
+    const title = document.getElementById('entry-modal-title');
+    if (title) title.textContent = 'Nova transa?o';
+    const submitLabel = document.getElementById('entry-submit-label');
+    if (submitLabel) submitLabel.textContent = 'Salvar';
+    const deleteBtn = document.getElementById('entry-delete');
+    if (deleteBtn) deleteBtn.hidden = true;
   }
 
+  modal.present();
 }
 
-
-function openEntrySheet() {
-  const sheet = document.getElementById('entry-sheet');
-  if (!sheet) return;
-  const panel = sheet.querySelector('.c-bottom-sheet__panel');
-  sheet.hidden = false;
-  document.body.classList.add('modal-open');
-  sheet.dataset.focused = document.activeElement ? document.activeElement.id || '' : '';
-  const focusTarget = panel?.querySelector('button');
-  if (focusTarget) focusTarget.focus();
+function closeEntryModal() {
+  const modal = document.getElementById('entry-modal');
+  if (modal) modal.dismiss();
+  cleanupEntryView();
 }
 
-function closeEntrySheet() {
-  const sheet = document.getElementById('entry-sheet');
-  if (!sheet) return;
-  sheet.hidden = true;
-  document.body.classList.remove('modal-open');
-  const focusedId = sheet.dataset.focused;
-  if (focusedId) {
-    const el = document.getElementById(focusedId);
-    if (el) el.focus();
+function openEntryDateModal() {
+  const modal = document.getElementById('entry-date-modal');
+  if (modal) modal.present();
+}
+
+function closeEntryDateModal() {
+  const modal = document.getElementById('entry-date-modal');
+  if (modal) modal.dismiss();
+}
+
+function syncEntryDate() {
+  const input = document.getElementById('entry-date');
+  const note = document.getElementById('entry-date-note');
+  if (!input || !note) return;
+  const value = input.value || '';
+  if (!value) {
+    note.textContent = 'Selecione';
+    return;
   }
-  sheet.dataset.focused = '';
+  note.textContent = formatDateBR(value);
 }
 
-function bindEntrySheet() {
-  const fab = document.getElementById('nav-add');
-  const sheet = document.getElementById('entry-sheet');
-  const panel = sheet?.querySelector('.c-bottom-sheet__panel');
-
-  if (fab) {
-    fab.addEventListener('click', () => {
-      if (sheet && !sheet.hidden) closeEntrySheet();
-      else openEntrySheet();
-    });
-  }
-
-  if (sheet) {
-    sheet.addEventListener('click', (e) => {
-      if (e.target === sheet) closeEntrySheet();
-    });
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (sheet && !sheet.hidden) closeEntrySheet();
-  });
-
-  if (panel) {
-    panel.addEventListener('click', (e) => e.stopPropagation());
-  }
-}
-
-function openFilterSheet() {
-  const sheet = document.getElementById('filter-sheet');
-  if (!sheet) return;
-  const panel = sheet.querySelector('.c-bottom-sheet__panel');
-  const startMain = document.getElementById('filter-start');
-  const endMain = document.getElementById('filter-end');
-  const typeMain = document.getElementById('filter-type');
-  const startSheet = document.getElementById('filter-start-sheet');
-  const endSheet = document.getElementById('filter-end-sheet');
-  const typeSheet = document.getElementById('filter-type-sheet');
-
-  if (startSheet && startMain) startSheet.value = startMain.value;
-  if (endSheet && endMain) endSheet.value = endMain.value;
-  if (typeSheet && typeMain) typeSheet.value = typeMain.value;
-
-  sheet.hidden = false;
-  document.body.classList.add('modal-open');
-  const focusTarget = panel?.querySelector('input, select, button');
-  if (focusTarget) focusTarget.focus();
-}
-
-function bindFilterSheet() {
-  const sheet = document.getElementById('filter-sheet');
-  const panel = sheet?.querySelector('.c-bottom-sheet__panel');
-
-  if (sheet) {
-    sheet.addEventListener('click', (e) => {
-      if (e.target === sheet) closeFilterSheet();
-    });
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (sheet && !sheet.hidden) closeFilterSheet();
-  });
-
-  if (panel) {
-    panel.addEventListener('click', (e) => e.stopPropagation());
-  }
-}
-
-function closeFilterSheet() {
-  const sheet = document.getElementById('filter-sheet');
-  if (!sheet) return;
-  sheet.hidden = true;
-  document.body.classList.remove('modal-open');
-}
-
-function applyFilterSheet() {
-  const startMain = document.getElementById('filter-start');
-  const endMain = document.getElementById('filter-end');
-  const typeMain = document.getElementById('filter-type');
-  const startSheet = document.getElementById('filter-start-sheet');
-  const endSheet = document.getElementById('filter-end-sheet');
-  const typeSheet = document.getElementById('filter-type-sheet');
-
-  if (startMain && startSheet) startMain.value = startSheet.value;
-  if (endMain && endSheet) endMain.value = endSheet.value;
-  if (typeMain && typeSheet) typeMain.value = typeSheet.value;
-
-  closeFilterSheet();
-  renderEntries();
-}
 
 function updateFilterIndicator(startMonth, endMonth, typeFilter) {
-  const indicator = document.getElementById('dashboard-filter-indicator');
+  const indicator = document.getElementById('main-filter-indicator');
   if (!indicator) return;
-  const active = Boolean(startMonth || endMonth || (typeFilter && typeFilter !== 'all'));
+  const hasCategory = Boolean(state.filterCategory);
+  const active = Boolean(startMonth || endMonth || (typeFilter && typeFilter !== 'all') || hasCategory);
   indicator.hidden = !active;
 }
 
@@ -3282,14 +2987,7 @@ document.addEventListener('click', (e) => {
 
 async function exportPdf() {
 
-
-  const headers = {};
-
-
-  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-
-
-  const res = await fetch(`${API_BASE}/export/pdf`, { headers }).catch(() => null);
+  const res = await fetch(`${API_BASE}/export/pdf`, { credentials: 'same-origin' }).catch(() => null);
 
 
   if (!res || !res.ok) {
@@ -3361,16 +3059,13 @@ async function changePassword(e) {
   clearInvalid(e.target);
 
 
-  const current = e.target.current_password.value;
+  const currentInput = e.target.querySelector('[name="current_password"]');
+  const passwordInput = e.target.querySelector('[name="password"]');
+  const current = currentInput?.value || '';
+  const pwd = passwordInput?.value || '';
 
-
-  const pwd = e.target.password.value;
-
-
-  const okCurrent = validateUserOptionField(e.target.current_password);
-
-
-  const okNew = validateUserOptionField(e.target.password);
+  const okCurrent = validateUserOptionField(currentInput);
+  const okNew = validateUserOptionField(passwordInput);
 
 
   if (!okCurrent || !okNew) return ui.toast('Corrija os campos destacados');
@@ -3425,35 +3120,20 @@ function setEntryType(type = 'in') {
   const t = type === 'out' ? 'out' : 'in';
 
 
-  const input = document.getElementById('entry-type');
+  state.entryType = t;
 
-
-  if (input) input.value = t;
+  const segment = document.getElementById('entry-type-segment');
+  if (segment && segment.value !== t) segment.value = t;
 
 
   const form = document.getElementById('entry-form');
-  const typeIn = document.getElementById('entry-type-in');
-  const typeOut = document.getElementById('entry-type-out');
-
   if (form) {
     form.classList.toggle('is-in', t === 'in');
     form.classList.toggle('is-out', t === 'out');
   }
 
-  if (typeIn && typeOut) {
-    typeIn.classList.toggle('is-active', t === 'in');
-    typeOut.classList.toggle('is-active', t === 'out');
-    typeIn.setAttribute('aria-selected', t === 'in' ? 'true' : 'false');
-    typeOut.setAttribute('aria-selected', t === 'out' ? 'true' : 'false');
-  }
-
   updateEntryAccent(t);
   updateEntryAmountPreview();
-
-
-  populateEntryCategories(t);
-
-
 }
 
 
@@ -3847,81 +3527,202 @@ async function loadCategories() {
 
 
 function renderCategories() {
-
-
-  const tbody = document.querySelector('#categories-table tbody');
-
-
-  if (tbody) {
-
-
-    tbody.innerHTML = '';
-
-
-    state.categories.forEach(c => {
-
-
-      const tr = document.createElement('tr');
-
-
-      tr.innerHTML = `<td>${escapeHtml(c.name)}</td>
-
-
-        <td>${c.type === 'in' ? 'Entrada' : 'Saída'}</td>
-
-
-        <td><div class="inline-actions">
-
-
-          <button class="ghost" data-action="edit-category" data-id="${c.id}">Editar</button>
-
-
-          <button class="ghost" data-action="delete-category" data-id="${c.id}">Excluir</button>
-
-
-        </div></td>`;
-
-
-      tbody.appendChild(tr);
-
-
-    });
-
-
-  }
-
-
-  const dl = document.getElementById('category-options');
-
-
-  if (dl) {
-
-
-    dl.innerHTML = '';
-
-
-    state.categories.forEach(c => {
-
-
-      const opt = document.createElement('option');
-
-
-      opt.value = c.name;
-
-
-      dl.appendChild(opt);
-
-
-    });
-
-
-  }
-
-
-  populateEntryCategories(document.getElementById('entry-type')?.value || 'in');
-
-
+  renderCategoriesView();
+  renderCategoryModalList();
 }
+
+
+function renderCategoriesView() {
+  const list = document.getElementById('categories-list');
+  const empty = document.getElementById('categories-empty');
+  if (!list) return;
+
+  list.innerHTML = '';
+  const items = Array.isArray(state.categories) ? state.categories : [];
+
+  if (!items.length) {
+    if (empty) empty.hidden = false;
+    return;
+  }
+
+  if (empty) empty.hidden = true;
+
+  items.forEach(c => {
+    const li = document.createElement('li');
+    li.className = 'row category-row';
+
+    const icon = document.createElement('div');
+    icon.className = 'icon-circle';
+    const initial = document.createElement('span');
+    initial.className = 'row-initial';
+    const nameText = String(c.name || '').trim();
+    initial.textContent = nameText ? nameText.charAt(0).toUpperCase() : '?';
+    icon.appendChild(initial);
+
+    const info = document.createElement('div');
+    const title = document.createElement('div');
+    title.className = 'row-title';
+    title.textContent = nameText || 'Sem nome';
+    const meta = document.createElement('div');
+    meta.className = 'row-meta';
+    meta.textContent = c.type === 'out' ? 'Sa?da' : 'Entrada';
+    info.appendChild(title);
+    info.appendChild(meta);
+
+    li.appendChild(icon);
+    li.appendChild(info);
+    list.appendChild(li);
+  });
+}
+
+function renderCategoryModalList() {
+  const list = document.getElementById('category-modal-list');
+  const empty = document.getElementById('category-modal-empty');
+  if (!list) return;
+
+  const search = document.getElementById('category-search');
+  const query = (search?.value || '').trim().toLowerCase();
+
+  list.innerHTML = '';
+
+  let items = Array.isArray(state.categories) ? state.categories.slice() : [];
+  if (state.categoryModalTarget === 'entry') {
+    items = items.filter(c => (c.type || 'in') === state.entryType);
+  }
+
+  const makeItem = (label, value, typeLabel = '') => {
+    const item = document.createElement('ion-item');
+    item.setAttribute('lines', 'none');
+    item.setAttribute('button', 'true');
+    item.className = 'uikit-list-item';
+
+    const text = document.createElement('ion-label');
+    text.textContent = label;
+    item.appendChild(text);
+
+    if (typeLabel) {
+      const note = document.createElement('ion-note');
+      note.slot = 'end';
+      note.textContent = typeLabel;
+      item.appendChild(note);
+    }
+
+    item.addEventListener('click', () => {
+      if (state.categoryModalTarget === 'entry') {
+        setEntryCategory(value);
+      } else {
+        setFilterCategory(value);
+      }
+      closeCategoryModal();
+    });
+
+    list.appendChild(item);
+  };
+
+  if (state.categoryModalTarget === 'filter') {
+    const showAll = !query || 'todas'.includes(query);
+    if (showAll) makeItem('Todas', '', '');
+  }
+
+  const filtered = items.filter(c => {
+    const name = String(c.name || '').toLowerCase();
+    return !query || name.includes(query);
+  });
+
+  filtered.forEach(c => {
+    const typeLabel = state.categoryModalTarget === 'filter' ? (c.type === 'out' ? 'Sa?da' : 'Entrada') : '';
+    makeItem(c.name || 'Sem nome', c.name || '', typeLabel);
+  });
+
+  if (empty) empty.hidden = list.children.length > 0;
+}
+
+function setEntryCategory(value = '') {
+  const input = document.getElementById('entry-category');
+  if (input) input.value = value;
+  state.entryCategoryLabel = value || '';
+  const note = document.getElementById('entry-category-note');
+  if (note) note.textContent = value || 'Selecionar';
+  if (input) validateEntryField(input);
+}
+
+function openCategoryModal(target = 'entry') {
+  state.categoryModalTarget = target;
+  const modal = document.getElementById('category-modal');
+  if (!modal) return;
+  const search = document.getElementById('category-search');
+  if (search) search.value = '';
+  renderCategoryModalList();
+  modal.present();
+}
+
+function closeCategoryModal() {
+  const modal = document.getElementById('category-modal');
+  if (modal) modal.dismiss();
+}
+
+
+function openChatEntryModal() {
+  const modal = document.getElementById('chat-entry-modal');
+  if (!modal) return;
+  renderChatEntryList();
+  modal.present();
+}
+
+function closeChatEntryModal() {
+  const modal = document.getElementById('chat-entry-modal');
+  if (modal) modal.dismiss();
+}
+
+function renderChatEntryList() {
+  const list = document.getElementById('chat-entry-list');
+  const empty = document.getElementById('chat-entry-empty');
+  if (!list) return;
+
+  list.innerHTML = '';
+
+  const items = Array.isArray(state.entries) ? state.entries.slice() : [];
+  if (!items.length) {
+    if (empty) empty.hidden = false;
+    return;
+  }
+
+  if (empty) empty.hidden = true;
+
+  items.sort((a, b) => String(b.date).localeCompare(String(a.date))).forEach(entry => {
+    const item = document.createElement('ion-item');
+    item.setAttribute('lines', 'none');
+    item.setAttribute('button', 'true');
+    item.className = 'uikit-list-item';
+
+    const label = document.createElement('ion-label');
+    const title = document.createElement('div');
+    title.className = 'row-title';
+    title.textContent = entry.category || 'Sem categoria';
+    const meta = document.createElement('div');
+    meta.className = 'row-meta';
+    meta.textContent = formatDateBR(entry.date);
+    label.appendChild(title);
+    label.appendChild(meta);
+
+    const note = document.createElement('ion-note');
+    note.slot = 'end';
+    const prefix = entry.type === 'out' ? '-' : '+';
+    note.textContent = `${prefix}${formatMoney(Number(entry.amount || 0))}`;
+
+    item.appendChild(label);
+    item.appendChild(note);
+
+    item.addEventListener('click', () => {
+      state.chatEntryId = entry.id;
+      ui.toast('Lan?amento anexado ao chat');
+      closeChatEntryModal();
+    });
+
+    list.appendChild(item);
+  });
+}
+
 
 
 
@@ -4486,10 +4287,10 @@ function updateUserChip() {
 function setAttachmentUploading(isUploading) {
 
 
-  const preview = document.getElementById('attachment-preview');
+  const preview = document.getElementById('entry-attachment-preview');
 
 
-  const status = document.getElementById('attachment-status');
+  const status = document.getElementById('entry-attachment-status');
 
 
   const clearBtn = document.getElementById('btn-clear-attachment');
@@ -4625,7 +4426,7 @@ function cancelAttachmentUpload() {
 function setupAttachmentPreview() {
 
 
-  const input = document.getElementById('attachment');
+  const input = document.getElementById('entry-attachment');
 
 
   if (input) input.addEventListener('change', handleAttachmentChange);
@@ -4646,7 +4447,7 @@ function setupAttachmentPreview() {
   });
 
 
-  const preview = document.getElementById('attachment-preview');
+  const preview = document.getElementById('entry-attachment-preview');
 
 
   if (preview && input) {
@@ -4996,13 +4797,13 @@ function handleAttachmentChange(e) {
   attachmentPreviewUrl = URL.createObjectURL(file);
 
 
-  const preview = document.getElementById('attachment-preview');
+  const preview = document.getElementById('entry-attachment-preview');
 
 
-  const img = document.getElementById('attachment-thumb');
+  const img = document.getElementById('entry-attachment-thumb');
 
 
-  const name = document.getElementById('attachment-name');
+  const name = document.getElementById('entry-attachment-name');
 
 
   if (img) {
@@ -5044,19 +4845,21 @@ function handleAttachmentChange(e) {
 function clearAttachmentPreview(resetInput = false) {
 
 
-  const preview = document.getElementById('attachment-preview');
+  const preview = document.getElementById('entry-attachment-preview');
 
 
-  const img = document.getElementById('attachment-thumb');
+  const img = document.getElementById('entry-attachment-thumb');
 
 
-  const name = document.getElementById('attachment-name');
+  const name = document.getElementById('entry-attachment-name');
+
+  const note = document.getElementById('entry-attachment-note');
 
 
   const clearBtn = document.getElementById('btn-clear-attachment');
 
 
-  const status = document.getElementById('attachment-status');
+  const status = document.getElementById('entry-attachment-status');
 
 
   if (preview) preview.classList.add('is-empty');
@@ -5085,6 +4888,8 @@ function clearAttachmentPreview(resetInput = false) {
 
   }
 
+
+  state.entryEditingAttachment = null;
 
   if (status) {
 
@@ -5122,7 +4927,7 @@ function clearAttachmentPreview(resetInput = false) {
   if (resetInput) {
 
 
-    const input = document.getElementById('attachment');
+    const input = document.getElementById('entry-attachment');
 
 
     if (input) input.value = '';
@@ -5224,13 +5029,14 @@ async function updateProfile(e) {
   clearInvalid(e.target);
 
 
-  const name = e.target.name.value.trim();
+  const nameInput = document.getElementById('profile-name');
+  const name = (nameInput?.value || '').trim();
 
 
   const theme = state.user?.theme || 'dark';
 
 
-  if (!validateUserOptionField(e.target.name)) return ui.toast('Informe um nome');
+  if (!validateUserOptionField(nameInput)) return ui.toast('Informe um nome');
 
 
   const res = await api.put(`${API_BASE}/account/preferences`, { name, theme });
@@ -5243,9 +5049,6 @@ async function updateProfile(e) {
 
 
     state.user.theme = theme;
-
-
-    localStorage.setItem('auth', JSON.stringify({ token: state.token, user: state.user }));
 
 
     applyTheme(theme);
@@ -5281,7 +5084,7 @@ async function updateProfile(e) {
 function getReportEntries(includePending = false) {
 
 
-  const type = document.getElementById('report-type')?.value || 'all';
+  const type = state.reportType || 'all';
 
 
   const startMonth = document.getElementById('report-start')?.value || '';
@@ -5310,7 +5113,7 @@ function getReportEntries(includePending = false) {
 
 
 
-function renderReports() {
+async function renderReports() {
 
 
   const reportStart = document.getElementById('report-start')?.value || '';
@@ -5319,76 +5122,44 @@ function renderReports() {
   const reportEnd = document.getElementById('report-end')?.value || '';
 
 
-  const reportType = document.getElementById('report-type')?.value || 'all';
+  const reportType = state.reportType || 'all';
 
 
   updateFilterSummary('report', reportStart, reportEnd, reportType);
 
 
-  const allFiltered = getReportEntries(true);
-  const filtered = allFiltered.filter(e => !e.needs_review);
+  const params = new URLSearchParams();
+  if (reportStart) params.append('start', reportStart);
+  if (reportEnd) params.append('end', reportEnd);
+  if (reportType && reportType !== 'all') params.append('type', reportType);
 
-
-  let totalIn = 0, totalOut = 0;
-
-
-  filtered.forEach(e => {
-
-
-    if (e.type === 'in') totalIn += Number(e.amount);
-
-
-    else totalOut += Number(e.amount);
-
-
-  });
-
-
-  const balance = totalIn - totalOut;
-
+  const res = await api.get(`${API_BASE}/reports/aggregate?${params.toString()}`);
+  if (!res.ok) {
+    ui.toast(res.error || 'Erro ao carregar relat??rio');
+    return;
+  }
+  const totals = res.data?.totals || { in: 0, out: 0, balance: 0 };
+  const pending = res.data?.pending || { in: 0, out: 0, balance: 0, count: 0 };
 
   const headerIn = document.getElementById('report-total-in');
-
-
   const headerOut = document.getElementById('report-total-out');
-
-
   const headerBal = document.getElementById('report-balance');
-
-
   const balLabel = document.getElementById('report-balance-label');
 
-
-  if (headerIn) headerIn.innerHTML = `<span class="material-icons-outlined tiny-icon">arrow_upward</span> ${formatMoney(totalIn)}`;
-
-
-  if (headerOut) headerOut.innerHTML = `<span class="material-icons-outlined tiny-icon">arrow_downward</span> ${formatMoney(totalOut)}`;
-
-
-  if (headerBal) headerBal.textContent = formatMoney(balance);
-
-
+  if (headerIn) headerIn.innerHTML = `<span class="material-symbols-rounded">arrow_upward</span> ${formatMoney(totals.in || 0)}`;
+  if (headerOut) headerOut.innerHTML = `<span class="material-symbols-rounded">arrow_downward</span> ${formatMoney(totals.out || 0)}`;
+  if (headerBal) headerBal.textContent = formatMoney(totals.balance || 0);
   if (balLabel) balLabel.textContent = formatPeriodLabel(reportStart, reportEnd);
 
-  updatePendingSummary('report-pending-summary', 'report-pending-summary-text', getPendingTotals(allFiltered));
-
+  updatePendingSummary('report-pending-summary', 'report-pending-summary-text', pending);
   adjustKpiTextSizes();
 
+  renderReport12Months(res.data?.last_12_months || []);
+  renderReportChart(res.data?.by_day || []);
+  renderReportCategories(res.data?.by_category || []);
+  renderReportTypeSplit(totals.in || 0, totals.out || 0, totals.balance || 0);
 
-  renderReport12Months();
-
-
-  renderReportChart(filtered);
-
-
-  renderReportCategories(filtered);
-
-
-  renderReportTypeSplit(totalIn, totalOut, balance);
-
-
-  renderReportTable(filtered);
-
+  renderReportTable(getReportEntries());
 
 }
 
@@ -5396,13 +5167,14 @@ function renderReports() {
 
 
 
-function renderReport12Months() {
+
+function renderReport12Months(data) {
 
 
-  const data = getLast12MonthsSummary();
+  const series = Array.isArray(data) ? data : [];
 
 
-  render12mChart(document.getElementById('report-12m-chart'), data);
+  render12mChart(document.getElementById('report-12m-chart'), series);
 
 
   const monthList = document.getElementById('report-12m-month-list');
@@ -5417,7 +5189,7 @@ function renderReport12Months() {
   monthList.innerHTML = '';
 
 
-  const hasData = data.some(m => m.in > 0 || m.out > 0);
+  const hasData = series.some(m => (m.in || 0) > 0 || (m.out || 0) > 0);
 
 
   if (!hasData) {
@@ -5435,19 +5207,19 @@ function renderReport12Months() {
   if (empty) empty.hidden = true;
 
 
-  data.slice().reverse().forEach(m => {
+  series.slice().reverse().forEach(m => {
 
 
-    const monthBalance = m.month_balance ?? (m.in - m.out);
+    const monthBalance = Number(m.month_balance ?? (Number(m.in || 0) - Number(m.out || 0)));
 
 
     const mainBalClass = monthBalance >= 0 ? 'text-in' : 'text-out';
 
 
-    const accBalClass = m.balance >= 0 ? 'text-in' : 'text-out';
+    const accBalClass = Number(m.balance || 0) >= 0 ? 'text-in' : 'text-out';
 
 
-
+    const label = m.label || formatMonthShort(m.key || '');
 
 
     const monthItem = document.createElement('div');
@@ -5456,7 +5228,7 @@ function renderReport12Months() {
     monthItem.className = 'summary-item';
 
 
-    monthItem.innerHTML = `<div class="summary-label">${escapeHtml(m.label)}</div>
+    monthItem.innerHTML = `<div class="summary-label">${escapeHtml(label)}</div>
 
 
       <div class="summary-values">
@@ -5468,7 +5240,7 @@ function renderReport12Months() {
           <small>Entradas</small>
 
 
-          <strong>${formatMoney(m.in)}</strong>
+          <strong>${formatMoney(Number(m.in || 0))}</strong>
 
 
         </div>
@@ -5477,8 +5249,8 @@ function renderReport12Months() {
         <div class="summary-value text-out">
 
 
-          <small>Saídas</small>
-          <strong>${formatMoney(m.out)}</strong>
+          <small>Sa?das</small>
+          <strong>${formatMoney(Number(m.out || 0))}</strong>
 
 
         </div>
@@ -5487,7 +5259,7 @@ function renderReport12Months() {
         <div class="summary-value ${mainBalClass}">
 
 
-          <small>Saldo do mês</small>
+          <small>Saldo do m?s</small>
           <strong>${formatMoney(monthBalance)}</strong>
 
 
@@ -5500,7 +5272,7 @@ function renderReport12Months() {
           <small>Saldo acumulado</small>
 
 
-          <strong>${formatMoney(m.balance)}</strong>
+          <strong>${formatMoney(Number(m.balance || 0))}</strong>
 
 
         </div>
@@ -5516,6 +5288,7 @@ function renderReport12Months() {
 
 
 }
+
 
 
 
@@ -5806,37 +5579,13 @@ function render12mChart(canvas, series) {
 
 
 
-function renderReportChart(entries) {
+function renderReportChart(series) {
 
 
-  const byDay = {};
+  const data = Array.isArray(series) ? series : [];
 
 
-  entries.forEach(e => {
-
-
-    const day = e.date;
-
-
-    if (!byDay[day]) byDay[day] = { label: day, in: 0, out: 0, total: 0 };
-
-
-    if (e.type === 'in') byDay[day].in += Number(e.amount);
-
-
-    else byDay[day].out += Number(e.amount);
-
-
-    byDay[day].total = byDay[day].in - byDay[day].out;
-
-
-  });
-
-
-  const series = Object.values(byDay).sort((a, b) => a.label.localeCompare(b.label));
-
-
-  chart.render(document.getElementById('report-chart'), series);
+  chart.render(document.getElementById('report-chart'), data);
 
 
 }
@@ -5845,7 +5594,8 @@ function renderReportChart(entries) {
 
 
 
-function renderReportCategories(entries) {
+
+function renderReportCategories(items) {
 
 
   const container = document.getElementById('report-category-bars');
@@ -5857,40 +5607,23 @@ function renderReportCategories(entries) {
   container.innerHTML = '';
 
 
-  if (!entries.length) {
+  const list = Array.isArray(items) ? items : [];
 
 
-    container.innerHTML = '<div class="muted tiny">Sem movimentações neste filtro.</div>';
+  if (!list.length) {
+
+
+    container.innerHTML = '<div class="muted tiny">Sem movimenta??es neste filtro.</div>';
     return;
 
 
   }
 
 
-  const map = {};
+  const totalAll = list.reduce((acc, i) => acc + Number(i.in || 0) + Number(i.out || 0), 0);
 
 
-  entries.forEach(e => {
-
-
-    const name = e.category || 'Sem categoria';
-
-
-    if (!map[name]) map[name] = { name, in: 0, out: 0 };
-
-
-    map[name][e.type] += Number(e.amount);
-
-
-  });
-
-
-  const allItems = Object.values(map);
-  const totalAll = allItems.reduce((acc, i) => acc + i.in + i.out, 0);
-  const items = allItems.sort((a, b) => (b.in + b.out) - (a.in + a.out)).slice(0, 6);
-
-
-  items.forEach(item => {
+  list.forEach(item => {
 
 
     const wrap = document.createElement('div');
@@ -5899,9 +5632,10 @@ function renderReportCategories(entries) {
     wrap.className = 'bar-row';
 
 
-    const percentIn = totalAll ? (item.in / totalAll) * 100 : 0;
-    const percentOut = totalAll ? (item.out / totalAll) * 100 : 0;
-    const share = Math.round(((item.in + item.out) / Math.max(totalAll, 1)) * 100);
+    const percentIn = totalAll ? (Number(item.in || 0) / totalAll) * 100 : 0;
+    const percentOut = totalAll ? (Number(item.out || 0) / totalAll) * 100 : 0;
+    const share = Number.isFinite(Number(item.share)) ? Number(item.share) : Math.round(((Number(item.in || 0) + Number(item.out || 0)) / Math.max(totalAll, 1)) * 100);
+    const balance = Number.isFinite(Number(item.balance)) ? Number(item.balance) : (Number(item.in || 0) - Number(item.out || 0));
 
 
     const trackClass = percentIn === 0 || percentOut === 0 ? 'bar-track dual single' : 'bar-track dual';
@@ -5912,10 +5646,10 @@ function renderReportCategories(entries) {
         <div>
 
 
-          <strong>${escapeHtml(item.name)}</strong>
+          <strong>${escapeHtml(item.name || 'Sem categoria')}</strong>
 
 
-          <small class="muted">Saldo ${formatMoney(item.in - item.out)}</small>
+          <small class="muted">Saldo ${formatMoney(balance)}</small>
 
 
         </div>
@@ -5942,10 +5676,10 @@ function renderReportCategories(entries) {
       <div class="bar-meta">
 
 
-        <span class="dot in">Entradas ${formatMoney(item.in)}</span>
+        <span class="dot in">Entradas ${formatMoney(Number(item.in || 0))}</span>
 
 
-        <span class="dot out">Saídas ${formatMoney(item.out)}</span>
+        <span class="dot out">Sa?das ${formatMoney(Number(item.out || 0))}</span>
       </div>`;
 
 
@@ -5956,6 +5690,7 @@ function renderReportCategories(entries) {
 
 
 }
+
 
 
 
@@ -6039,23 +5774,25 @@ function renderReportTable(entries) {
     const li = document.createElement('li');
     const initial = (escapeHtml(e.category || '').charAt(0).toUpperCase() || '?');
     const sign = e.type === 'out' ? '-' : '+';
-    const badgeClass = e.type === 'in' ? 'badge-in' : 'badge-out';
-    const statusClass = e.status || 'open';
+    const valueClass = e.type === 'in' ? 'row-value pos' : 'row-value neg';
+    const statusText = statusLabel(e);
 
+    li.className = 'row entry-row';
     li.dataset.detailId = e.id;
 
-    li.innerHTML = `<div class="entry-left">
-        <div class="avatar tiny">${initial}</div>
-        <div>
-          <strong>${escapeHtml(e.category || '')}</strong>
-          <small class="muted">${formatDateBR(e.date)}</small>
-        </div>
+    li.innerHTML = `<div class="icon-circle" aria-hidden="true"><span class="row-initial">${initial}</span></div>
+      <div>
+        <div class="row-title">${escapeHtml(e.category || '')}</div>
+        <div class="row-meta">${formatDateBR(e.date)}${expireText ? ` ? ${expireText}` : ''}</div>
       </div>
-      <div class="entry-right">
-        <div class="entry-meta">
-          <span class="status-dot status-${statusClass}" title="${statusLabel(e)}"><span class="material-icons-outlined status-icon">${statusIcon(e)}</span></span>
-          <div class="${badgeClass}">${sign}${formatMoney(Number(e.amount))}</div>
-        </div>
+      <div class="${valueClass}">
+        <span class="c-tooltip">
+          <button type="button" class="c-status-icon" aria-label="Status: ${escapeHtml(statusText)}">
+            <span class="material-symbols-rounded" aria-hidden="true">${statusIcon(e)}</span>
+          </button>
+          <span class="c-tooltip__content" role="tooltip">${escapeHtml(statusText)}</span>
+        </span>
+        <span class="row-amount">${sign}${formatMoney(Number(e.amount))}</span>
       </div>`;
 
     list.appendChild(li);
@@ -6081,7 +5818,7 @@ function handleReportTableClick(e) {
 
   if (!entry) return;
 
-  showReportEntryDetails(entry);
+  openEntryModal(entry);
 
 }
 
@@ -6091,217 +5828,12 @@ function handleReportTableClick(e) {
 
 
 function showReportEntryDetails(entry) {
-
-
-  const modal = document.getElementById('report-entry-modal');
-
-
-  const title = document.getElementById('report-entry-title');
-
-
-  const content = document.getElementById('report-entry-content');
-
-
-  const panel = modal?.querySelector('.modal-panel');
-  const detailHero = document.querySelector('#view-entry-detail .entry-detail-hero');
-
-
-  if (!content) return;
-
-
-  const sign = entry.type === 'out' ? '-' : '+';
-
-
-  const badgeClass = entry.type === 'in' ? 'badge-in' : 'badge-out';
-
-
-  if (title) title.textContent = `${entry.type === 'in' ? 'Entrada' : 'Saída'} - ${sign}${formatMoney(Number(entry.amount))}`;
-
-
-  const hasAttachment = Boolean(entry.attachment_path);
-  const canDelete = Boolean(entry.can_delete);
-
-
-  const typeClass = entry.type === 'out' ? 'type-out' : 'type-in';
-
-
-  if (panel) {
-
-
-    panel.classList.remove('type-in', 'type-out');
-
-
-    panel.classList.add(typeClass);
-
-
-  }
-
-  if (detailHero) {
-    detailHero.classList.remove('type-in', 'type-out');
-    detailHero.classList.add(typeClass);
-  }
-
-
-  const parts = [
-
-
-    `<div class="detail-grid">
-
-
-      <div>
-
-
-        <p class="muted tiny">Data</p>
-
-
-        <p><strong>${formatDateBR(entry.date)}</strong></p>
-
-
-      </div>
-
-
-      <div>
-
-
-        <p class="muted tiny">Categoria</p>
-
-
-        <p><strong>${escapeHtml(entry.category || '')}</strong></p>
-
-
-      </div>
-
-
-      <div>
-
-
-        <p class="muted tiny">Tipo</p>
-
-
-        <p><strong>${entry.type === 'in' ? 'Entrada' : 'Saída'}</strong></p>
-
-
-      </div>
-
-
-      <div>
-
-
-        <p class="muted tiny">Valor</p>
-
-
-        <p><strong class="${badgeClass}">${sign}${formatMoney(Number(entry.amount))}</strong></p>
-
-
-      </div>
-
-
-    </div>
-
-
-    <div class="detail-block">
-
-
-      <p class="muted tiny">Descrição</p>
-
-
-      ${entry.description ? `<p>${escapeHtml(entry.description)}</p>` : `<p class="muted">Sem descrição.</p>`}
-    </div>
-
-
-    ${hasAttachment ? `<div class="detail-block attachment-block">
-
-
-      <p class="muted tiny">Anexo</p>
-
-
-      <div class="attachment-preview-modal" data-attachment="${entry.attachment_path}">
-
-
-        <p class="muted tiny">Carregando anexo...</p>
-
-
-      </div>
-
-
-    </div>` : ''}
-    ${canDelete ? `<div class="detail-actions">
-      <button type="button" class="icon-btn danger" id="btn-entry-delete" title="Remover lançamento" aria-label="Remover lançamento">
-        <span class="material-icons-outlined">delete</span>
-      </button>
-    </div>` : ''}`
-
-
-  ];
-
-
-  content.innerHTML = parts.join('');
-
-
-  if (hasAttachment) {
-
-
-    const preview = content.querySelector('[data-attachment]');
-
-
-    renderAttachmentPreview(preview, entry.attachment_path);
-
-
-  }
-
-  if (canDelete) {
-
-    const deleteBtn = content.querySelector('#btn-entry-delete');
-
-    if (deleteBtn) {
-
-      deleteBtn.onclick = async () => {
-
-        const ok = await deleteEntry(entry.id);
-
-        if (ok) toggleReportEntryModal(false);
-
-      };
-
-    }
-
-  }
-
-
-  toggleReportEntryModal(true);
-
-
+  if (!entry) return;
+  openEntryModal(entry);
 }
 
-
-
-
-
 function toggleReportEntryModal(show) {
-
-
-  const modal = document.getElementById('report-entry-modal');
-
-
-  const view = document.getElementById('view-entry-detail');
-
-  if (modal) {
-    modal.hidden = !show;
-    document.body.classList.toggle('modal-open', show);
-    return;
-  }
-
-  if (!view) return;
-
-  if (show) {
-    state.entryDetailReturnView = state.activeView || 'view-dashboard';
-    goTo('view-entry-detail');
-  } else {
-    const returnView = state.entryDetailReturnView || 'view-dashboard';
-    state.entryDetailReturnView = null;
-    goTo(returnView);
-  }
-
+  if (!show) closeEntryModal();
 }
 
 
@@ -6333,7 +5865,7 @@ function exportReportTablePdf() {
   const range = normalizeMonthRange(startMonth, endMonth);
 
 
-  const type = document.getElementById('report-type')?.value || 'all';
+  const type = state.reportType || 'all';
 
 
   const params = new URLSearchParams();
@@ -6348,10 +5880,7 @@ function exportReportTablePdf() {
   if (type) params.append('type', type);
 
 
-  const headers = state.token ? { Authorization: 'Bearer ' + state.token } : {};
-
-
-  fetch(`${API_BASE}/export/pdf?${params.toString()}`, { headers })
+  fetch(`${API_BASE}/export/pdf?${params.toString()}`, { credentials: 'same-origin' })
 
 
     .then(res => {
@@ -6747,6 +6276,9 @@ async function loadTrash() {
     state.trash = items;
 
 
+    const purged = await purgeExpiredTrash(state.trash);
+    if (purged) return loadTrash();
+
     renderTrash();
 
 
@@ -6812,71 +6344,32 @@ function renderTrash() {
 
     const initial = (escapeHtml(e.category || '').charAt(0).toUpperCase() || '?');
 
-
-    const badgeClass = e.type === 'out' ? 'badge-out' : 'badge-in';
-
+    const valueClass = e.type === 'out' ? 'row-value neg' : 'row-value pos';
 
     const prefix = e.type === 'out' ? '-' : '+';
 
+    li.className = 'row trash-row';
 
-    li.innerHTML = `<div class="entry-left">
+    const daysLeft = daysUntilPurge(e.deleted_at);
+    const expireText = typeof daysLeft === 'number' ? `Expira em ${daysLeft} dia${daysLeft === 1 ? '' : 's'}` : '';
 
 
-      <div class="avatar tiny">${initial}</div>
-
-
+    li.innerHTML = `<div class="icon-circle" aria-hidden="true"><span class="row-initial">${initial}</span></div>
       <div>
-
-
-        <strong>${escapeHtml(e.category || '')}</strong>
-
-
-        <small class="muted">${formatDateBR(e.date)}</small>
-
-
+        <div class="row-title">${escapeHtml(e.category || '')}</div>
+        <div class="row-meta">${formatDateBR(e.date)}${expireText ? ` ? ${expireText}` : ''}</div>
       </div>
-
-
-    </div>
-
-
-    <div class="entry-right">
-
-
-      <div class="entry-meta">
-
-
-        <div class="${badgeClass}">${prefix}${formatMoney(Number(e.amount))}</div>
-
-
-      </div>
-
-
-      <div class="inline-actions trash-actions">
-
-
-        <button type="button" class="icon-btn ghost" data-action="restore" data-id="${e.id}" title="Restaurar" aria-label="Restaurar">
-
-
-          <span class="material-icons-outlined">undo</span>
-
-
-        </button>
-
-
-        <button type="button" class="icon-btn danger" data-action="purge" data-id="${e.id}" title="Excluir definitivamente" aria-label="Excluir definitivamente">
-
-
-          <span class="material-icons-outlined">delete</span>
-
-
-        </button>
-
-
-      </div>
-
-
-    </div>`;
+      <div class="${valueClass}">
+        <span class="row-amount">${prefix}${formatMoney(Number(e.amount))}</span>
+        <div class="row-actions">
+          <button type="button" class="c-icon-btn" data-action="restore" data-id="${e.id}" title="Restaurar" aria-label="Restaurar">
+            <span class="material-symbols-rounded">undo</span>
+          </button>
+          <button type="button" class="c-icon-btn" data-action="purge" data-id="${e.id}" title="Excluir definitivamente" aria-label="Excluir definitivamente">
+            <span class="material-symbols-rounded">delete</span>
+          </button>
+        </div>
+      </div>`;
 
 
     list.appendChild(li);
@@ -6886,6 +6379,32 @@ function renderTrash() {
 
 
 }
+
+
+function daysUntilPurge(deletedAt) {
+  if (!deletedAt) return null;
+  const deleted = new Date(deletedAt);
+  if (Number.isNaN(deleted.getTime())) return null;
+  const expire = new Date(deleted.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const diff = Math.ceil((expire - new Date()) / (24 * 60 * 60 * 1000));
+  return diff;
+}
+
+async function purgeExpiredTrash(items) {
+  const expired = (items || []).filter(item => {
+    const days = daysUntilPurge(item.deleted_at);
+    return typeof days === 'number' && days <= 0;
+  });
+
+  if (!expired.length) return false;
+
+  for (const item of expired) {
+    await api.del(`${API_BASE}/entries/${item.id}/purge`);
+  }
+
+  return true;
+}
+
 
 
 

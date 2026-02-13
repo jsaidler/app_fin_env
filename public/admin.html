@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 
 
@@ -61,6 +61,8 @@
 
 
   <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/uikit/uikit.tokens.css">
+  <link rel="stylesheet" href="/assets/uikit/uikit.components.css">
 
 
 
@@ -138,13 +140,13 @@
 
 
 
-          <nav class="admin-side-nav" aria-label="Navegação admin">
+          <nav class="admin-side-nav" aria-label="NavegaÃ§Ã£o admin">
 
 
 
 
 
-            <button class="admin-nav-btn active" data-admin-panel="entries" title="Lançamentos" aria-label="Lançamentos">
+            <button class="admin-nav-btn active" data-admin-panel="entries" title="LanÃ§amentos" aria-label="LanÃ§amentos">
 
 
 
@@ -162,7 +164,7 @@
 
 
 
-            <button class="admin-nav-btn" data-admin-panel="users" title="Usuários" aria-label="Usuários">
+            <button class="admin-nav-btn" data-admin-panel="users" title="UsuÃ¡rios" aria-label="UsuÃ¡rios">
 
 
 
@@ -216,7 +218,7 @@
 
 
 
-            <button class="admin-nav-btn" data-admin-panel="notifications" title="Notificações" aria-label="Notificações">
+            <button class="admin-nav-btn" data-admin-panel="notifications" title="NotificaÃ§Ãµes" aria-label="NotificaÃ§Ãµes">
 
 
 
@@ -362,7 +364,7 @@
 
 
 
-              <h2 id="admin-view-title">Lançamentos</h2>
+              <h2 id="admin-view-title">LanÃ§amentos</h2>
 
 
 
@@ -434,9 +436,9 @@
 
 
 
-              <h3>Visão geral</h3>
+              <h3>VisÃ£o geral</h3>
 
-              <p class="muted tiny">Dados atualizados nas últimas consultas.</p>
+              <p class="muted tiny">Dados atualizados nas Ãºltimas consultas.</p>
 
             </div>
 
@@ -456,7 +458,7 @@
 
 
 
-                <p class="muted tiny">Usuários ativos</p>
+                <p class="muted tiny">UsuÃ¡rios ativos</p>
 
 
 
@@ -480,7 +482,7 @@
 
 
 
-                <p class="muted tiny">Lançamentos listados</p>
+                <p class="muted tiny">LanÃ§amentos listados</p>
 
 
 
@@ -504,7 +506,7 @@
 
 
 
-                <p class="muted tiny">Notificações</p>
+                <p class="muted tiny">NotificaÃ§Ãµes</p>
 
 
 
@@ -564,7 +566,7 @@
 
 
 
-                  <strong>Novo lançamento</strong>
+                  <strong>Novo lanÃ§amento</strong>
 
 
 
@@ -594,13 +596,13 @@
 
 
 
-                      <small class="muted tiny">Usuário atual</small>
+                      <small class="muted tiny">UsuÃ¡rio atual</small>
 
 
 
 
 
-                      <strong id="admin-entry-user-label">Selecione um usuário</strong>
+                      <strong id="admin-entry-user-label">Selecione um usuÃ¡rio</strong>
 
 
 
@@ -630,7 +632,7 @@
 
 
 
-                        <option value="out">Saída</option>
+                        <option value="out">SaÃ­da</option>
 
 
 
@@ -720,13 +722,13 @@
 
 
 
-                  <label>Descrição
+                  <label>DescriÃ§Ã£o
 
 
 
 
 
-                    <textarea id="admin-entry-description" name="description" placeholder="Detalhe do lançamento"></textarea>
+                    <textarea id="admin-entry-description" name="description" placeholder="Detalhe do lanÃ§amento"></textarea>
 
 
 
@@ -907,7 +909,7 @@
 
 
 
-                  <strong>Lista de lançamentos</strong>
+                  <strong>Lista de lanÃ§amentos</strong>
 
 
 
@@ -937,13 +939,13 @@
 
 
 
-                      <span class="muted tiny">Início</span>
+                      <span class="muted tiny">InÃ­cio</span>
 
 
 
 
 
-                      <input type="month" id="admin-filter-start" aria-label="Início do período">
+                      <input type="month" id="admin-filter-start" aria-label="InÃ­cio do perÃ­odo">
 
 
 
@@ -967,7 +969,7 @@
 
 
 
-                      <input type="month" id="admin-filter-end" aria-label="Fim do período">
+                      <input type="month" id="admin-filter-end" aria-label="Fim do perÃ­odo">
 
 
 
@@ -1003,7 +1005,7 @@
 
 
 
-                    <option value="out">Saídas</option>
+                    <option value="out">SaÃ­das</option>
 
 
 
@@ -1015,7 +1017,7 @@
 
 
 
-                  <label class="inline-toggle"><input type="checkbox" id="admin-filter-deleted"><span>Mostrar excluídos</span></label>
+                  <label class="inline-toggle"><input type="checkbox" id="admin-filter-deleted"><span>Mostrar excluÃ­dos</span></label>
 
                   <button type="button" class="icon-btn ghost square" id="admin-filter-refresh" title="Atualizar" aria-label="Atualizar">
 
@@ -1083,7 +1085,7 @@
 
 
 
-                    <span id="admin-summary-period-text">Período aberto</span>
+                    <span id="admin-summary-period-text">PerÃ­odo aberto</span>
 
                   </span>
 
@@ -1127,7 +1129,7 @@
 
 
 
-                    <span>Excluídos</span>
+                    <span>ExcluÃ­dos</span>
 
                   </span>
 
@@ -1207,7 +1209,7 @@
 
 
 
-                        <th>Usuário</th>
+                        <th>UsuÃ¡rio</th>
 
 
 
@@ -1237,7 +1239,7 @@
 
 
 
-                        <th>Ações</th>
+                        <th>AÃ§Ãµes</th>
 
 
 
@@ -1267,7 +1269,7 @@
 
 
 
-                  <div class="empty-state" id="admin-entries-empty" hidden>Nenhum lançamento encontrado.</div>
+                  <div class="empty-state" id="admin-entries-empty" hidden>Nenhum lanÃ§amento encontrado.</div>
 
 
 
@@ -1329,13 +1331,13 @@
 
 
 
-                  <strong>Usuários</strong>
+                  <strong>UsuÃ¡rios</strong>
 
 
 
 
 
-                  <button type="button" class="icon-btn primary square" id="btn-new-user" title="Novo usuário" aria-label="Novo usuário">
+                  <button type="button" class="icon-btn primary square" id="btn-new-user" title="Novo usuÃ¡rio" aria-label="Novo usuÃ¡rio">
 
 
 
@@ -1401,7 +1403,7 @@
 
 
 
-                      <th>Ações</th>
+                      <th>AÃ§Ãµes</th>
 
 
 
@@ -1455,7 +1457,7 @@
 
 
 
-                  <strong>Cadastro de usuário</strong>
+                  <strong>Cadastro de usuÃ¡rio</strong>
 
 
 
@@ -1503,7 +1505,7 @@
 
 
 
-                      <option value="user">Usuário</option>
+                      <option value="user">UsuÃ¡rio</option>
 
 
 
@@ -1581,7 +1583,7 @@
 
 
 
-                <p class="muted">Use o + para criar um novo usuário ou clique em editar na tabela.</p>
+                <p class="muted">Use o + para criar um novo usuÃ¡rio ou clique em editar na tabela.</p>
 
 
 
@@ -1695,13 +1697,13 @@
 
 
 
-                      <th>Lançamento auto</th>
+                      <th>LanÃ§amento auto</th>
 
 
 
 
 
-                      <th>Ações</th>
+                      <th>AÃ§Ãµes</th>
 
 
 
@@ -1791,7 +1793,7 @@
 
 
 
-                    <option value="out">Saída</option>
+                    <option value="out">SaÃ­da</option>
 
 
 
@@ -1803,7 +1805,7 @@
 
 
 
-                  <input type="text" name="alterdata_auto" placeholder="Lançamento auto Alterdata">
+                  <input type="text" name="alterdata_auto" placeholder="LanÃ§amento auto Alterdata">
 
 
 
@@ -1929,7 +1931,7 @@
 
 
 
-                  <label>Mês (YYYY-MM)
+                  <label>MÃªs (YYYY-MM)
 
 
 
@@ -2085,7 +2087,7 @@
 
 
 
-                <strong>Notificações apos consolidação</strong>
+                <strong>NotificaÃ§Ãµes apos consolidaÃ§Ã£o</strong>
 
 
 
@@ -2127,7 +2129,7 @@
 
 
 
-                      <th>Usuário</th>
+                      <th>UsuÃ¡rio</th>
 
 
 
@@ -2145,7 +2147,7 @@
 
 
 
-                      <th>Ações</th>
+                      <th>AÃ§Ãµes</th>
 
 
 
@@ -2175,7 +2177,7 @@
 
 
 
-                <div class="empty-state" id="admin-notifications-empty" hidden>Nenhuma notificação pendente.</div>
+                <div class="empty-state" id="admin-notifications-empty" hidden>Nenhuma notificaÃ§Ã£o pendente.</div>
 
 
 
@@ -2322,7 +2324,7 @@
 
 
 
-                  <label>Mês
+                  <label>MÃªs
 
 
 
@@ -2364,7 +2366,7 @@
 
 
 
-                      <option value="out">Saídas</option>
+                      <option value="out">SaÃ­das</option>
 
 
 
@@ -2382,7 +2384,7 @@
 
 
 
-                  <label>Usuário
+                  <label>UsuÃ¡rio
 
 
 
@@ -2406,7 +2408,7 @@
 
 
 
-                <p class="muted tiny">Layout: codigo_usuário;data;tipo(E/S);categoria;auto;valor;descricao</p>
+                <p class="muted tiny">Layout: codigo_usuÃ¡rio;data;tipo(E/S);categoria;auto;valor;descricao</p>
 
 
 
@@ -2597,6 +2599,7 @@
 
 
   <script src="/assets/js/ui.js"></script>
+  <script src="/assets/uikit/uikit.runtime.js"></script>
 
 
 
@@ -2621,6 +2624,9 @@
 
 
 </html>
+
+
+
 
 
 

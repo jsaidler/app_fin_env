@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 
 
@@ -9,57 +9,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<html lang="pt-BR" class="theme-light">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<html lang="pt-BR">
 
 
 
@@ -71,33 +21,28 @@
 
 
 <head>
+
+
+
+
+
+
+
+
+
+
   <meta charset="utf-8">
+
+
+
+
+
+
+
+
+
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -119,121 +64,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  <link rel="stylesheet"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   <link rel="manifest" href="/manifest.json">
 
 
@@ -245,43 +75,18 @@
 
 
 
-
-
-
-
-
-
-
   <link rel="icon" href="data:,">
+
+
+
+
+
+
+
+
+
+
   <link rel="stylesheet" href="/assets/vendor/ionic/css/ionic.bundle.css">
-
-  <script type="module" src="/assets/vendor/ionic/dist/ionic/ionic.esm.js"></script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -303,6 +108,7 @@
 
 
 
+  <link rel="stylesheet" href="/assets/css/uikit-main.css">
 
 
 
@@ -313,11 +119,779 @@
 
 
 
+  <link rel="stylesheet" href="/assets/uikit/uikit.tokens.css">
 
 
 
 
 
+
+
+
+
+
+  <link rel="stylesheet" href="/assets/uikit/uikit.components.css">
+
+
+
+
+
+
+
+
+
+
+  <style>
+
+
+
+    body.is-auth-view #main-tabs,
+
+
+
+    body.is-auth-view .app-topbar,
+
+
+
+    body.is-auth-view .pill-nav,
+
+
+
+    body.is-auth-view .fab-safe,
+
+
+
+    body.is-auth-view ion-fab,
+
+
+
+    body.is-auth-view .uikit-dock {
+
+
+
+      display: none !important;
+
+
+
+    }
+
+
+
+
+
+
+
+    body.is-auth-view .view:not(#view-auth) {
+
+
+
+      display: none !important;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3 {
+
+
+
+      min-height: 100vh;
+
+
+
+      display: grid;
+
+
+
+      place-items: center;
+
+
+
+      padding: 24px 16px;
+
+
+
+      background: var(--ui-color-bg);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__card {
+
+
+
+      width: min(92vw, 420px);
+
+
+
+      margin: 0 auto;
+
+
+
+      display: grid;
+
+
+
+      gap: 16px;
+
+
+
+      padding: 24px;
+
+
+
+      border-radius: 24px;
+
+
+
+      background: var(--ui-color-surface);
+
+
+
+      box-shadow: 0 8px 18px rgba(10, 20, 30, 0.06);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__overline {
+
+
+
+      margin: 0;
+
+
+
+      font-size: 12px;
+
+
+
+      font-weight: 600;
+
+
+
+      text-transform: uppercase;
+
+
+
+      letter-spacing: 0.16em;
+
+
+
+      color: var(--ui-color-text-muted);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__title {
+
+
+
+      margin: 0;
+
+
+
+      font-size: 28px;
+
+
+
+      font-weight: 700;
+
+
+
+      color: var(--ui-color-text);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__subtitle {
+
+
+
+      margin: 0;
+
+
+
+      font-size: 14px;
+
+
+
+      line-height: 1.5;
+
+
+
+      color: var(--ui-color-text-muted);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__form {
+
+
+
+      display: grid;
+
+
+
+      gap: 16px;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__error {
+
+
+
+      display: none;
+
+
+
+      padding: 10px 12px;
+
+
+
+      border-radius: 12px;
+
+
+
+      background: rgba(198, 87, 87, 0.12);
+
+
+
+      color: #9a2b2b;
+
+
+
+      font-size: 12px;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__error.is-visible {
+
+
+
+      display: block;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__field {
+      display: grid;
+      grid-template-columns: 36px 1fr 36px;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 14px;
+      min-height: 56px;
+      border-radius: 16px;
+      background: rgba(0, 93, 151, 0.06);
+      border: 1px solid rgba(11, 27, 42, 0.08);
+      box-shadow: none;
+      transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+
+
+
+
+
+
+    .login-v3__field + .login-v3__field {
+
+
+
+      margin-top: 12px;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__field:focus-within {
+      background: rgba(0, 93, 151, 0.1);
+      border-color: #005D97;
+      box-shadow: 0 0 0 2px rgba(0, 93, 151, 0.18);
+    }
+
+
+
+
+
+
+
+    .login-v3__icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 93, 151, 0.08);
+      color: rgba(11, 27, 42, 0.6);
+      font-size: 20px;
+    }
+
+
+
+
+
+
+
+    .login-v3__content {
+
+
+
+      display: grid;
+
+
+
+      gap: 2px;
+
+
+
+      align-content: center;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__label {
+
+
+
+      font-size: 12px;
+
+
+
+      font-weight: 600;
+
+
+
+      color: var(--ui-color-text-muted);
+
+
+
+      letter-spacing: 0.02em;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__input {
+
+
+
+      width: 100%;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__input ion-input {
+
+
+
+      width: 100%;
+
+
+
+      --padding-start: 0;
+
+
+
+      --padding-end: 0;
+
+
+
+      --highlight-height: 0;
+
+
+
+      --highlight-color-focused: transparent;
+
+
+
+      --highlight-color: transparent;
+
+
+
+      --background: transparent;
+
+
+
+      --border-width: 0;
+
+
+
+      --box-shadow: none;
+
+
+
+      --color: var(--ui-color-text);
+
+
+
+      font-size: 16px;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__input ion-input::part(native) {
+
+
+
+      border: 0;
+
+
+
+      outline: none;
+
+
+
+      background: transparent;
+
+
+
+      box-shadow: none;
+
+
+
+      padding: 0;
+
+
+
+      height: 20px;
+
+
+
+      line-height: 20px;
+
+
+
+      font-size: 16px;
+
+
+
+      color: var(--ui-color-text);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__eye {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: rgba(0, 93, 151, 0.08);
+      color: rgba(11, 27, 42, 0.6);
+      border: 0;
+      padding: 0;
+    }
+
+
+
+
+
+
+
+    .login-v3__eye:focus-visible {
+
+
+
+      outline: none;
+
+
+
+      box-shadow: 0 0 0 2px rgba(0, 93, 151, 0.35);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__submit {
+
+
+
+      height: 52px;
+
+
+
+      font-weight: 600;
+
+
+
+      --border-radius: 16px;
+
+
+
+      --background: #005D97;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__submit[disabled] {
+
+
+
+      opacity: 0.6;
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__footer {
+
+
+
+      font-size: 12px;
+
+
+
+      color: var(--ui-color-text-muted);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__footer a {
+
+
+
+      color: var(--ui-color-primary);
+
+
+
+      text-decoration: none;
+
+
+
+      border-bottom: 1px solid rgba(0, 93, 151, 0.4);
+
+
+
+    }
+
+
+
+
+
+
+
+    .login-v3__footer a:focus-visible {
+
+
+
+      outline: none;
+
+
+
+      box-shadow: 0 0 0 3px rgba(0, 93, 151, 0.25);
+
+
+
+      border-radius: 6px;
+
+
+
+    }
+
+
+
+
+
+
+
+    @media (min-width: 768px) {
+
+
+
+      .login-v3__card {
+
+
+
+        padding: 28px;
+
+
+
+        gap: 20px;
+
+
+
+      }
+
+
+
+    }
+
+    .login-v3__meta-badges {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+      opacity: 0.7;
+    }
+
+    .login-v3__build {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(11, 27, 42, 0.7);
+      border: 1px solid rgba(11, 27, 42, 0.12);
+      padding: 4px 8px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+</style>
+
+
+
+
+
+
+
+
+
+
+  <script type="module" src="/assets/vendor/ionic/dist/ionic/ionic.esm.js"></script>
+
+
+
+
+
+
+
+
+
+
+  <script nomodule src="/assets/vendor/ionic/dist/ionic/ionic.js"></script>
 
 
 
@@ -339,6 +913,7 @@
 
 
 
+<body class="pwa-shell">
 
 
 
@@ -349,6 +924,7 @@
 
 
 
+  <ion-app id="app">
 
 
 
@@ -359,17 +935,18 @@
 
 
 
+    <ion-header id="main-tabs" class="app-topbar" hidden>
 
 
 
 
 
-<body class="bg-grid theme-light">
 
 
 
 
 
+      <ion-toolbar>
 
 
 
@@ -380,6 +957,7 @@
 
 
 
+        <ion-title class="app-topbar__title">Finanças</ion-title>
 
 
 
@@ -390,6 +968,7 @@
 
 
 
+        <ion-buttons slot="end" class="app-topbar__actions">
 
 
 
@@ -400,7 +979,7 @@
 
 
 
-  <div class="bg-glow"></div>
+          <ion-button id="main-filter-btn" fill="clear" aria-label="Buscar">
 
 
 
@@ -411,6 +990,7 @@
 
 
 
+            <span class="material-symbols-rounded">search</span>
 
 
 
@@ -421,6 +1001,7 @@
 
 
 
+            <span class="c-indicator" id="main-filter-indicator" hidden></span>
 
 
 
@@ -431,17 +1012,18 @@
 
 
 
+          </ion-button>
 
 
 
 
 
-  <main id="app">
 
 
 
 
 
+          <ion-button fill="clear" data-go-view="view-user-options" aria-label="Ajustes">
 
 
 
@@ -452,6 +1034,7 @@
 
 
 
+            <span class="material-symbols-rounded">settings</span>
 
 
 
@@ -462,6 +1045,7 @@
 
 
 
+          </ion-button>
 
 
 
@@ -472,700 +1056,1684 @@
 
 
 
-        <section class="view active" id="view-auth">
-      <div class="c-container">
-        <section class="c-card">
-          <div class="c-stack">
-            <div class="c-brand">
-              <img src="/assets/img/logo-mono-white.webp" alt="Caixa Simples">
-            </div>
-            <header class="c-stack c-stack--sm">
-              <p class="c-muted c-tiny">Acesso restrito</p>
-              <h1 class="c-appbar__title">Caixa Simples</h1>
-              <p class="c-muted">O livro caixa digital mais fácil de usar.</p>
-            </header>
-            <form id="login-form" class="c-stack" novalidate>
-              <div class="form-error" id="login-error" hidden></div>
-              <label class="c-field" data-field="email">
-                <span class="c-field__label">Email</span>
-                <input class="c-input" id="login-email" type="email" name="email" placeholder="usuario@email.com" autocomplete="username">
-                <small class="field-error c-field__error" data-field="email" hidden></small>
-              </label>
-              <label class="c-field" data-field="password">
-                <span class="c-field__label">Senha</span>
-                <input class="c-input" id="login-password" type="password" name="password" placeholder="********" minlength="6" autocomplete="current-password">
-                <small class="field-error c-field__error" data-field="password" hidden></small>
-              </label>
-              <button type="submit" class="c-btn">Entrar</button>
-              <p class="form-hint c-muted">Quer saber mais? Acesse: <a href="https://envisione.com.br">https://envisione.com.br</a></p>
-            </form>
+        </ion-buttons>
+
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+      <ion-toolbar class="pill-nav">
+
+
+
+
+
+
+
+
+
+
+        <div class="pill-nav__wrap">
+
+
+
+
+
+
+
+
+
+
+          <div class="pill-nav__scroll" id="tab-strip">
+
+
+
+
+
+
+
+
+
+
+            <ion-button class="pill-nav__pill is-active" fill="clear" mode="ios" data-go-view="view-dashboard">Painel</ion-button>
+
+
+
+
+
+
+
+
+
+
+            <ion-button class="pill-nav__pill" fill="clear" mode="ios" data-go-view="view-entries">Lançamentos</ion-button>
+
+
+
+
+
+
+
+
+
+
+            <ion-button class="pill-nav__pill" fill="clear" mode="ios" data-go-view="view-reports">Relatórios</ion-button>
+
+
+
+
+
+
+
+
+
+
+            <ion-button class="pill-nav__pill" fill="clear" mode="ios" data-go-view="view-categories">Categorias</ion-button>
+
+
+
+
+
+
+
+
+
+
+            <ion-button class="pill-nav__pill" fill="clear" mode="ios" data-go-view="view-trash">Lixeira</ion-button>
+
+
+
+
+
+
+
+
+
+
+            <ion-button class="pill-nav__pill" fill="clear" mode="ios" data-go-view="view-chat">Chat</ion-button>
+
+
+
+
+
+
+
+
+
+
+            <ion-button class="pill-nav__pill" fill="clear" mode="ios" data-go-view="view-user-options">Ajustes</ion-button>
+
+
+
+
+
+
+
+
+
+
           </div>
-        </section>
-      </div>
-    </section>
 
-<section class="view" id="view-dashboard" hidden>
-      <header class="c-appbar">
-        <div>
-          <h2 class="c-appbar__title">Dashboard</h2>
-          <p class="c-appbar__meta">Visão geral do período</p>
+
+
+
+
+
+
+
+
+
         </div>
-        <span class="c-tooltip">
-          <button class="c-icon-btn" type="button" id="dashboard-filter-btn" aria-label="Filtros">
-            <span class="material-icons-outlined" aria-hidden="true">tune</span>
-            <span class="c-indicator" id="dashboard-filter-indicator" hidden></span>
-          </button>
-          <span class="c-tooltip__content" role="tooltip">Filtros</span>
-        </span>
-      </header>
 
-      <div class="c-container">
-        <div class="c-grid c-grid--bento">
-          <section class="c-card c-span-4">
-            <header class="c-section-header">
-              <div>
-                <h3 class="c-section-header__title">Saldo do período</h3>
-                <p class="c-section-header__meta" id="balance-label">Saldo do período</p>
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+    </ion-header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div class="view-stack" id="view-stack">
+
+
+
+
+
+
+
+
+
+
+      <section class="view" id="view-auth">
+
+
+
+
+
+
+
+        <ion-content class="pwa-content">
+
+
+
+
+
+
+
+          <div class="login-v3" data-login="v3">
+
+
+
+
+
+
+
+            <ion-card class="hero login-v3__card">
+
+
+
+
+
+
+
+              <div class="login-v3__header">
+                <div class="login-v3__meta-badges">
+                  <span class="login-v3__build">BUILD UIKIT: 20260203-1425</span>
+                </div>
+
+
+
+
+
+
+
+
+                <p class="login-v3__overline">Acesso restrito</p>
+
+
+
+
+
+
+
+                <h1 class="login-v3__title">Caixa Simples</h1>
+
+
+
+
+
+
+
+                <p class="login-v3__subtitle">Entre com suas credenciais para continuar.</p>
+
+
+
+
+
+
+
               </div>
-            </header>
-            <div class="c-balance">
-              <span class="c-balance__label">Saldo atual</span>
-              <span class="c-balance__value" id="balance">R$ 0,00</span>
+
+
+
+
+
+
+
+              <form id="login-form" class="login-v3__form" novalidate>
+
+
+
+                <div class="login-v3__error" id="login-error"></div>
+
+
+
+
+
+
+
+                <div class="login-v3__field" id="field-email">
+
+
+
+
+
+
+
+                  <span class="material-symbols-rounded login-v3__icon">mail</span>
+
+
+
+
+
+
+
+                  <div class="login-v3__content">
+
+
+
+
+
+
+
+                    <label class="login-v3__label" for="login-email">Email</label>
+
+
+
+
+
+
+
+                    <div class="login-v3__input">
+
+
+
+
+
+
+
+                      <ion-input id="login-email" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false"></ion-input>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                  </div>
+
+
+
+
+
+
+
+                  <span></span>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div class="login-v3__field" id="field-password">
+
+
+
+
+
+
+
+                  <span class="material-symbols-rounded login-v3__icon">lock</span>
+
+
+
+
+
+
+
+                  <div class="login-v3__content">
+
+
+
+
+
+
+
+                    <label class="login-v3__label" for="login-password">Senha</label>
+
+
+
+
+
+
+
+                    <div class="login-v3__input">
+
+
+
+
+
+
+
+                      <ion-input id="login-password" name="password" type="password" minlength="6" autocomplete="current-password"></ion-input>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                  </div>
+
+
+
+
+
+
+
+                  <button class="login-v3__eye" type="button" id="toggle-password" aria-label="Mostrar senha">
+
+
+
+
+
+
+
+                    <span class="material-symbols-rounded" id="toggle-password-icon">visibility</span>
+
+
+
+
+
+
+
+                  </button>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <ion-button class="uikit-btn primary login-v3__submit" type="submit" expand="block" disabled>Entrar</ion-button>
+
+
+
+
+
+
+
+                <p class="login-v3__footer">Quer saber mais? Acesse: <a href="https://envisione.com.br">envisione.com.br</a></p>
+
+
+
+
+
+
+
+              </form>
+
+
+
+
+
+
+
+            </ion-card>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </ion-content>
+
+
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <section class="view" id="view-dashboard" hidden>
+
+
+
+
+
+
+
+
+
+
+        <ion-content class="pwa-content">
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="hero-label" id="balance-label">Saldo do período</div>
+
+
+
+
+
+
+
+
+
+
+            <div class="hero-value ds-number" id="balance">R$ 0,00</div>
+
+
+
+
+
+
+
+
+
+
+            <div class="hero-meta">Movimentações consolidadas do período.</div>
+
+
+
+
+
+
+
+
+
+
+            <div class="kpi-strip">
+
+
+
+
+
+
+
+
+
+
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Entradas</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="total-in">R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Saídas</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="total-out">R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Resultado</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="total-result">R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
             </div>
-            <div class="c-grid c-grid--2">
-              <div class="c-stat-tile">
-                <span class="c-stat-tile__label">
-                  <span class="material-icons-outlined c-icon-sm" aria-hidden="true">north_east</span>
-                  Entradas
-                </span>
-                <span class="c-stat-tile__value" id="total-in">R$ 0,00</span>
-              </div>
-              <div class="c-stat-tile">
-                <span class="c-stat-tile__label">
-                  <span class="material-icons-outlined c-icon-sm" aria-hidden="true">south_east</span>
-                  Saídas
-                </span>
-                <span class="c-stat-tile__value" id="total-out">R$ 0,00</span>
-              </div>
-            </div>
-          </section>
 
-          <section class="c-card c-span-2">
-            <header class="c-section-header">
-              <div>
-                <h3 class="c-section-header__title">Pendências</h3>
-                <p class="c-section-header__meta">Análises pendentes</p>
-              </div>
-            </header>
-            <div class="c-alert" id="pending-summary" hidden>
-              <div class="c-alert__icon" aria-hidden="true">
-                <span class="material-icons-outlined">info</span>
-              </div>
-              <div>
-                <strong>Pendências do período</strong>
-                <p class="c-appbar__meta" id="pending-summary-text">Pendências: valores não totalizados.</p>
-              </div>
-            </div>
-            <div class="c-empty" id="pending-empty" hidden>Sem pendências no período.</div>
-          </section>
 
-          <section class="c-card c-span-6">
-            <header class="c-section-header">
-              <div>
-                <h3 class="c-section-header__title">Resumo do período</h3>
-                <p class="c-section-header__meta" id="filter-period-label">Período aberto</p>
-              </div>
-            </header>
-            <div class="c-grid c-grid--2">
-              <div class="c-stat-tile">
-                <span class="c-stat-tile__label">Maior entrada</span>
-                <span class="c-stat-tile__value" id="insight-max-in">R$ 0,00</span>
-              </div>
-              <div class="c-stat-tile">
-                <span class="c-stat-tile__label">Maior saída</span>
-                <span class="c-stat-tile__value" id="insight-max-out">R$ 0,00</span>
-              </div>
-              <div class="c-stat-tile">
-                <span class="c-stat-tile__label">Média por lançamento</span>
-                <span class="c-stat-tile__value" id="insight-avg">R$ 0,00</span>
-              </div>
-              <div class="c-stat-tile">
-                <span class="c-stat-tile__label">Movimentações</span>
-                <span class="c-stat-tile__value" id="insight-count">0</span>
-              </div>
-            </div>
-          </section>
 
-          <section class="c-card c-span-6">
-            <header class="c-section-header">
-              <div>
-                <h3 class="c-section-header__title">Últimos lançamentos</h3>
-                <p class="c-section-header__meta">Filtros rápidos e lista recente</p>
-              </div>
-            </header>
 
-            <div class="c-filters is-collapsible" id="filter-controls">
-              <div class="period-range">
-                <label class="c-field period-field">
-                  <span class="c-field__label">Início</span>
-                  <input class="c-input" type="month" id="filter-start" aria-label="Início do período">
-                </label>
-                <label class="c-field period-field">
-                  <span class="c-field__label">Fim</span>
-                  <input class="c-input" type="month" id="filter-end" aria-label="Fim do período">
-                </label>
-              </div>
-              <label class="c-field">
-                <span class="c-field__label">Tipo</span>
-                <select class="c-select" id="filter-type">
-                  <option value="all">Todos</option>
-                  <option value="in">Entradas</option>
-                  <option value="out">Saídas</option>
-                </select>
-              </label>
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Evolução rápida</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-block">
+
+
+
+
+
+
+
+
+
+
+              <p class="chart-block__title">Fluxo do período</p>
+
+
+
+
+
+
+
+
+
+
+              <canvas id="dashboard-chart" height="190"></canvas>
+
+
+
+
+
+
+
+
+
+
             </div>
 
-            <div class="c-filter-summary" id="filter-summary">
-              <span class="c-filter-chip" id="filter-summary-period">
-                <span class="material-icons-outlined" aria-hidden="true">date_range</span>
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Resumo do período</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="kpi-strip">
+
+
+
+
+
+
+
+
+
+
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Maior entrada</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="insight-max-in">R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Maior saída</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="insight-max-out">R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Média por lançamento</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="insight-avg">R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Movimentações</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="insight-count">0</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+        </ion-content>
+
+
+
+
+
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+      <section class="view" id="view-entries" hidden>
+
+
+
+
+
+
+
+
+
+
+        <ion-content class="pwa-content">
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Lançamentos</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="row">
+
+
+
+
+
+
+
+
+
+
+              <div>
+
+
+
+
+
+
+
+
+
+
+                <div class="row-title">Filtros</div>
+
+
+
+
+
+
+
+
+
+
+                <div class="row-meta" id="filter-period-label">Período aberto</div>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <ion-button class="c-icon-btn" fill="clear" id="filter-toggle" aria-label="Mostrar filtros" aria-expanded="false" aria-controls="filter-controls">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">tune</span>
+
+
+
+
+
+
+
+
+
+
+              </ion-button>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+            <div class="filters-panel" id="filter-controls">
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+                <ion-label position="stacked">Início</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-input class="month-input" type="month" id="filter-start" aria-label="Início do período"></ion-input>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+                <ion-label position="stacked">Fim</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-input class="month-input" type="month" id="filter-end" aria-label="Fim do período"></ion-input>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+              <div class="segmented" role="tablist" aria-label="Tipo de lançamento">
+
+
+
+
+
+
+
+
+
+
+                <button class="segmented__item is-active" type="button" data-filter-type="all" aria-selected="true">Todos</button>
+
+
+
+
+
+
+
+
+
+
+                <button class="segmented__item" type="button" data-filter-type="in" aria-selected="false">Entradas</button>
+
+
+
+
+
+
+
+
+
+
+                <button class="segmented__item" type="button" data-filter-type="out" aria-selected="false">Saídas</button>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none" button detail="false" id="filter-category-trigger">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded" slot="start">category</span>
+
+
+
+
+
+
+
+
+
+
+                <ion-label>Categoria</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-note slot="end" id="filter-category-note" class="date-note">Todas</ion-note>
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded" slot="end">chevron_right</span>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+            <div class="filter-strip" id="filter-summary">
+
+
+
+
+
+
+
+
+
+
+              <span class="filter-chip" id="filter-summary-period">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">date_range</span>
+
+
+
+
+
+
+
+
+
+
                 <span id="filter-summary-period-text">Período aberto</span>
+
+
+
+
+
+
+
+
+
+
               </span>
-              <span class="c-filter-chip" id="filter-summary-type">
-                <span class="material-icons-outlined" aria-hidden="true">tune</span>
+
+
+
+
+
+
+
+
+
+
+              <span class="filter-chip" id="filter-summary-type">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">tune</span>
+
+
+
+
+
+
+
+
+
+
                 <span id="filter-summary-type-text">Tipo: Todos</span>
+
+
+
+
+
+
+
+
+
+
               </span>
-              <div class="c-inline-actions">
-                <button type="button" class="c-icon-btn" id="filter-reset" title="Limpar filtros" aria-label="Limpar filtros">
-                  <span class="material-icons-outlined">restart_alt</span>
-                </button>
-                <button type="button" class="c-icon-btn" id="filter-toggle" title="Mostrar filtros" aria-label="Mostrar filtros" aria-expanded="false" aria-controls="filter-controls">
-                  <span class="material-icons-outlined">tune</span>
-                </button>
+
+
+
+
+
+
+
+
+
+
+              <span class="filter-chip" id="filter-summary-category">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">category</span>
+
+
+
+
+
+
+
+
+
+
+                <span id="filter-summary-category-text">Categoria: Todas</span>
+
+
+
+
+
+
+
+
+
+
+              </span>
+
+
+
+
+
+
+
+
+
+
+              <div class="filter-actions">
+
+
+
+
+
+
+
+
+
+
+                <ion-button class="c-icon-btn" fill="clear" id="filter-reset" title="Limpar filtros" aria-label="Limpar filtros">
+
+
+
+
+
+
+
+
+
+
+                  <span class="material-symbols-rounded">restart_alt</span>
+
+
+
+
+
+
+
+
+
+
+                </ion-button>
+
+
+
+
+
+
+
+
+
+
               </div>
-            </div>
-
-            <small class="c-muted c-tiny" id="locked-info" hidden>Mês fechado, alterações notificadas ao administrador.</small>
-
-            <ul id="entries-list" class="c-list"></ul>
-
-            <div id="entries-empty" class="c-empty" hidden>Nenhum lançamento no período.</div>
-          </section>
-        </div>
-      </div>
-
-      <div class="c-bottom-sheet" id="filter-sheet" hidden>
-        <div class="c-bottom-sheet__panel" role="dialog" aria-modal="true" aria-label="Filtros">
-          <strong>Filtros</strong>
-          <div class="c-stack">
-            <div class="c-grid c-grid--responsive-2">
-              <label class="c-field">
-                <span class="c-field__label">Início</span>
-                <input class="c-input" type="month" id="filter-start-sheet" aria-label="Início do período">
-              </label>
-              <label class="c-field">
-                <span class="c-field__label">Fim</span>
-                <input class="c-input" type="month" id="filter-end-sheet" aria-label="Fim do período">
-              </label>
-            </div>
-            <label class="c-field">
-              <span class="c-field__label">Tipo</span>
-              <select class="c-select" id="filter-type-sheet">
-                <option value="all">Todos</option>
-                <option value="in">Entradas</option>
-                <option value="out">Saídas</option>
-              </select>
-            </label>
-          </div>
-          <div class="c-bottom-sheet__actions">
-            <button type="button" class="c-btn" id="filter-apply-sheet">Aplicar filtros</button>
-            <button type="button" class="c-btn c-btn--ghost" id="filter-close-sheet">Fechar</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-<section class="view" id="view-reports" hidden>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      <header class="top-summary reports-hero has-chip">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="user-chip" id="report-user" hidden></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="kpi-card kpi-balance">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <p class="muted tiny" id="report-balance-label">Saldo do perodo</p>
-
-
-
-
-
-          <h2 id="report-balance">R$ 0,00</h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="kpi-row">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="kpi-card mini kpi-in">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <h3 id="report-total-in"><span class="material-icons-outlined tiny-icon">arrow_upward</span> R$ 0,00</h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="kpi-card mini kpi-out">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <h3 id="report-total-out"><span class="material-icons-outlined tiny-icon">arrow_downward</span> R$ 0,00</h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-
-
-        <div class="pending-summary" id="report-pending-summary" hidden>
-
-
-
-
-
-          <span class="material-icons-outlined" aria-hidden="true">info</span>
-
-
-
-
-
-          <span class="pending-text" id="report-pending-summary-text">Pendencias: valores nao totalizados.</span>
-
-
-
-
-
-        </div>
-
-
-
-
-
-</header>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      <section class="card glass reports-card">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <header class="section-title">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <strong>ltimos 12 meses</strong>
-
-
-
-
-
-            <p class="muted tiny">Entradas, sadas e saldo consolidado</p>
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </header>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="report-grid">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="chart-tile wide">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="tile-header">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <p class="muted tiny">Tendncia</p>
-
-
-
-
-
-              <h3>Fluxo mensal</h3>
-
-
-
-
-
-
-
 
 
 
@@ -1187,6 +2755,7 @@
 
 
 
+          </ion-card>
 
 
 
@@ -1194,7 +2763,6 @@
 
 
 
-            <canvas id="report-12m-chart" height="190"></canvas>
 
 
 
@@ -1209,10 +2777,10 @@
 
 
 
+          <div class="section-title">Movimentações</div>
 
 
 
-            <div class="chart-legend compact-legend">
 
 
 
@@ -1220,6 +2788,7 @@
 
 
 
+          <small class="review-action" id="locked-info" hidden>Mês fechado, alterações notificadas ao administrador.</small>
 
 
 
@@ -1230,7 +2799,7 @@
 
 
 
-              <span class="dot in">Entradas</span>
+          <ul id="entries-list" class="entries-list"></ul>
 
 
 
@@ -1241,6 +2810,7 @@
 
 
 
+          <div id="entries-empty" class="review-action" hidden>Nenhum lançamento no período.</div>
 
 
 
@@ -1248,260 +2818,10 @@
 
 
 
-              <span class="dot out">Sadas</span>
 
 
 
-
-
-              <span class="dot total">Saldo acumulado</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="chart-tile">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="tile-header">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <p class="muted tiny">Tabela</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <h3>Resumo mensal</h3>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="summary-wrapper">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <div class="table-subtitle">Mensal + acumulado</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <div class="summary-list" id="report-12m-month-list"></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <div class="empty-state" id="report-12m-empty" hidden>Sem movimentaes nos ltimos 12 meses.</div>
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
+        </ion-content>
 
 
 
@@ -1534,6 +2854,7 @@
 
 
 
+      <section class="view" id="view-reports" hidden>
 
 
 
@@ -1544,17 +2865,18 @@
 
 
 
+        <ion-content class="pwa-content">
 
 
 
 
-      <section class="card glass reports-card">
 
 
 
 
 
 
+          <div class="row" style="margin-bottom:12px;">
 
 
 
@@ -1565,8 +2887,8 @@
 
 
 
+            <div>
 
-        <header class="section-title">
 
 
 
@@ -1576,6 +2898,7 @@
 
 
 
+              <div class="row-title">Relatórios</div>
 
 
 
@@ -1584,13 +2907,12 @@
 
 
 
-          <strong>Viso geral</strong>
 
 
+              <div class="row-meta">Resumo do período e indicadores.</div>
 
 
 
-        </header>
 
 
 
@@ -1598,6 +2920,7 @@
 
 
 
+            </div>
 
 
 
@@ -1608,7 +2931,7 @@
 
 
 
-        <div class="filters compact user-filters is-collapsible" id="report-controls">
+            <ion-button class="c-icon-btn" fill="clear" id="btn-report-pdf" aria-label="Exportar PDF">
 
 
 
@@ -1619,6 +2942,7 @@
 
 
 
+              <span class="material-symbols-rounded">download</span>
 
 
 
@@ -1626,158 +2950,10 @@
 
 
 
-          <div class="period-range">
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <label class="period-field">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <span class="muted tiny">Incio</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <input type="month" id="report-start" aria-label="Incio do perodo">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </label>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <label class="period-field">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <span class="muted tiny">Fim</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <input type="month" id="report-end" aria-label="Fim do perodo">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </label>
-
-
-
-
-
-
-
+            </ion-button>
 
 
 
@@ -1799,6 +2975,7 @@
 
 
 
+          <div class="ring-summary">
 
 
 
@@ -1806,548 +2983,10 @@
 
 
 
-          <select id="report-type">
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <option value="all">Todos</option>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <option value="in">Entradas</option>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <option value="out">Sadas</option>
-
-
-
-
-
-          </select>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="filter-summary" id="report-summary">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <span class="filter-chip" id="report-summary-period">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <span class="material-icons-outlined" aria-hidden="true">date_range</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <span id="report-summary-period-text">Perodo aberto</span>
-
-
-
-
-
-          </span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <span class="filter-chip" id="report-summary-type">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <span class="material-icons-outlined" aria-hidden="true">tune</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <span id="report-summary-type-text">Tipo: Todos</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <button type="button" class="icon-btn ghost square" id="report-reset" title="Limpar filtros" aria-label="Limpar filtros">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <span class="material-icons-outlined">restart_alt</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <button type="button" class="icon-btn ghost square" id="report-toggle" title="Mostrar filtros" aria-label="Mostrar filtros" aria-expanded="false" aria-controls="report-controls">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <span class="material-icons-outlined">tune</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="report-grid">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="chart-tile wide">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="tile-header">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <p class="muted tiny">Linha do tempo</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <h3>Movimentao diria</h3>
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <canvas id="report-chart" height="190"></canvas>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="chart-legend compact-legend">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <span class="dot in">Entradas</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <span class="dot out">Sadas</span>
-
-
-
-
-
-              <span class="dot total">Saldo do perodo</span>
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
+            <div class="badge-soft" id="report-user" hidden></div>
 
 
 
@@ -2369,6 +3008,7 @@
 
 
 
+          <ion-card class="hero">
 
 
 
@@ -2376,10 +3016,10 @@
 
 
 
-          <div class="chart-tile">
 
 
 
+            <div class="hero-label" id="report-balance-label">Saldo do período</div>
 
 
 
@@ -2390,17 +3030,18 @@
 
 
 
+            <div class="hero-value ds-number" id="report-balance">R$ 0,00</div>
 
 
 
 
-            <div class="tile-header">
 
 
 
 
 
 
+            <div class="kpi-strip">
 
 
 
@@ -2411,8 +3052,8 @@
 
 
 
+              <div class="kpi-item">
 
-              <p class="muted tiny">Categorias</p>
 
 
 
@@ -2422,6 +3063,7 @@
 
 
 
+                <span class="kpi-item__label">Entradas</span>
 
 
 
@@ -2430,218 +3072,9 @@
 
 
 
-              <h3>Entradas vs sadas</h3>
 
 
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div id="report-category-bars" class="bar-list"></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="chart-tile">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="tile-header">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <p class="muted tiny">Composio</p>
-
-
-
-
-
-              <h3>Entradas x Sadas</h3>
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="donut-wrap">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <div id="report-type-donut" class="donut"></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <div class="donut-center">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <small>Saldo do perodo</small>
-
-
-
-
-
-                <strong id="report-type-balance">R$ 0,00</strong>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <span class="muted tiny" id="report-type-percent">0% entradas</span>
-
-
-
-
-
-
-
+                <span class="kpi-item__value ds-number" id="report-total-in">R$ 0,00</span>
 
 
 
@@ -2663,6 +3096,439 @@
 
 
 
+              <div class="kpi-item">
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__label">Saídas</span>
+
+
+
+
+
+
+
+
+
+
+                <span class="kpi-item__value ds-number" id="report-total-out">R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+            <div class="review-action" id="report-pending-summary" hidden>
+
+
+
+
+
+
+
+
+
+
+              <span class="material-symbols-rounded">info</span>
+
+
+
+
+
+
+
+
+
+
+              <span id="report-pending-summary-text">Pendências: valores não totalizados.</span>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Evolução mensal</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-block">
+
+
+
+
+
+
+
+
+
+
+              <p class="chart-block__title">Entradas x saídas</p>
+
+
+
+
+
+
+
+
+
+
+              <canvas id="report-12m-chart" height="190"></canvas>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-block">
+
+
+
+
+
+
+
+
+
+
+              <p class="chart-block__title">Resumo mensal</p>
+
+
+
+
+
+
+
+
+
+
+              <div id="report-12m-month-list" class="summary-list"></div>
+
+
+
+
+
+
+
+
+
+
+              <div id="report-12m-empty" class="review-action" hidden>Sem movimentações nos últimos 12 meses.</div>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Por período</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="filters-panel" id="report-controls">
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+                <ion-label position="stacked">Início</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-input class="month-input" type="month" id="report-start" aria-label="Início do período"></ion-input>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+                <ion-label position="stacked">Fim</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-input class="month-input" type="month" id="report-end" aria-label="Fim do período"></ion-input>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+              <div class="segmented" role="tablist" aria-label="Tipo do relatório">
+
+
+
+
+
+
+
+
+
+
+                <button class="segmented__item is-active" type="button" data-report-type="all" aria-selected="true">Todos</button>
+
+
+
+
+
+
+
+
+
+
+                <button class="segmented__item" type="button" data-report-type="in" aria-selected="false">Entradas</button>
+
+
+
+
+
+
+
+
+
+
+                <button class="segmented__item" type="button" data-report-type="out" aria-selected="false">Saídas</button>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
 
 
 
@@ -2688,7 +3554,419 @@
 
 
 
-            <div class="mini-legend" id="report-type-legend"></div>
+
+
+
+
+            <div class="filter-strip" id="report-summary">
+
+
+
+
+
+
+
+
+
+
+              <span class="filter-chip" id="report-summary-period">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">date_range</span>
+
+
+
+
+
+
+
+
+
+
+                <span id="report-summary-period-text">Período aberto</span>
+
+
+
+
+
+
+
+
+
+
+              </span>
+
+
+
+
+
+
+
+
+
+
+              <span class="filter-chip" id="report-summary-type">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">tune</span>
+
+
+
+
+
+
+
+
+
+
+                <span id="report-summary-type-text">Tipo: Todos</span>
+
+
+
+
+
+
+
+
+
+
+              </span>
+
+
+
+
+
+
+
+
+
+
+              <div class="filter-actions">
+
+
+
+
+
+
+
+
+
+
+                <ion-button class="c-icon-btn" fill="clear" id="report-reset" title="Limpar filtros" aria-label="Limpar filtros">
+
+
+
+
+
+
+
+
+
+
+                  <span class="material-symbols-rounded">restart_alt</span>
+
+
+
+
+
+
+
+
+
+
+                </ion-button>
+
+
+
+
+
+
+
+
+
+
+                <ion-button class="c-icon-btn" fill="clear" id="report-toggle" title="Mostrar filtros" aria-label="Mostrar filtros" aria-expanded="false" aria-controls="report-controls">
+
+
+
+
+
+
+
+
+
+
+                  <span class="material-symbols-rounded">tune</span>
+
+
+
+
+
+
+
+
+
+
+                </ion-button>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-block">
+
+
+
+
+
+
+
+
+
+
+              <p class="chart-block__title">Movimentação diária</p>
+
+
+
+
+
+
+
+
+
+
+              <canvas id="report-chart" height="190"></canvas>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-block">
+
+
+
+
+
+
+
+
+
+
+              <p class="chart-block__title">Top categorias</p>
+
+
+
+
+
+
+
+
+
+
+              <div id="report-category-bars" class="category-bars"></div>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+            <div class="chart-block">
+
+
+
+
+
+
+
+
+
+
+              <p class="chart-block__title">Entradas x saídas</p>
+
+
+
+
+
+
+
+
+
+
+              <div class="ring-summary">
+
+
+
+
+
+
+
+
+
+
+                <div class="ring" id="report-type-donut"></div>
+
+
+
+
+
+
+
+
+
+
+                <div class="ring-inner" id="report-type-percent">0% entradas</div>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <div id="report-type-legend" class="chart-legend compact-legend"></div>
+
+
+
+
+
+
+
+
+
+
+              <div class="hero-meta">Saldo: <span id="report-type-balance">R$ 0,00</span></div>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
 
 
 
@@ -2706,7 +3984,11 @@
 
 
 
-          </div>
+
+
+
+
+          <div class="section-title">Tabela detalhada</div>
 
 
 
@@ -2717,6 +3999,7 @@
 
 
 
+          <ul id="report-list" class="entries-list"></ul>
 
 
 
@@ -2724,7 +4007,10 @@
 
 
 
-        </div>
+
+
+
+          <div id="report-table-empty" class="review-action" hidden>Nenhuma movimentação encontrada.</div>
 
 
 
@@ -2732,6 +4018,10 @@
 
 
 
+
+
+
+        </ion-content>
 
 
 
@@ -2764,6 +4054,7 @@
 
 
 
+      <section class="view" id="view-categories" hidden>
 
 
 
@@ -2774,131 +4065,78 @@
 
 
 
+        <ion-content class="pwa-content">
 
 
 
 
-      
 
 
 
 
 
-      <section class="card glass reports-card report-closure-card">
 
+          <div class="section-title">Categorias</div>
 
 
 
 
-        <header class="section-title">
 
 
 
 
 
-          <div>
 
+          <ion-card class="hero">
 
 
 
 
-            <strong>Fechamento do mes</strong>
 
 
 
 
 
-            <p class="muted tiny" id="report-closure-subtitle">Selecione um mes fechado.</p>
 
+            <div class="row">
 
 
 
 
-          </div>
 
 
 
 
 
-          <div class="report-actions">
 
+              <div>
 
 
 
 
-            <select id="report-closure-month"></select>
 
 
 
 
 
-            <button type="button" class="icon-btn ghost square" id="report-closure-refresh" title="Atualizar" aria-label="Atualizar">
 
+                <div class="row-title">Disponíveis para lançamentos</div>
 
 
 
 
-              <span class="material-icons-outlined">refresh</span>
 
 
 
 
 
-            </button>
 
+                <div class="row-meta">Definidas pelo contador/administrador.</div>
 
 
 
 
-          </div>
 
-
-
-
-
-        </header>
-
-
-
-
-
-        <div class="summary-wrapper">
-
-
-
-
-
-          <div class="summary-item" id="report-closure-summary" hidden>
-
-
-
-
-
-            <div class="summary-label" id="report-closure-title">Fechamento</div>
-
-
-
-
-
-            <div class="summary-values">
-
-
-
-
-
-              <div class="summary-value">
-
-
-
-
-
-                <small>Entradas</small>
-
-
-
-
-
-                <strong id="report-closure-in">R$ 0,00</strong>
 
 
 
@@ -2910,73 +4148,6 @@
 
 
 
-              <div class="summary-value">
-
-
-
-
-
-                <small>Saidas</small>
-
-
-
-
-
-                <strong id="report-closure-out">R$ 0,00</strong>
-
-
-
-
-
-              </div>
-
-
-
-
-
-              <div class="summary-value">
-
-
-
-
-
-                <small>Saldo</small>
-
-
-
-
-
-                <strong id="report-closure-balance">R$ 0,00</strong>
-
-
-
-
-
-              </div>
-
-
-
-
-
-              <div class="summary-value">
-
-
-
-
-
-                <small>Lancamentos</small>
-
-
-
-
-
-                <strong id="report-closure-count">0</strong>
-
-
-
-
-
-              </div>
 
 
 
@@ -2988,374 +4159,45 @@
 
 
 
-            <div class="muted tiny" id="report-closure-meta"></div>
 
 
 
 
 
-          </div>
+            <ul id="categories-list" class="entries-list"></ul>
 
 
 
 
 
-          <div class="summary-item" id="report-closure-pending" hidden>
 
 
 
 
 
-            <div class="summary-label">Pendencias</div>
+            <div id="categories-empty" class="review-action" hidden>Nenhuma categoria cadastrada.</div>
 
 
 
 
 
-            <div class="summary-values">
 
 
 
 
 
-              <div class="summary-value">
+          </ion-card>
 
 
 
 
 
-                <small>Entradas</small>
 
 
 
 
 
-                <strong id="report-closure-pending-in">R$ 0,00</strong>
-
-
-
-
-
-              </div>
-
-
-
-
-
-              <div class="summary-value">
-
-
-
-
-
-                <small>Saidas</small>
-
-
-
-
-
-                <strong id="report-closure-pending-out">R$ 0,00</strong>
-
-
-
-
-
-              </div>
-
-
-
-
-
-              <div class="summary-value">
-
-
-
-
-
-                <small>Saldo</small>
-
-
-
-
-
-                <strong id="report-closure-pending-balance">R$ 0,00</strong>
-
-
-
-
-
-              </div>
-
-
-
-
-
-              <div class="summary-value">
-
-
-
-
-
-                <small>Lancamentos</small>
-
-
-
-
-
-                <strong id="report-closure-pending-count">0</strong>
-
-
-
-
-
-              </div>
-
-
-
-
-
-            </div>
-
-
-
-
-
-          </div>
-
-
-
-
-
-          <div class="empty-state" id="report-closure-empty" hidden>Sem fechamento selecionado.</div>
-
-
-
-
-
-        </div>
-
-
-
-
-
-      </section>
-
-
-
-
-
-
-
-
-
-
-
-      <section class="card glass reports-card report-table-card">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <header class="section-title">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <strong>Movimentaes do filtro</strong>
-
-
-
-
-
-          <div class="report-actions">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <button type="button" class="icon-only pdf-btn" id="btn-report-pdf" title="Salvar PDF"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              aria-label="Salvar PDF">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <span class="material-icons-outlined">picture_as_pdf</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </header>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="table-wrapper">
-
-
-
-
-
-
-
-
-
-
-
-          <ul class="list" id="report-list"></ul>
-
-
-
-
-
-
-
-
-
-
-
-          <div class="empty-state" id="report-table-empty" hidden>Nenhuma movimentao encontrada nesse filtro.</div>
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
+        </ion-content>
 
 
 
@@ -3384,11 +4226,11 @@
 
 
 
-    </section>
 
 
 
 
+      <section class="view" id="view-trash" hidden>
 
 
 
@@ -3399,6 +4241,7 @@
 
 
 
+        <ion-content class="pwa-content">
 
 
 
@@ -3409,6 +4252,7 @@
 
 
 
+          <div class="section-title">Lixeira</div>
 
 
 
@@ -3419,302 +4263,56 @@
 
 
 
+          <ion-card class="hero">
 
-    <section class="view entry-detail-view" id="view-entry-detail" hidden>
 
 
 
 
 
-      <header class="top-summary entry-detail-hero has-back">
 
 
 
 
+            <div class="row">
 
-        <button type="button" class="icon-btn ghost" id="btn-entry-detail-back" aria-label="Voltar para a lista">
 
 
 
 
 
-          <span class="material-icons-outlined">arrow_back</span>
 
 
 
 
+              <div>
 
-        </button>
 
 
 
 
 
-        <div>
 
 
 
 
+                <div class="row-title">Itens excluídos</div>
 
-          <p class="eyebrow">Detalhes</p>
 
 
 
 
 
-          <strong id="report-entry-title">Movimentacao</strong>
 
 
 
 
+                <div class="row-meta">Itens permanecem 7 dias antes do expurgo.</div>
 
-        </div>
 
 
 
 
-
-      </header>
-
-
-
-
-
-      <section class="card glass entry-detail-card">
-
-
-
-
-
-        <div class="modal-content" id="report-entry-content"></div>
-
-
-
-
-
-      </section>
-
-
-
-
-
-    </section>
-
-
-
-
-
-
-
-
-
-
-
-    <section class="view" id="view-support" hidden>
-
-
-
-
-
-      <header class="top-summary support-hero">
-
-
-
-
-
-        <div>
-
-
-
-
-
-          <p class="eyebrow">Suporte</p>
-
-
-
-
-
-          <h2>Atendimentos</h2>
-
-
-
-
-
-          <p class="muted">Abra um novo atendimento e acompanhe suas conversas.</p>
-
-
-
-
-
-        </div>
-
-
-
-
-
-      </header>
-
-
-
-
-
-      <section class="card glass support-card">
-
-
-
-
-
-        <div class="section-title">
-
-
-
-
-
-          <div>
-
-
-
-
-
-            <strong>Novo atendimento</strong>
-
-
-
-
-
-            <p class="muted tiny">Informe o assunto e a mensagem inicial.</p>
-
-
-
-
-
-          </div>
-
-
-
-
-
-        </div>
-
-
-
-
-
-        <form id="support-new-form" class="stack support-form" novalidate>
-
-
-
-
-
-          <input type="text" id="support-new-subject" name="subject" placeholder="Assunto do atendimento">
-
-
-
-
-
-          <div class="support-composer">
-
-
-
-
-
-            <textarea id="support-new-message" name="message" placeholder="Mensagem inicial"></textarea>
-
-
-
-
-
-            <div class="support-composer-actions">
-
-
-
-
-
-              <button type="button" class="icon-btn ghost square" id="support-new-attachment-btn" title="Anexar imagem" aria-label="Anexar imagem">
-
-
-
-
-
-                <span class="material-icons-outlined" aria-hidden="true">attach_file</span>
-
-
-
-
-
-              </button>
-
-
-
-
-
-              <button type="submit" class="icon-btn primary square" title="Enviar" aria-label="Enviar">
-
-
-
-
-
-                <span class="material-icons-outlined" aria-hidden="true">send</span>
-
-
-
-
-
-              </button>
-
-
-
-
-
-            </div>
-
-
-
-
-
-            <input type="file" id="support-new-attachment" accept="image/*" class="visually-hidden">
-
-
-
-
-
-            <div id="support-new-attachment-preview" class="attachment-preview support-attachment-preview is-empty" role="button" tabindex="0"
-
-
-
-
-
-              aria-label="Anexo selecionado">
-
-
-
-
-
-              <div class="thumb-box">
-
-
-
-
-
-                <img id="support-new-attachment-thumb" alt="Pre-visualizacao do anexo">
-
-
-
-
-
-                <div class="camera-icon" aria-hidden="true">
-
-
-
-
-
-                  <span class="material-icons-outlined">photo_camera</span>
-
-
-
-
-
-                </div>
 
 
 
@@ -3726,55 +4324,39 @@
 
 
 
-              <div class="preview-meta">
 
 
 
 
 
-                <div class="preview-info">
+              <ion-button class="c-icon-btn" fill="clear" id="btn-empty-trash" title="Esvaziar lixeira" aria-label="Esvaziar lixeira">
 
 
 
 
 
-                  <small id="support-new-attachment-name" class="file-name c-muted">Nenhum arquivo selecionado</small>
 
 
 
 
 
-                  <small id="support-new-attachment-status" class="upload-status c-tiny" aria-live="polite" hidden>Enviando anexo...</small>
+                <span class="material-symbols-rounded">delete_sweep</span>
 
 
 
 
 
-                </div>
 
 
 
 
 
-                <button type="button" class="icon-btn ghost" id="support-new-clear-attachment" aria-label="Remover anexo" disabled>
+              </ion-button>
 
 
 
 
 
-                  <span class="material-icons-outlined">close</span>
-
-
-
-
-
-                </button>
-
-
-
-
-
-              </div>
 
 
 
@@ -3786,43 +4368,50 @@
 
 
 
-          </div>
 
 
 
 
 
-        </form>
+            <ul id="trash-list" class="entries-list"></ul>
 
 
 
 
 
-        <div class="section-title">
 
 
 
 
 
-          <strong>Conversas</strong>
+            <div id="trash-empty" class="review-action" hidden>Nenhum item na lixeira.</div>
 
 
 
 
 
-        </div>
 
 
 
 
 
-        <div class="support-thread-list" id="support-thread-list"></div>
+          </ion-card>
 
 
 
 
 
-        <div class="empty-state" id="support-thread-empty" hidden>Nenhum atendimento aberto.</div>
+
+
+
+
+
+        </ion-content>
+
+
+
+
+
 
 
 
@@ -3834,109 +4423,95 @@
 
 
 
-    </section>
 
 
 
 
 
 
+      <section class="view" id="view-chat" hidden>
 
 
 
 
 
-    <section class="view" id="view-support-chat" hidden>
 
 
 
 
 
-      <header class="top-summary support-chat-hero has-back">
+        <ion-content class="pwa-content">
 
 
 
 
 
-        <button type="button" class="icon-btn ghost" id="support-back" aria-label="Voltar para os atendimentos">
 
 
 
 
 
-          <span class="material-icons-outlined">arrow_back</span>
+          <div class="row" style="margin-bottom:12px;">
 
 
 
 
 
-        </button>
 
 
 
 
 
-        <div>
+            <div>
 
 
 
 
 
-          <p class="eyebrow">Atendimento</p>
 
 
 
 
 
-          <strong id="support-active-subject">Selecione um atendimento</strong>
+              <div class="row-title">Chat com o contador</div>
 
 
 
 
 
-          <p class="muted tiny" id="support-active-meta">-</p>
 
 
 
 
 
-        </div>
+              <div class="row-meta" id="support-active-meta">Conversa privada.</div>
 
 
 
 
 
-      </header>
 
 
 
 
 
-      <section class="card glass support-chat-card">
+            </div>
 
 
 
 
 
-        <div class="support-entry-summary" id="support-entry-summary" hidden>
 
 
 
 
 
-          <div>
+            <div class="badge-soft" id="support-active-subject">Caixa Simples</div>
 
 
 
 
 
-            <strong id="support-entry-title">Lancamento relacionado</strong>
-
-
-
-
-
-            <p class="muted tiny" id="support-entry-meta">-</p>
 
 
 
@@ -3948,103 +4523,193 @@
 
 
 
-          <button type="button" class="icon-btn ghost square" id="support-entry-view" aria-label="Ver lancamento">
 
 
 
 
 
-            <span class="material-icons-outlined">open_in_new</span>
 
 
 
 
 
-          </button>
 
 
 
 
 
-        </div>
 
+          <div id="support-chat" class="chat-thread"></div>
 
 
 
 
-        <div class="support-chat" id="support-chat"></div>
 
 
 
 
 
-        <div class="empty-state" id="support-chat-empty" hidden>Selecione um atendimento para conversar.</div>
 
+          <div id="support-chat-empty" class="review-action" hidden>Envie sua primeira mensagem.</div>
 
 
 
 
-        <form id="support-reply-form" class="stack support-reply" novalidate>
 
 
 
 
 
-          <div class="support-composer">
 
 
 
 
 
-            <textarea id="support-reply-message" name="message" placeholder="Escreva sua resposta"></textarea>
 
 
 
 
 
-            <div class="support-composer-actions">
 
 
+          <form id="support-reply-form" class="chat-composer" novalidate>
 
 
 
-              <button type="button" class="icon-btn ghost square" id="support-reply-attachment-btn" title="Anexar imagem" aria-label="Anexar imagem">
 
 
 
 
 
-                <span class="material-icons-outlined" aria-hidden="true">attach_file</span>
 
 
+            <div class="chat-input">
 
 
 
-              </button>
 
 
 
 
 
-              <button type="submit" class="icon-btn primary square" title="Enviar" aria-label="Enviar">
 
 
+              <ion-button class="c-icon-btn" fill="clear" id="support-reply-attachment-btn" title="Anexar imagem" aria-label="Anexar imagem">
 
 
 
-                <span class="material-icons-outlined" aria-hidden="true">send</span>
 
 
 
 
 
-              </button>
+
+
+                <span class="material-symbols-rounded">attach_file</span>
+
+
+
+
+
+
+
+
+
+
+              </ion-button>
+
+
+
+
+
+
+
+
+
+
+              <ion-button class="c-icon-btn" fill="clear" id="chat-attach-entry" title="Anexar lançamento" aria-label="Anexar lançamento">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">receipt_long</span>
+
+
+
+
+
+
+
+
+
+
+              </ion-button>
+
+
+
+
+
+
+
+
+
+
+              <ion-textarea id="support-reply-message" name="message" placeholder="Escreva sua mensagem" auto-grow></ion-textarea>
+
+
+
+
+
+
+
+
+
+
+              <ion-button class="c-icon-btn" fill="clear" type="submit" title="Enviar" aria-label="Enviar">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">send</span>
+
+
+
+
+
+
+
+
+
+
+              </ion-button>
+
+
+
+
+
 
 
 
 
 
             </div>
+
+
+
+
+
 
 
 
@@ -4056,13 +4721,17 @@
 
 
 
-            <div id="support-reply-attachment-preview" class="attachment-preview support-attachment-preview is-empty" role="button" tabindex="0"
 
 
 
 
 
-              aria-label="Anexo selecionado">
+            <div id="support-reply-attachment-preview" class="attachment-preview is-empty" role="button" tabindex="0" aria-label="Anexo selecionado">
+
+
+
+
+
 
 
 
@@ -4074,7 +4743,17 @@
 
 
 
-                <img id="support-reply-attachment-thumb" alt="Pre-visualizacao do anexo">
+
+
+
+
+
+                <img id="support-reply-attachment-thumb" alt="Pré-visualização do anexo">
+
+
+
+
+
 
 
 
@@ -4086,7 +4765,17 @@
 
 
 
-                  <span class="material-icons-outlined">photo_camera</span>
+
+
+
+
+
+                  <span class="material-symbols-rounded">photo_camera</span>
+
+
+
+
+
 
 
 
@@ -4098,7 +4787,17 @@
 
 
 
+
+
+
+
+
               </div>
+
+
+
+
+
 
 
 
@@ -4110,7 +4809,17 @@
 
 
 
+
+
+
+
+
                 <div class="preview-info">
+
+
+
+
+
 
 
 
@@ -4122,626 +4831,56 @@
 
 
 
+
+
+
+
+
                   <small id="support-reply-attachment-status" class="upload-status c-tiny" aria-live="polite" hidden>Enviando anexo...</small>
 
 
 
 
 
+
+
+
+
+
                 </div>
 
 
 
 
 
-                <button type="button" class="icon-btn ghost" id="support-reply-clear-attachment" aria-label="Remover anexo" disabled>
 
 
 
 
 
-                  <span class="material-icons-outlined">close</span>
+                <ion-button class="c-icon-btn" fill="clear" id="support-reply-clear-attachment" aria-label="Remover anexo" disabled>
 
 
 
 
 
-                </button>
 
 
 
 
 
-              </div>
+                  <span class="material-symbols-rounded">close</span>
 
 
 
 
 
-            </div>
 
 
 
 
 
-          </div>
-
-
-
-
-
-        </form>
-
-
-
-
-
-      </section>
-
-
-
-
-
-    </section>
-
-
-
-
-
-
-
-
-
-
-
-    <section class="view" id="view-user-options" hidden>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      <header class="top-summary user-options-hero has-chip">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <div class="user-hero-main">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="user-hero-identity">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <strong id="options-user" class="hero-name">-</strong>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <span id="options-email" class="hero-email">-</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <p class="muted">Atualize perfil, senha e limpe a lixeira.</p><span id="options-role" class="hero-role">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <span class="material-icons-outlined" aria-hidden="true">shield_person</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <small class="muted tiny">Usurio</small>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      </header>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      <div class="options-grid">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <section class="card glass profile-card">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="section-title">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <p class="eyebrow">Perfil &amp; segurana</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <strong>Dados e senha</strong>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="stack profile-forms">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <form id="profile-form" class="stack slim-form" novalidate>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <label>Nome
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <input type="text" name="name" id="profile-name" placeholder="Seu nome">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              </label>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <div class="form-actions right">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <button class="icon-btn primary square" type="submit" title="Salvar" aria-label="Salvar">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  <span class="material-icons-outlined">save</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                </button>
-
-
-
-
-
-
-
+                </ion-button>
 
 
 
@@ -4763,451 +4902,6 @@
 
 
 
-
-
-
-
-
-
-
-            </form>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div class="form-divider"></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <form id="password-form" class="stack slim-form" novalidate>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <label>Senha atual
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <input type="password" name="current_password" placeholder="Senha atual">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              </label>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <label>Nova senha
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <input type="password" name="password" placeholder="Mnimo 8 caracteres">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              </label>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <div class="form-actions right">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <button class="icon-btn primary square" type="submit" title="Atualizar senha"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  aria-label="Atualizar senha">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  <span class="material-icons-outlined">lock_reset</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </form>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </section>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-
-
-
-
-<section class="card glass list-card trash-card">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="section-title">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            <div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <p class="eyebrow">Lixeira</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <strong>Itens excludos</strong>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             </div>
 
 
@@ -5219,391 +4913,8 @@
 
 
 
-
-
-
-
-
-
-
-            <button class="icon-btn danger" type="button" id="btn-empty-trash" title="Esvaziar lixeira"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              aria-label="Esvaziar lixeira">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <span class="material-icons-outlined">delete_sweep</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <ul class="list" id="trash-list"></ul>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div id="trash-empty" class="empty-state" hidden>Nenhum item na lixeira.</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        </section>
-
-
-
-
-
-
-
-
-
-
-
-      <section class="card glass logout-card">
-
-
-
-
-
-        <div class="section-title">
-
-
-
-
-
-          <div>
-
-
-
-
-
-            <p class="eyebrow">Sessao</p>
-
-
-
-
-
-            <strong>Encerrar acesso</strong>
-
-
-
-
-
-          </div>
-
-
-
-
-
-        </div>
-
-
-
-
-
-        <div class="logout-actions">
-
-
-
-
-
-          <button class="nav-btn danger" type="button" id="btn-logout-options" aria-label="Sair">
-
-
-
-
-
-            <span class="nav-icon material-icons-outlined">logout</span>
-
-
-
-
-
-          </button>
-
-
-
-
-
-        </div>
-
-
-
-
-
-      </section>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    </section>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <section class="view entry-view" id="view-entry" hidden>
-      <header class="c-appbar">
-        <button id="btn-entry-back" class="c-icon-btn" aria-label="Voltar">
-          <span class="material-icons-outlined" aria-hidden="true">arrow_back</span>
-        </button>
-        <div>
-          <h2 class="c-appbar__title">Novo lançamento</h2>
-          <p class="c-appbar__meta">Registre entradas e saídas em um único fluxo.</p>
-        </div>
-        <span class="c-badge c-entry-accent c-badge--success" id="entry-type-badge">
-          <span class="material-icons-outlined c-icon-sm" id="entry-type-badge-icon" aria-hidden="true">arrow_upward</span>
-          <span id="entry-type-badge-label">Entrada</span>
-        </span>
-      </header>
-
-      <div class="c-container">
-        <section class="c-card">
-          <header class="c-section-header">
-            <div>
-              <h3 class="c-section-header__title">Tipo do lançamento</h3>
-              <p class="c-section-header__meta">Escolha a natureza da movimentação.</p>
-            </div>
-          </header>
-          <div class="c-segmented" role="tablist" aria-label="Tipo de lançamento">
-            <button class="c-segmented__item is-active" type="button" id="entry-type-in" role="tab" aria-selected="true">Entrada</button>
-            <button class="c-segmented__item" type="button" id="entry-type-out" role="tab" aria-selected="false">Saída</button>
-          </div>
-        </section>
-
-        <section class="c-card">
-          <header class="c-section-header">
-            <div>
-              <h3 class="c-section-header__title">Dados principais</h3>
-              <p class="c-section-header__meta">Campos obrigatórios para o lançamento.</p>
-            </div>
-          </header>
-
-          <div class="c-bottom-sheet" id="entry-upload-overlay" hidden>
-            <div class="c-bottom-sheet__panel" role="dialog" aria-modal="true" aria-live="polite">
-              <strong>Enviando anexo...</strong>
-              <div class="c-loading">
-                <div class="c-skeleton c-skeleton--lg"></div>
-                <div class="c-skeleton"></div>
-              </div>
-              <div class="c-bottom-sheet__actions">
-                <button type="button" class="c-btn c-btn--ghost" id="btn-cancel-upload" aria-label="Cancelar upload">Cancelar upload</button>
-              </div>
-            </div>
-          </div>
-
-          <form id="entry-form" class="c-entry-form is-in" novalidate>
-            <input type="hidden" name="type" id="entry-type" value="in">
-
-            <div class="c-grid c-grid--responsive-2">
-              <label class="c-field">
-                <span class="c-field__label">Valor</span>
-                <input class="c-input" type="text" name="amount" id="entry-amount" data-mask="money" placeholder="0,00" inputmode="decimal">
-                <div class="c-entry-preview">
-                  <span class="c-field__hint">Prévia</span>
-                  <span class="c-badge c-entry-accent c-badge--success" id="entry-amount-preview">+ R$ 0,00</span>
-                </div>
-              </label>
-              <label class="c-field">
-                <span class="c-field__label">Data</span>
-                <input class="c-input" type="text" name="date" id="entry-date" inputmode="numeric" autocomplete="off" placeholder="dd/mm/aaaa">
-              </label>
-            </div>
-
-            <label class="c-field">
-              <span class="c-field__label">Categoria</span>
-              <select class="c-select" name="category" id="entry-category"></select>
-            </label>
-
-            <div class="c-field">
-              <span class="c-field__label">Anexo (opcional)</span>
-              <div class="c-dropzone">
-                <input type="file" id="attachment" accept="image/*" class="visually-hidden">
-                <div id="attachment-preview" class="attachment-preview is-empty" role="button" tabindex="0" aria-label="Adicionar ou alterar foto do anexo">
-                  <div class="thumb-box">
-                    <img id="attachment-thumb" alt="Pré-visualização do anexo">
-                    <div class="camera-icon" aria-hidden="true">
-                      <span class="material-icons-outlined">photo_camera</span>
-                    </div>
-                  </div>
-                  <div class="preview-meta">
-                    <div class="preview-info">
-                      <small id="attachment-name" class="file-name c-muted">Nenhum arquivo selecionado</small>
-                      <small id="attachment-status" class="upload-status c-tiny" aria-live="polite" hidden>Enviando anexo...</small>
-                    </div>
-                    <button type="button" class="c-icon-btn" id="btn-clear-attachment" aria-label="Remover anexo" disabled>
-                      <span class="material-icons-outlined">close</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <label class="c-field">
-              <span class="c-field__label">Descrição</span>
-              <textarea class="c-textarea" name="description" placeholder="Explique o lançamento"></textarea>
-            </label>
-
-            <div class="c-inline-actions">
-              <button type="submit" class="c-btn" id="entry-submit" aria-label="Salvar entrada">
-                <span class="c-spinner" aria-hidden="true"></span>
-                <span class="c-btn__label" id="entry-submit-label">Salvar entrada</span>
-              </button>
-            </div>
           </form>
-        </section>
-      </div>
-    </section>
 
-<datalist id="category-options"></datalist>
 
 
 
@@ -5613,6 +4924,7 @@
 
 
 
+        </ion-content>
 
 
 
@@ -5623,6 +4935,7 @@
 
 
 
+      </section>
 
 
 
@@ -5639,12 +4952,12 @@
 
 
 
-  <div id="toast" hidden></div>
 
 
 
 
 
+      <section class="view" id="view-user-options" hidden>
 
 
 
@@ -5655,6 +4968,7 @@
 
 
 
+        <ion-content class="pwa-content">
 
 
 
@@ -5665,6 +4979,7 @@
 
 
 
+          <div class="section-title">Perfil</div>
 
 
 
@@ -5675,103 +4990,95 @@
 
 
 
-  <nav class="c-bottom-nav" aria-label="Navegação principal" hidden>
+          <ion-card class="hero">
 
 
 
 
 
-    <button class="c-bottom-nav__item" data-go-view="view-dashboard" aria-label="Dashboard">
 
 
 
 
 
-      <span class="material-icons-outlined" aria-hidden="true">home</span>
+            <div class="row">
 
 
 
 
 
-    </button>
 
 
 
 
 
-    <button class="c-bottom-nav__item" data-go-view="view-reports" aria-label="Relatórios">
+              <div>
 
 
 
 
 
-      <span class="material-icons-outlined" aria-hidden="true">show_chart</span>
 
 
 
 
 
-    </button>
+                <div class="row-title" id="options-user">-</div>
 
 
 
 
 
-    <button class="c-fab" id="nav-add" type="button" aria-label="Novo lançamento">
 
 
 
 
 
-      <span class="material-icons-outlined" aria-hidden="true">add</span>
+                <div class="row-meta" id="options-email">-</div>
 
 
 
 
 
-    </button>
 
 
 
 
 
-    <button class="c-bottom-nav__item" data-go-view="view-support" id="nav-support" aria-label="Suporte">
+              </div>
 
 
 
 
 
-      <span class="material-icons-outlined" aria-hidden="true">support_agent</span>
 
 
 
 
 
-    </button>
+              <div class="badge-soft" id="options-role">
 
 
 
 
 
-    <button class="c-bottom-nav__item" data-go-view="view-user-options" id="nav-options" aria-label="Perfil">
 
 
 
 
 
-      <span class="material-icons-outlined" aria-hidden="true">person</span>
+                <span class="material-symbols-rounded">shield_person</span>
 
 
 
 
 
-    </button>
 
 
 
 
 
-  </nav>
+                <small>Usuário</small>
 
 
 
@@ -5782,44 +5089,617 @@
 
 
 
+              </div>
 
-  <div class="c-bottom-sheet" id="entry-sheet" hidden>
 
 
 
 
 
-    <div class="c-bottom-sheet__panel" role="dialog" aria-modal="true" aria-label="Novo lançamento">
 
 
 
 
+            </div>
 
-      <strong>Novo lançamento</strong>
 
 
 
 
 
-      <div class="c-bottom-sheet__actions">
 
 
 
 
+            <p class="hero-meta">Atualize seus dados e preferências.</p>
 
-        <button type="button" class="c-btn" id="nav-add-in">Novo lançamento (Entrada)</button>
 
 
 
 
 
-        <button type="button" class="c-btn c-btn--ghost" id="nav-add-out">Novo lançamento (Saída)</button>
 
 
 
 
+          </ion-card>
 
-      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Perfil e segurança</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <form id="profile-form" class="auth-form" novalidate>
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+                <ion-label position="stacked">Nome</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-input id="profile-name" name="name" type="text" placeholder="Seu nome"></ion-input>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+              <div class="entry-actions">
+
+
+
+
+
+
+
+
+
+
+                <ion-button class="uikit-btn primary" type="submit">Salvar</ion-button>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+            </form>
+
+
+
+
+
+
+
+
+
+
+            <div class="divider-hairline"></div>
+
+
+
+
+
+
+
+
+
+
+            <form id="password-form" class="auth-form" novalidate>
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+                <ion-label position="stacked">Senha atual</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-input name="current_password" type="password" placeholder="Senha atual"></ion-input>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+              <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+                <ion-label position="stacked">Nova senha</ion-label>
+
+
+
+
+
+
+
+
+
+
+                <ion-input name="password" type="password" placeholder="Mínimo 8 caracteres"></ion-input>
+
+
+
+
+
+
+
+
+
+
+              </ion-item>
+
+
+
+
+
+
+
+
+
+
+              <div class="entry-actions">
+
+
+
+
+
+
+
+
+
+
+                <ion-button class="uikit-btn primary" type="submit">Atualizar senha</ion-button>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+            </form>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Configurações</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <ion-item class="form-row" lines="none">
+
+
+
+
+
+
+
+
+
+
+              <ion-label>Idioma</ion-label>
+
+
+
+
+
+
+
+
+
+
+              <ion-note slot="end">Português (Brasil)</ion-note>
+
+
+
+
+
+
+
+
+
+
+            </ion-item>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div class="section-title">Sessão</div>
+
+
+
+
+
+
+
+
+
+
+          <ion-card class="hero">
+
+
+
+
+
+
+
+
+
+
+            <div class="row">
+
+
+
+
+
+
+
+
+
+
+              <div>
+
+
+
+
+
+
+
+
+
+
+                <div class="row-title">Encerrar acesso</div>
+
+
+
+
+
+
+
+
+
+
+                <div class="row-meta">Finalize sua sessão com segurança.</div>
+
+
+
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+              <ion-button class="c-icon-btn" fill="clear" id="btn-logout-options" aria-label="Sair">
+
+
+
+
+
+
+
+
+
+
+                <span class="material-symbols-rounded">logout</span>
+
+
+
+
+
+
+
+
+
+
+              </ion-button>
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+          </ion-card>
+
+
+
+
+
+
+
+
+
+
+        </ion-content>
+
+
+
+
+
+
+
+
+
+
+      </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <datalist id="category-options"></datalist>
+
+
+
+
+
 
 
 
@@ -5831,7 +5711,6 @@
 
 
 
-  </div>
 
 
 
@@ -5848,6 +5727,7 @@
 
 
 
+    <ion-fab vertical="bottom" horizontal="start" slot="fixed" class="fab-safe">
 
 
 
@@ -5858,6 +5738,7 @@
 
 
 
+      <div class="fab-row">
 
 
 
@@ -5868,6 +5749,7 @@
 
 
 
+        <ion-fab-button id="nav-add" aria-label="Adicionar transação">
 
 
 
@@ -5878,6 +5760,7 @@
 
 
 
+          <span class="material-symbols-rounded">add</span>
 
 
 
@@ -5888,6 +5771,7 @@
 
 
 
+        </ion-fab-button>
 
 
 
@@ -5898,8 +5782,1920 @@
 
 
 
+      </div>
 
 
+
+
+
+
+
+
+
+
+    </ion-fab>
+
+
+
+
+
+
+
+
+
+
+  </ion-app>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <ion-modal id="entry-modal" class="entry-sheet sheet-base">
+
+
+
+
+
+
+
+
+
+
+    <ion-header>
+
+
+
+
+
+
+
+
+
+
+      <ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+        <ion-title class="topbar-title" id="entry-modal-title">Nova transação</ion-title>
+
+
+
+
+
+
+
+
+
+
+        <ion-buttons slot="end" class="toolbar-actions">
+
+
+
+
+
+
+
+
+
+
+          <ion-button id="close-entry" aria-label="Fechar">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">close</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-button>
+
+
+
+
+
+
+
+
+
+
+        </ion-buttons>
+
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+    </ion-header>
+
+
+
+
+
+
+
+
+
+
+    <ion-content class="ion-padding">
+
+
+
+
+
+
+
+
+
+
+      <form id="entry-form" class="entry-form" novalidate>
+
+
+
+
+
+
+
+
+
+
+        <div class="entry-amount">
+
+
+
+
+
+
+
+
+
+
+          <div class="amount-label">Valor</div>
+
+
+
+
+
+
+
+
+
+
+          <div class="amount-row">
+
+
+
+
+
+
+
+
+
+
+            <span class="amount-currency">R$</span>
+
+
+
+
+
+
+
+
+
+
+            <ion-input id="entry-amount" class="amount-input" inputmode="decimal" type="text" placeholder="0,00" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"></ion-input>
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+          <div class="entry-preview">
+
+
+
+
+
+
+
+
+
+
+            <span class="hero-meta">Prévia</span>
+
+
+
+
+
+
+
+
+
+
+            <span class="badge-soft" id="entry-amount-preview">+ R$ 0,00</span>
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <ion-segment id="entry-type-segment" value="in" aria-label="Tipo de transação">
+
+
+
+
+
+
+
+
+
+
+          <ion-segment-button value="in">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" aria-hidden="true">arrow_upward</span>
+
+
+
+
+
+
+
+
+
+
+            <ion-label>Entrada</ion-label>
+
+
+
+
+
+
+
+
+
+
+          </ion-segment-button>
+
+
+
+
+
+
+
+
+
+
+          <ion-segment-button value="out">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" aria-hidden="true">arrow_downward</span>
+
+
+
+
+
+
+
+
+
+
+            <ion-label>Saída</ion-label>
+
+
+
+
+
+
+
+
+
+
+          </ion-segment-button>
+
+
+
+
+
+
+
+
+
+
+        </ion-segment>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <ion-list class="form-list">
+
+
+
+
+
+
+
+
+
+
+          <ion-item class="form-row" lines="none" button detail="false" id="entry-date-trigger">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" slot="start">event</span>
+
+
+
+
+
+
+
+
+
+
+            <ion-label>Data</ion-label>
+
+
+
+
+
+
+
+
+
+
+            <ion-note slot="end" id="entry-date-note" class="date-note">Selecione</ion-note>
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" slot="end">chevron_right</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-item>
+
+
+
+
+
+
+
+
+
+
+          <ion-item class="form-row" lines="none" button detail="false" id="entry-category-trigger">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" slot="start">category</span>
+
+
+
+
+
+
+
+
+
+
+            <ion-label>Categoria</ion-label>
+
+
+
+
+
+
+
+
+
+
+            <ion-note slot="end" id="entry-category-note" class="date-note">Selecionar</ion-note>
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" slot="end">chevron_right</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-item>
+
+
+
+
+
+
+
+
+
+
+          <ion-item class="form-row" lines="none" button detail="false" id="entry-attachment-trigger">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" slot="start">attach_file</span>
+
+
+
+
+
+
+
+
+
+
+            <ion-label>Anexo</ion-label>
+
+
+
+
+
+
+
+
+
+
+            <ion-note slot="end" id="entry-attachment-note" class="attachment-note">Nenhum</ion-note>
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" slot="end">chevron_right</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-item>
+
+
+
+
+
+
+
+
+
+
+          <input type="file" id="entry-attachment" accept="image/*" class="visually-hidden" />
+
+
+
+
+
+
+
+
+
+
+          <ion-item lines="none" class="notes-item">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded" slot="start">notes</span>
+
+
+
+
+
+
+
+
+
+
+            <ion-label position="stacked">Observação</ion-label>
+
+
+
+
+
+
+
+
+
+
+            <ion-textarea id="entry-description" auto-grow placeholder="Explique o lançamento"></ion-textarea>
+
+
+
+
+
+
+
+
+
+
+          </ion-item>
+
+
+
+
+
+
+
+
+
+
+        </ion-list>
+
+
+
+
+
+
+
+
+
+
+      </form>
+
+
+
+
+
+
+
+
+
+
+      <div id="entry-attachment-preview" class="attachment-preview is-empty" role="button" tabindex="0" aria-label="Adicionar ou alterar foto do anexo">
+
+
+
+
+
+
+
+
+
+
+        <div class="thumb-box">
+
+
+
+
+
+
+
+
+
+
+          <img id="entry-attachment-thumb" alt="Pré-visualização do anexo">
+
+
+
+
+
+
+
+
+
+
+          <div class="camera-icon" aria-hidden="true">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">photo_camera</span>
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+        <div class="preview-meta">
+
+
+
+
+
+
+
+
+
+
+          <div class="preview-info">
+
+
+
+
+
+
+
+
+
+
+            <small id="entry-attachment-name" class="file-name c-muted">Nenhum arquivo selecionado</small>
+
+
+
+
+
+
+
+
+
+
+            <small id="entry-attachment-status" class="upload-status c-tiny" aria-live="polite" hidden>Enviando anexo...</small>
+
+
+
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+          <ion-button class="c-icon-btn" fill="clear" id="btn-clear-attachment" aria-label="Remover anexo" disabled>
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">close</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-button>
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+    </ion-content>
+
+
+
+
+
+
+
+
+
+
+    <ion-footer class="entry-actions">
+
+
+
+
+
+
+
+
+
+
+      <ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+        <div class="modal-actions">
+
+
+
+
+
+
+
+
+
+
+          <ion-button class="uikit-btn secondary" fill="outline" id="entry-delete" hidden>
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">delete</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-button>
+
+
+
+
+
+
+
+
+
+
+          <ion-button class="uikit-btn primary" id="entry-submit">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">check</span>
+
+
+
+
+
+
+
+
+
+
+            <span id="entry-submit-label">Salvar</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-button>
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+    </ion-footer>
+
+
+
+
+
+
+
+
+
+
+  </ion-modal>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <ion-modal id="entry-date-modal" class="date-sheet">
+
+
+
+
+
+
+
+
+
+
+    <ion-header>
+
+
+
+
+
+
+
+
+
+
+      <ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+        <ion-title class="topbar-title">Selecionar data</ion-title>
+
+
+
+
+
+
+
+
+
+
+        <ion-buttons slot="end" class="toolbar-actions">
+
+
+
+
+
+
+
+
+
+
+          <ion-button id="close-entry-date" aria-label="Fechar">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">close</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-button>
+
+
+
+
+
+
+
+
+
+
+        </ion-buttons>
+
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+    </ion-header>
+
+
+
+
+
+
+
+
+
+
+    <ion-content class="ion-padding">
+
+
+
+
+
+
+
+
+
+
+      <ion-datetime id="entry-date" presentation="date" locale="pt-BR" show-default-buttons="true" done-text="Salvar" cancel-text="Cancelar"></ion-datetime>
+
+
+
+
+
+
+
+
+
+
+    </ion-content>
+
+
+
+
+
+
+
+
+
+
+  </ion-modal>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <ion-modal id="category-modal" class="entry-sheet">
+
+
+
+
+
+
+
+
+
+
+    <ion-header>
+
+
+
+
+
+
+
+
+
+
+      <ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+        <ion-title class="topbar-title">Selecionar categoria</ion-title>
+
+
+
+
+
+
+
+
+
+
+        <ion-buttons slot="end" class="toolbar-actions">
+
+
+
+
+
+
+
+
+
+
+          <ion-button id="close-category-modal" aria-label="Fechar">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">close</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-button>
+
+
+
+
+
+
+
+
+
+
+        </ion-buttons>
+
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+      <ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+        <ion-searchbar id="category-search" class="uikit-input" placeholder="Buscar categoria" debounce="150"></ion-searchbar>
+
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+    </ion-header>
+
+
+
+
+
+
+
+
+
+
+    <ion-content>
+
+
+
+
+
+
+
+
+
+
+      <ion-list id="category-modal-list" class="uikit-list"></ion-list>
+
+
+
+
+
+
+
+
+
+
+      <div id="category-modal-empty" class="review-action" hidden>Nenhuma categoria encontrada.</div>
+
+
+
+
+
+
+
+
+
+
+    </ion-content>
+
+
+
+
+
+
+
+
+
+
+  </ion-modal>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <ion-modal id="chat-entry-modal" class="entry-sheet">
+
+
+
+
+
+
+
+
+
+
+    <ion-header>
+
+
+
+
+
+
+
+
+
+
+      <ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+        <ion-title class="topbar-title">Anexar lançamento</ion-title>
+
+
+
+
+
+
+
+
+
+
+        <ion-buttons slot="end" class="toolbar-actions">
+
+
+
+
+
+
+
+
+
+
+          <ion-button id="close-chat-entry-modal" aria-label="Fechar">
+
+
+
+
+
+
+
+
+
+
+            <span class="material-symbols-rounded">close</span>
+
+
+
+
+
+
+
+
+
+
+          </ion-button>
+
+
+
+
+
+
+
+
+
+
+        </ion-buttons>
+
+
+
+
+
+
+
+
+
+
+      </ion-toolbar>
+
+
+
+
+
+
+
+
+
+
+    </ion-header>
+
+
+
+
+
+
+
+
+
+
+    <ion-content>
+
+
+
+
+
+
+
+
+
+
+      <ion-list id="chat-entry-list" class="uikit-list"></ion-list>
+
+
+
+
+
+
+
+
+
+
+      <div id="chat-entry-empty" class="review-action" hidden>Nenhum lançamento disponível.</div>
+
+
+
+
+
+
+
+
+
+
+    </ion-content>
+
+
+
+
+
+
+
+
+
+
+  </ion-modal>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <ion-toast id="app-toast" position="top"></ion-toast>
+
+
+
+
+
+
+
+
+
+
+  <ion-loading id="app-loading"></ion-loading>
+
+
+
+
+
+
+
+
+
+
+  <ion-alert id="app-alert"></ion-alert>
+
+
+
+
+
+
+
+
+
+
+        <script>
+
+
+    const togglePasswordBtn = document.getElementById('toggle-password');
+
+
+    const togglePasswordIcon = document.getElementById('toggle-password-icon');
+
+
+    const loginPassword = document.getElementById('login-password');
+
+
+    const loginEmail = document.getElementById('login-email');
+
+
+    const loginSubmit = document.querySelector('#login-form .login-v3__submit');
+
+
+    const loginError = document.getElementById('login-error');
+
+
+    const loginForm = document.getElementById('login-form');
+const loginBadges = document.querySelector('.login-v3__meta-badges');
+    if (loginBadges) {
+      const host = window.location.hostname;
+      const isDev = host === 'localhost' || host === '127.0.0.1';
+      loginBadges.style.display = isDev ? 'flex' : 'none';
+    }
+
+
+
+
+
+
+    const syncLoginState = async () => {
+
+
+      if (!loginSubmit) return;
+
+
+      const emailValue = loginEmail?.value?.trim?.() || '';
+
+
+      const pwdInput = loginPassword?.getInputElement
+
+
+        ? await loginPassword.getInputElement()
+
+
+        : loginPassword;
+
+
+      const pwdValue = pwdInput?.value?.trim?.() || '';
+
+
+      loginSubmit.disabled = !emailValue || !pwdValue || loginSubmit.classList.contains('is-loading');
+
+
+    };
+
+
+
+
+
+    const setLoading = (isLoading) => {
+
+
+      if (!loginSubmit) return;
+
+
+      loginSubmit.classList.toggle('is-loading', isLoading);
+
+
+      loginSubmit.disabled = isLoading || loginSubmit.disabled;
+
+
+    };
+
+
+
+
+
+    if (loginEmail) {
+
+
+      loginEmail.addEventListener('ionInput', syncLoginState);
+
+
+      loginEmail.addEventListener('ionBlur', syncLoginState);
+
+
+    }
+
+
+
+
+
+    if (loginPassword) {
+
+
+      loginPassword.addEventListener('ionInput', syncLoginState);
+
+
+      loginPassword.addEventListener('ionBlur', syncLoginState);
+
+
+    }
+
+
+
+
+
+    if (togglePasswordBtn && togglePasswordIcon && loginPassword) {
+
+
+      togglePasswordBtn.addEventListener('click', async () => {
+
+
+        const inputEl = loginPassword.getInputElement
+
+
+          ? await loginPassword.getInputElement()
+
+
+          : loginPassword;
+
+
+        const isHidden = inputEl.type === 'password';
+
+
+        inputEl.type = isHidden ? 'text' : 'password';
+
+
+        togglePasswordIcon.textContent = isHidden ? 'visibility_off' : 'visibility';
+
+
+        togglePasswordBtn.setAttribute('aria-label', isHidden ? 'Ocultar senha' : 'Mostrar senha');
+
+
+      });
+
+
+    }
+
+
+
+
+
+    if (loginForm) {
+
+
+      loginForm.addEventListener('submit', () => {
+
+
+        setLoading(true);
+
+
+      });
+
+
+    }
+
+
+
+
+
+    if (loginError) {
+
+
+      const observer = new MutationObserver(() => {
+
+
+        const hasText = Boolean(loginError.textContent && loginError.textContent.trim());
+
+
+        loginError.classList.toggle('is-visible', hasText);
+
+
+        if (hasText) {
+
+
+          setLoading(false);
+
+
+        }
+
+
+      });
+
+
+      observer.observe(loginError, { childList: true, subtree: true, characterData: true });
+
+
+    }
+
+
+  </script>
 
 
 
@@ -5932,57 +7728,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   <script src="/assets/js/chart.js"></script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -6005,20 +7751,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  <script src="/assets/uikit/uikit.runtime.js"></script>
 
 
 
@@ -6040,31 +7773,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </body>
 
 
@@ -6076,32 +7784,61 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

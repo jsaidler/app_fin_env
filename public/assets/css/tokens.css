@@ -1,18 +1,18 @@
 :root {
-  --font-sans: "Space Grotesk", "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Avenir Next", "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
 
-  --color-bg: #e9eef7;
+  --color-bg: #f2f5f9;
   --color-surface: #ffffff;
-  --color-surface-alt: #f4f7fd;
-  --color-surface-strong: #f5f7fb;
-  --color-text: #0f172a;
-  --color-muted: #5f6677;
+  --color-surface-alt: #f7f8fb;
+  --color-surface-strong: #f1f4f8;
+  --color-text: #0f1720;
+  --color-muted: #657181;
   --color-primary: #005d97;
-  --color-primary-strong: #004a78;
-  --color-success: #1ab56a;
-  --color-danger: #e5564d;
-  --color-border: #cfd6e5;
-  --color-border-soft: rgba(12, 20, 40, 0.08);
+  --color-primary-strong: #005286;
+  --color-success: #2e8b5a;
+  --color-danger: #c65757;
+  --color-border: rgba(15, 23, 32, 0.08);
+  --color-border-soft: rgba(15, 23, 32, 0.08);
   --color-focus: #005d97;
   --color-on-hero: #ffffff;
   --color-hero-eyebrow: rgba(233, 245, 255, 0.86);
@@ -24,7 +24,7 @@
   --color-hero-notice-border: rgba(255, 255, 255, 0.24);
   --color-hero-tile-bg: rgba(255, 255, 255, 0.16);
   --color-hero-tile-border: rgba(255, 255, 255, 0.24);
-  --color-overlay: rgba(15, 23, 42, 0.25);
+  --color-overlay: rgba(15, 23, 32, 0.28);
   --color-night-canvas: #0a101a;
   --color-night-surface: #121a27;
   --color-night-elevated: #182233;
@@ -61,21 +61,27 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
 
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 20px;
-  --font-size-xl: 24px;
-  --font-size-2xl: 32px;
+  --icon-size: 22px;
+  --icon-weight: 500;
+  --icon-fill: 0;
+  --icon-grade: 0;
+  --icon-optical: 24;
 
-  --shadow-card: 0 14px 30px rgba(12, 20, 40, 0.14);
-  --shadow-soft: 0 10px 22px rgba(12, 20, 40, 0.12);
-  --shadow-float: 0 22px 46px rgba(12, 20, 40, 0.2);
-  --shadow-subtle: 0 8px 16px rgba(12, 20, 40, 0.08);
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 28px;
+
+  --shadow-card: 0 10px 24px rgba(12, 22, 34, 0.1);
+  --shadow-soft: 0 10px 24px rgba(12, 22, 34, 0.08);
+  --shadow-float: 0 18px 36px rgba(12, 22, 34, 0.14);
+  --shadow-subtle: 0 6px 14px rgba(12, 22, 34, 0.06);
 
   --hero-gradient: linear-gradient(135deg, #005d97 0%, #004a78 55%, #00385a 100%);
-  --success-gradient: linear-gradient(135deg, #16a34a 0%, #22c55e 60%, #0f9f4a 100%);
-  --danger-gradient: linear-gradient(135deg, #e5564d 0%, #ef4444 60%, #d0302c 100%);
+  --success-gradient: linear-gradient(135deg, #2e8b5a 0%, #34a063 60%, #1f7a4f 100%);
+  --danger-gradient: linear-gradient(135deg, #c65757 0%, #d66a6a 60%, #b54949 100%);
 
   --app-max-width: 560px;
   --admin-max-width: 1200px;
@@ -96,14 +102,14 @@
   --ion-color-primary-tint: color-mix(in srgb, var(--color-primary) 75%, var(--color-white));
 
   --ion-color-success: var(--color-success);
-  --ion-color-success-rgb: 26, 181, 106;
+  --ion-color-success-rgb: 46, 139, 90;
   --ion-color-success-contrast: var(--color-on-hero);
   --ion-color-success-contrast-rgb: 255, 255, 255;
   --ion-color-success-shade: color-mix(in srgb, var(--color-success) 85%, var(--color-black));
   --ion-color-success-tint: color-mix(in srgb, var(--color-success) 75%, var(--color-white));
 
   --ion-color-danger: var(--color-danger);
-  --ion-color-danger-rgb: 229, 86, 77;
+  --ion-color-danger-rgb: 198, 87, 87;
   --ion-color-danger-contrast: var(--color-on-hero);
   --ion-color-danger-contrast-rgb: 255, 255, 255;
   --ion-color-danger-shade: color-mix(in srgb, var(--color-danger) 85%, var(--color-black));
@@ -115,6 +121,23 @@
   --ion-toolbar-background: var(--color-surface);
   --ion-tab-bar-background: var(--color-surface);
   --ion-tab-bar-border-color: var(--color-border-soft);
+
+  --brand: var(--color-primary);
+  --canvas: var(--color-bg);
+  --surface: var(--color-surface);
+  --text: var(--color-text);
+  --muted: var(--color-muted);
+  --stroke: var(--color-border-soft);
+  --fab-size: 56px;
+  --radius: var(--radius-md);
+  --radius-pill: 999px;
+  --shadow-faint: var(--shadow-subtle);
+  --font-title: 16px;
+  --font-body: 14px;
+  --font-muted: 12px;
+  --pos: var(--color-success);
+  --neg: var(--color-danger);
+  --warn: #d28b3c;
 }
 
 :root.theme-dark {
@@ -126,8 +149,8 @@
   --color-muted: #9ca3af;
   --color-primary: #5ba3d1;
   --color-primary-strong: #2f7fb2;
-  --color-success: #22c55e;
-  --color-danger: #ef4444;
+  --color-success: #2ea86a;
+  --color-danger: #e06a6a;
   --color-border: #1f2937;
   --color-border-soft: rgba(148, 163, 184, 0.14);
   --color-focus: #5ba3d1;

@@ -1,0 +1,57 @@
+:root {
+  --ui-color-primary: #005D97;
+  --ui-color-primary-rgb: 0, 93, 151;
+  --ui-color-primary-soft: rgba(0, 93, 151, 0.12);
+  --ui-color-primary-strong: #004a78;
+
+  --ui-color-bg: #f5f7fa;
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-alt: #eef2f6;
+
+  --ui-color-text: #0b1b2a;
+  --ui-color-text-muted: #54606f;
+  --ui-color-stroke: #d7dde5;
+  --ui-color-focus: rgba(0, 93, 151, 0.35);
+
+  --ui-space-8: 8px;
+  --ui-space-12: 12px;
+  --ui-space-16: 16px;
+  --ui-space-24: 24px;
+  --ui-space-32: 32px;
+
+  --ui-radius-pill: 999px;
+  --ui-radius-sheet: 20px;
+  --ui-radius-input: 12px;
+
+  --ui-font-family: "Avenir Next", "Nunito", "Segoe UI", system-ui, sans-serif;
+  --ui-font-title: 600 1.125rem/1.35 var(--ui-font-family);
+  --ui-font-body: 500 0.95rem/1.5 var(--ui-font-family);
+  --ui-font-meta: 500 0.8rem/1.45 var(--ui-font-family);
+  --ui-font-number: 600 1.1rem/1.2 var(--ui-font-family);
+
+  --ui-shadow-sheet: 0 24px 48px rgba(10, 20, 30, 0.18);
+  --ui-shadow-fab: 0 14px 28px rgba(0, 0, 0, 0.22);
+  --ui-focus-ring: 0 0 0 3px var(--ui-color-focus);
+
+  --ui-transition-fast: 180ms;
+  --ui-transition-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --ui-fab-safe: 0px;
+  --ui-fab-safe-default: 72px;
+
+  --ion-font-family: var(--ui-font-family);
+  --ion-color-primary: var(--ui-color-primary);
+  --ion-color-primary-rgb: var(--ui-color-primary-rgb);
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #004a78;
+  --ion-color-primary-tint: #1a6cab;
+  --ion-background-color: var(--ui-color-bg);
+  --ion-text-color: var(--ui-color-text);
+  --ion-border-color: var(--ui-color-stroke);
+  --ion-item-border-color: var(--ui-color-stroke);
+}
+
+.theme-light {
+  --ion-background-color: var(--ui-color-bg);
+  --ion-text-color: var(--ui-color-text);
+}
