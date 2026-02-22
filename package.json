@@ -2,8 +2,5 @@
   "name": "caixa-simples-ui",
   "private": true,
   "type": "module",
-  "scripts": {},
-  "devDependencies": {
-    "@ionic/core": "8.7.16"
-  }
+  "scripts": {}
 }

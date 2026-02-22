@@ -10,7 +10,7 @@ class SqliteConnection
 {
     private static ?PDO $pdo = null;
 
-    public static function make(string $dbPath, ?string $dataDir = null): PDO
+    public static function make(string $dbPath): PDO
     {
         if (self::$pdo instanceof PDO) {
             return self::$pdo;
@@ -29,9 +29,6 @@ class SqliteConnection
         ]);
         $pdo->exec('PRAGMA foreign_keys = ON');
         self::migrate($pdo);
-        if ($dataDir) {
-            self::importFromJsonIfEmpty($pdo, $dataDir);
-        }
         self::$pdo = $pdo;
         return $pdo;
     }
@@ -134,6 +131,20 @@ class SqliteConnection
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_support_threads_user ON support_threads(user_id)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_support_threads_entry ON support_threads(entry_id)');
 
+        $pdo->exec('CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            requested_ip TEXT,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            used_at TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        )');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_password_resets_expires ON password_resets(expires_at)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_password_resets_used ON password_resets(used_at)');
+
         self::ensureColumn($pdo, 'users', 'alterdata_code', 'TEXT');
         self::ensureColumn($pdo, 'categories', 'alterdata_auto', 'TEXT');
         self::ensureColumn($pdo, 'entries', 'needs_review', 'INTEGER NOT NULL DEFAULT 0');
@@ -176,139 +187,6 @@ class SqliteConnection
                 ]);
             }
         }
-    }
-
-    private static function importFromJsonIfEmpty(PDO $pdo, string $dataDir): void
-    {
-        $hasData = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn()
-            + (int)$pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn()
-            + (int)$pdo->query('SELECT COUNT(*) FROM entries')->fetchColumn();
-        if ($hasData > 0) {
-            return;
-        }
-        $dataDir = rtrim($dataDir, DIRECTORY_SEPARATOR . '/');
-        $usersFile = $dataDir . '/users.json';
-        $categoriesFile = $dataDir . '/categories.json';
-        $userBase = $dataDir . '/users';
-        $locksFile = $dataDir . '/closed-months.json';
-
-        $users = is_file($usersFile) ? self::decodeJson($usersFile)['users'] ?? [] : [];
-        $categories = is_file($categoriesFile) ? self::decodeJson($categoriesFile)['categories'] ?? [] : [];
-        $locks = is_file($locksFile) ? self::extractLocks(self::decodeJson($locksFile)) : [];
-
-        $pdo->beginTransaction();
-        try {
-            $userStmt = $pdo->prepare('INSERT INTO users (id,name,email,password_hash,role,theme,alterdata_code,created_at) VALUES (:id,:name,:email,:ph,:role,:theme,:alterdata_code,:created)');
-            $userIds = [];
-            foreach ($users as $user) {
-                $uid = isset($user['id']) ? (int)$user['id'] : null;
-                $userStmt->execute([
-                    'id' => $uid,
-                    'name' => $user['name'] ?? '',
-                    'email' => strtolower($user['email'] ?? ''),
-                    'ph' => $user['password_hash'] ?? '',
-                    'role' => $user['role'] ?? 'user',
-                    'theme' => $user['theme'] ?? 'dark',
-                    'alterdata_code' => $user['alterdata_code'] ?? '',
-                    'created' => $user['created_at'] ?? date('c'),
-                ]);
-                if ($uid) {
-                    $userIds[$uid] = true;
-                }
-            }
-
-            $catStmt = $pdo->prepare('INSERT INTO categories (id,name,type,alterdata_auto,created_at,updated_at) VALUES (:id,:name,:type,:auto,:created,:updated)');
-            foreach ($categories as $cat) {
-                $catStmt->execute([
-                    'id' => $cat['id'] ?? null,
-                    'name' => $cat['name'] ?? '',
-                    'type' => $cat['type'] ?? 'in',
-                    'auto' => $cat['alterdata_auto'] ?? null,
-                    'created' => $cat['created_at'] ?? date('c'),
-                    'updated' => $cat['updated_at'] ?? date('c'),
-                ]);
-            }
-
-            if (is_dir($userBase)) {
-                $entryStmt = $pdo->prepare('INSERT INTO entries (id,user_id,type,amount,category,description,date,attachment_path,created_at,updated_at,deleted_at,deleted_type) VALUES (:id,:uid,:type,:amount,:category,:description,:date,:attachment,:created,:updated,:deleted_at,:deleted_type)');
-                foreach (scandir($userBase) ?: [] as $dir) {
-                    if ($dir === '.' || $dir === '..') {
-                        continue;
-                    }
-                    $uid = (int)$dir;
-                    if ($uid <= 0 || (!empty($userIds) && !isset($userIds[$uid]))) {
-                        continue;
-                    }
-                    $entryFile = $userBase . '/' . $dir . '/entries.json';
-                    if (!is_file($entryFile)) {
-                        continue;
-                    }
-                    $data = self::decodeJson($entryFile);
-                    foreach ($data['entries'] ?? [] as $entry) {
-                        $entryStmt->execute([
-                            'id' => $entry['id'] ?? null,
-                            'uid' => $entry['user_id'] ?? $uid,
-                            'type' => $entry['type'] ?? 'in',
-                            'amount' => (float)($entry['amount'] ?? 0),
-                            'category' => $entry['category'] ?? '',
-                            'description' => $entry['description'] ?? '',
-                            'date' => $entry['date'] ?? '',
-                            'attachment' => $entry['attachment_path'] ?? null,
-                            'created' => $entry['created_at'] ?? date('c'),
-                            'updated' => $entry['updated_at'] ?? date('c'),
-                            'deleted_at' => $entry['deleted_at'] ?? null,
-                            'deleted_type' => $entry['deleted_type'] ?? null,
-                        ]);
-                    }
-                }
-            }
-
-            if ($locks) {
-                $lockStmt = $pdo->prepare('INSERT INTO month_locks (user_id, month, closed, updated_at) VALUES (:uid,:month,:closed,:updated) ON CONFLICT(user_id, month) DO UPDATE SET closed=excluded.closed, updated_at=excluded.updated_at');
-                foreach ($locks as $lock) {
-                    $uid = isset($lock['user_id']) ? (int)$lock['user_id'] : 0;
-                    if ($uid <= 0 || (!empty($userIds) && !isset($userIds[$uid]))) {
-                        continue;
-                    }
-                    $lockStmt->execute([
-                        'uid' => $uid,
-                        'month' => $lock['month'],
-                        'closed' => $lock['closed'] ? 1 : 0,
-                        'updated' => $lock['updated_at'] ?? date('c'),
-                    ]);
-                }
-            }
-
-            $pdo->commit();
-        } catch (\Throwable $e) {
-            $pdo->rollBack();
-            throw new RuntimeException('Falha ao migrar dados do JSON para SQLite: ' . $e->getMessage(), 0, $e);
-        }
-    }
-
-    private static function decodeJson(string $file): array
-    {
-        $raw = file_get_contents($file);
-        if ($raw === false) {
-            return [];
-        }
-        $data = json_decode($raw, true);
-        return is_array($data) ? $data : [];
-    }
-
-    private static function extractLocks(array $data): array
-    {
-        if (isset($data['locks']) && is_array($data['locks'])) {
-            return $data['locks'];
-        }
-        if (isset($data['closed']) && is_array($data['closed'])) {
-            $locks = [];
-            foreach ($data['closed'] as $month) {
-                $locks[] = ['user_id' => 0, 'month' => $month, 'closed' => true, 'updated_at' => date('c')];
-            }
-            return $locks;
-        }
-        return [];
     }
 
     private static function columnExists(PDO $pdo, string $table, string $column): bool

@@ -43,14 +43,16 @@ class AuthService
         $email = strtolower(trim($input['email'] ?? ''));
         $pass = $input['password'] ?? '';
         if (!Validator::email($email) || !Validator::nonEmpty($pass)) {
-            \App\Util\Logger::warning('Login dados inválidos', ['email' => $email]);
-            Response::json(['error' => 'Credenciais invalidas'], 422);
+            \App\Util\Logger::warning('Login com payload invalido');
+            $this->denyAuth();
         }
+
         $user = $this->users->findByEmail($email);
         if (!$user || !password_verify($pass, $user->passwordHash)) {
-            \App\Util\Logger::warning('Login falhou', ['email' => $email]);
-            Response::json(['error' => 'Email ou senha incorretos'], 401);
+            \App\Util\Logger::warning('Login falhou');
+            $this->denyAuth();
         }
+
         $token = Token::issue(['uid' => $user->id, 'role' => $user->role], $this->secret, $this->ttl);
         \App\Util\Logger::info('Login efetuado', ['uid' => $user->id, 'email' => $email]);
         return [
@@ -61,7 +63,13 @@ class AuthService
                 'email' => $user->email,
                 'role' => $user->role,
                 'theme' => $user->theme,
-            ]
+            ],
         ];
+    }
+
+    private function denyAuth(): void
+    {
+        usleep(random_int(180000, 320000));
+        Response::json(['error' => 'Email ou senha incorretos'], 401);
     }
 }

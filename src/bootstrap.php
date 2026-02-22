@@ -27,10 +27,10 @@ foreach ([$config['paths']['data'], $config['paths']['uploads']] as $dir) {
     }
 }
 
-// Prepare SQLite database (creates file/tables and migrates JSON if empty)
+// Prepare SQLite database (creates file/tables)
 $dbPath = $config['db']['path'] ?? ($config['paths']['sqlite'] ?? (__DIR__ . '/../data/caixa.sqlite'));
 try {
-    SqliteConnection::make($dbPath, $config['paths']['data'] ?? null);
+    SqliteConnection::make($dbPath);
 } catch (\Throwable $e) {
     if (class_exists(\App\Util\Logger::class)) {
         \App\Util\Logger::error('Falha ao iniciar SQLite', ['error' => $e->getMessage()]);

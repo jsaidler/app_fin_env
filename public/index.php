@@ -55,7 +55,7 @@ function userRepoForFront(array $config)
 {
     $dbPath = $config['db']['path'] ?? ($config['paths']['sqlite'] ?? (__DIR__ . '/../data/caixa.sqlite'));
     try {
-        $pdo = SqliteConnection::make($dbPath, $config['paths']['data'] ?? null);
+        $pdo = SqliteConnection::make($dbPath);
     } catch (\Throwable $e) {
         Response::json(['error' => 'Banco de dados indisponivel: ' . $e->getMessage()], 500);
     }
@@ -98,8 +98,28 @@ function requireUploadAccess(string $relPath, array $config): void
     }
 }
 
-// Basic CORS for dev
-header('Access-Control-Allow-Origin: *');
+$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
+$requestPath = rawurldecode($requestPath);
+denyPathTraversal($requestPath);
+
+// Security headers
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+$csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+if ($requestPath === '/ui-kit' || $requestPath === '/ui-kit.html') {
+    $csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+}
+header('Content-Security-Policy: ' . $csp);
+
+// CORS restrito ao mesmo host
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$host = $_SERVER['HTTP_HOST'] ?? '';
+if ($origin !== '' && $host !== '' && parse_url($origin, PHP_URL_HOST) === $host) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Vary: Origin');
+    header('Access-Control-Allow-Credentials: true');
+}
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -108,10 +128,6 @@ header('Expires: 0');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
-
-$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
-$requestPath = rawurldecode($requestPath);
-denyPathTraversal($requestPath);
 
 if (preg_match('#^/data(/|$)#', $requestPath)) {
     http_response_code(404);
@@ -144,6 +160,7 @@ if (str_starts_with($requestPath, '/uploads/')) {
                 'png' => 'image/png',
                 'webp' => 'image/webp',
                 'gif' => 'image/gif',
+                'pdf' => 'application/pdf',
             ][$ext] ?? 'application/octet-stream';
             header('Content-Type: ' . $mime);
             readfile($file);
@@ -178,6 +195,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && is_file($staticFile)) {
 $router = new Router();
 $router->add('POST', '/api/auth/login', [AuthController::class, 'login']);
 $router->add('POST', '/api/auth/logout', [AuthController::class, 'logout']);
+$router->add('POST', '/api/auth/password/forgot', [AuthController::class, 'forgotPassword']);
+$router->add('POST', '/api/auth/password/reset', [AuthController::class, 'resetPassword']);
 $router->add('GET', '/api/account/profile', [AccountController::class, 'profile']);
 $router->add('PUT', '/api/account/password', [AccountController::class, 'updatePassword']);
 $router->add('PUT', '/api/account/preferences', [AccountController::class, 'preferences']);
@@ -228,9 +247,14 @@ $router->add('GET', '/', function () {
     readfile(__DIR__ . '/index.html');
     exit;
 });
+$router->add('GET', '/dashboard', function () {
+    header('Content-Type: text/html; charset=utf-8');
+    readfile(__DIR__ . '/dashboard.html');
+    exit;
+});
 $router->add('GET', '/admin', function () {
     header('Content-Type: text/html; charset=utf-8');
-    readfile(__DIR__ . '/admin.html');
+    readfile(__DIR__ . '/index.html');
     exit;
 });
 $router->add('GET', '/ui-kit', function () {

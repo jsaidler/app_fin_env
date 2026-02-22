@@ -37,21 +37,36 @@ class Image
         if (!$mime && !empty($file['type'])) {
             $mime = $file['type'];
         }
-        $allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
         if (!in_array($mime, $allowed, true)) {
-            throw new \RuntimeException('Formato de imagem nao permitido');
+            throw new \RuntimeException('Formato de arquivo nao permitido');
         }
+
+        $uid = trim((string)$userId, '/');
+        $targetDir = rtrim($uploadDir, '/\\') . '/' . $uid . '/uploads/';
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0775, true);
+        }
+
+        if ($mime === 'application/pdf') {
+            $head = (string) @file_get_contents($file['tmp_name'], false, null, 0, 5);
+            if ($head !== '%PDF-') {
+                throw new \RuntimeException('PDF invalido');
+            }
+            $name = bin2hex(random_bytes(8)) . '.pdf';
+            $dest = $targetDir . $name;
+            if (!move_uploaded_file($file['tmp_name'], $dest)) {
+                throw new \RuntimeException('Erro ao salvar upload');
+            }
+            return $uid . '/uploads/' . $name;
+        }
+
         $resource = self::createImageResource($file['tmp_name'], $mime);
         if (!$resource) {
             throw new \RuntimeException('Imagem invalida ou suporte a imagem ausente no servidor');
         }
         $resource = self::resizeToLimit($resource, 1920, 1920);
         $compressed = self::compressToMax($resource, 500 * 1024);
-        $uid = trim((string)$userId, '/');
-        $targetDir = rtrim($uploadDir, '/\\') . '/' . $uid . '/uploads/';
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0775, true);
-        }
         $name = bin2hex(random_bytes(8)) . '.jpg';
         $dest = $targetDir . $name;
         if (file_put_contents($dest, $compressed) === false) {

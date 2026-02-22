@@ -83,7 +83,7 @@ abstract class BaseController
     {
         $path = $this->config['db']['path'] ?? ($this->config['paths']['sqlite'] ?? (__DIR__ . '/../../data/caixa.sqlite'));
         try {
-            return SqliteConnection::make($path, $this->config['paths']['data'] ?? null);
+            return SqliteConnection::make($path);
         } catch (\Throwable $e) {
             Response::json(['error' => 'Banco de dados indisponivel: ' . $e->getMessage()], 500);
         }
