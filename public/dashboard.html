@@ -20,42 +20,49 @@
   <ion-app mode="md">
     <ion-header class="dash-header">
       <ion-toolbar class="dash-topbar">
-        <div class="topbar-shell">
-          <div class="topbar-copy">
-            <p class="topbar-kicker">Caixa Simples</p>
-            <h1 id="dash-user-title" class="topbar-title">Carregando...</h1>
-            <p id="dash-period" class="topbar-period">--</p>
-          </div>
-          <div class="topbar-side">
-            <div class="topbar-balance">
-              <span class="topbar-balance__label">Saldo</span>
-              <strong id="dash-balance-head" class="topbar-balance__value">R$ 0,00</strong>
-            </div>
+        <div class="top-shell">
+          <div class="appbar-row">
+            <p class="appbar-title">Caixa Simples</p>
             <ion-button id="dash-menu-btn" fill="clear" aria-label="Menu">
               <span class="material-symbols-rounded">more_vert</span>
             </ion-button>
           </div>
+
+          <div class="account-row">
+            <div class="account-copy">
+              <h1 id="dash-user-title" class="account-name">Carregando...</h1>
+              <p id="dash-period" class="account-period">--</p>
+            </div>
+            <div class="topbar-balance">
+              <span class="topbar-balance__label">Saldo</span>
+              <strong id="dash-balance-head" class="topbar-balance__value">R$ 0,00</strong>
+            </div>
+          </div>
         </div>
       </ion-toolbar>
+
+      <nav class="dash-nav-wrap" aria-label="Navegação do dashboard">
+        <button type="button" class="dash-tab is-active" data-tab="lancamentos" aria-selected="true">
+          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">list_alt</span>
+          <span>Lançamentos</span>
+        </button>
+        <button type="button" class="dash-tab" data-tab="painel" aria-selected="false">
+          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">query_stats</span>
+          <span>Painel</span>
+        </button>
+        <button type="button" class="dash-tab" data-tab="categorias" aria-selected="false">
+          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">sell</span>
+          <span>Categorias</span>
+        </button>
+        <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
+          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">autorenew</span>
+          <span>Recorrentes</span>
+        </button>
+      </nav>
     </ion-header>
 
     <ion-content>
       <main class="dash-shell">
-        <nav class="dash-nav-wrap" aria-label="Navegação do dashboard">
-          <button type="button" class="dash-tab is-active" data-tab="lancamentos" aria-selected="true">
-            <span>Lançamentos</span>
-          </button>
-          <button type="button" class="dash-tab" data-tab="painel" aria-selected="false">
-            <span>Painel</span>
-          </button>
-          <button type="button" class="dash-tab" data-tab="categorias" aria-selected="false">
-            <span>Categorias</span>
-          </button>
-          <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
-            <span>Recorrentes</span>
-          </button>
-        </nav>
-
         <section id="sec-lancamentos" class="dash-section dash-section--primary" data-tab-content="lancamentos" aria-label="Lançamentos recentes">
           <header class="section-head">
             <p class="section-kicker">Conta</p>
@@ -180,7 +187,7 @@
         </div>
 
         <div class="entry-fields">
-          <section class="entry-stage entry-stage--classification" aria-label="Classificação do lançamento">
+          <section class="entry-stage" aria-label="Dados do lançamento">
             <div class="entry-field-set">
               <button id="open-category" type="button" class="entry-picker-row" aria-expanded="false">
                 <span class="entry-picker-row__label">Categoria</span>
