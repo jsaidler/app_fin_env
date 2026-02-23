@@ -26,6 +26,43 @@ const resetCancelBtn = document.getElementById("reset-cancel");
 const MODE_LOGIN = "login";
 const MODE_FORGOT = "forgot";
 const MODE_RESET = "reset";
+const AUTH_TOKEN_KEY = "caixa_auth_token";
+
+function getStoredAuthToken() {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function setStoredAuthToken(token) {
+  try {
+    if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+    else localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    // ignore storage errors
+  }
+  try {
+    if (token) {
+      document.cookie = `auth_token=${encodeURIComponent(token)}; Path=/; SameSite=Lax`;
+    } else {
+      document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax";
+    }
+  } catch {
+    // ignore cookie errors
+  }
+}
+
+function authHeaders(extra = {}) {
+  const token = getStoredAuthToken();
+  const headers = { ...extra };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    headers["X-Auth-Token"] = token;
+  }
+  return headers;
+}
 
 function showError(message) {
   alertBox.textContent = message;
@@ -81,9 +118,7 @@ async function tryLoadSession() {
     const response = await fetch("/api/account/profile", {
       method: "GET",
       credentials: "same-origin",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: authHeaders({ Accept: "application/json" }),
     });
     if (!response.ok) {
       return;
@@ -139,6 +174,7 @@ async function handleLoginSubmit(event) {
       return;
     }
 
+    setStoredAuthToken(String(data?.token || ""));
     loginForm.reset();
     window.location.href = "/dashboard";
   } catch {

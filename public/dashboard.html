@@ -20,45 +20,40 @@
   <ion-app mode="md">
     <ion-header class="dash-header">
       <ion-toolbar class="dash-topbar">
-        <div class="top-shell">
-          <div class="appbar-row">
-            <p class="appbar-title">Caixa Simples</p>
-            <ion-button id="dash-menu-btn" fill="clear" aria-label="Menu">
-              <span class="material-symbols-rounded">more_vert</span>
+        <div class="brand-shell">
+          <div class="brand-top-actions">
+            <ion-button fill="clear" class="brand-top-btn" aria-label="Mensagens">
+              <span class="material-symbols-rounded">chat_bubble</span>
+            </ion-button>
+            <ion-button id="dash-menu-btn" fill="clear" class="brand-top-btn" aria-label="Opções">
+              <span class="material-symbols-rounded">settings</span>
             </ion-button>
           </div>
-
-          <div class="account-row">
-            <div class="account-copy">
-              <h1 id="dash-user-title" class="account-name">Carregando...</h1>
-              <p id="dash-period" class="account-period">--</p>
-            </div>
-            <div class="topbar-balance">
-              <span class="topbar-balance__label">Saldo</span>
-              <strong id="dash-balance-head" class="topbar-balance__value">R$ 0,00</strong>
-            </div>
+          <img class="brand-logo" src="/assets/img/logo-mono-white-app.webp" alt="Envisione Assessoria Contábil" />
+          <div class="sr-only-data" aria-hidden="true">
+            <span id="dash-user-title">Carregando...</span>
+            <span id="dash-period">--</span>
+            <span id="dash-balance-head" class="topbar-balance__value">R$ 0,00</span>
           </div>
         </div>
       </ion-toolbar>
 
-      <nav class="dash-nav-wrap" aria-label="Navegação do dashboard">
-        <button type="button" class="dash-tab is-active" data-tab="lancamentos" aria-selected="true">
-          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">list_alt</span>
-          <span>Lançamentos</span>
-        </button>
-        <button type="button" class="dash-tab" data-tab="painel" aria-selected="false">
-          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">query_stats</span>
-          <span>Painel</span>
-        </button>
-        <button type="button" class="dash-tab" data-tab="categorias" aria-selected="false">
-          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">sell</span>
-          <span>Categorias</span>
-        </button>
-        <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
-          <span class="material-symbols-rounded dash-tab__icon" aria-hidden="true">autorenew</span>
-          <span>Recorrentes</span>
-        </button>
-      </nav>
+      <div class="dash-nav-shell">
+        <nav class="dash-nav-wrap" aria-label="Navegação do dashboard">
+          <button type="button" class="dash-tab is-active" data-tab="lancamentos" aria-selected="true">
+            <span>Lançamentos</span>
+          </button>
+          <button type="button" class="dash-tab" data-tab="painel" aria-selected="false">
+            <span>Painel</span>
+          </button>
+          <button type="button" class="dash-tab" data-tab="categorias" aria-selected="false">
+            <span>Categorias</span>
+          </button>
+          <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
+            <span>Recorrentes</span>
+          </button>
+        </nav>
+      </div>
     </ion-header>
 
     <ion-content>
@@ -75,11 +70,10 @@
         <section id="sec-painel" class="dash-section" data-tab-content="painel" aria-label="Resumo financeiro" hidden>
           <header class="section-head section-head--inline">
             <p class="section-title">Painel</p>
-            <p id="kpi-trend-label" class="section-meta">--</p>
+            <button class="section-link" type="button">ver tudo</button>
           </header>
 
-          <div class="hero">
-            <div id="dash-balance-label" class="hero-label">Saldo do mês</div>
+          <div class="hero card-surface">
             <div id="kpi-balance" class="hero-value">R$ 0,00</div>
             <div id="dash-budget-line" class="hero-meta">R$ 0,00 orçado no mês</div>
             <div class="sparkline">
@@ -95,22 +89,25 @@
 
         <section id="sec-revisar" class="dash-section" data-tab-content="painel" aria-label="Itens para revisar" hidden>
           <header class="section-head section-head--inline">
-            <p class="section-title">Para revisar</p>
-            <button id="review-action" type="button" class="review-action">Marcar tudo como revisado</button>
+            <p class="section-title">Para Revisar</p>
+            <button class="section-link" type="button">ver tudo</button>
           </header>
-          <div id="review-list" class="feed-list"></div>
+          <div id="review-list" class="feed-list card-surface"></div>
+          <button id="review-action" type="button" class="review-action">Marcar como revisado</button>
         </section>
 
-        <section id="sec-orcamentos" class="dash-section" data-tab-content="categorias" aria-label="Orçamentos" hidden>
+        <section id="sec-orcamentos" class="dash-section" data-tab-content="painel" aria-label="Orçamentos" hidden>
           <header class="section-head section-head--inline">
             <p class="section-title">Orçamentos</p>
+            <button class="section-link" type="button">ver tudo</button>
           </header>
           <div id="cat-grid" class="budget-strip"></div>
         </section>
 
-        <section id="sec-proximos" class="dash-section" data-tab-content="recorrentes" aria-label="Próximos lançamentos" hidden>
+        <section id="sec-proximos" class="dash-section" data-tab-content="painel" aria-label="Próximos lançamentos" hidden>
           <header class="section-head section-head--inline">
             <p class="section-title">Próximos</p>
+            <button class="section-link" type="button">ver tudo</button>
           </header>
           <div id="next-list" class="upcoming-list feed-list"></div>
         </section>

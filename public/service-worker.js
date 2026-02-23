@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "caixa-static-v111";
+﻿const CACHE_NAME = "caixa-static-v174";
 const ASSETS = [
   "/",
   "/index.html",
@@ -8,6 +8,7 @@ const ASSETS = [
   "/assets/css/dashboard.css",
   "/assets/css/tokens.css",
   "/assets/css/components.css",
+  "/assets/fonts/kamerik-105-bold.woff2",
   "/assets/js/app.js",
   "/assets/js/dashboard.js",
   "/manifest.json",
@@ -62,3 +63,4 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+

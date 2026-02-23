@@ -59,6 +59,10 @@ abstract class BaseController
         if (str_starts_with($header, 'Bearer ')) {
             return substr($header, 7);
         }
+        $xAuth = trim((string)($_SERVER['HTTP_X_AUTH_TOKEN'] ?? ''));
+        if ($xAuth !== '') {
+            return $xAuth;
+        }
         $cookie = $_COOKIE['auth_token'] ?? '';
         return $cookie !== '' ? $cookie : null;
     }

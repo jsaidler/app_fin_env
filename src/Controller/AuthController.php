@@ -15,7 +15,6 @@ class AuthController extends BaseController
         $service = new AuthService($this->userRepo(), $this->config['secret'], $this->config['token_ttl']);
         $result = $service->register($this->jsonInput());
         $this->setAuthCookie($result['token'] ?? '');
-        unset($result['token']);
         Response::json($result, 201);
     }
 
@@ -35,7 +34,6 @@ class AuthController extends BaseController
         $result = $service->login($input);
         $throttle->clear($key);
         $this->setAuthCookie($result['token'] ?? '');
-        unset($result['token']);
         Response::json($result);
     }
 

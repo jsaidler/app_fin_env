@@ -20,6 +20,8 @@ const entriesList = document.getElementById("entries-list");
 
 const tabButtons = Array.from(document.querySelectorAll(".dash-tab"));
 const tabSections = Array.from(document.querySelectorAll("[data-tab-content]"));
+const tabNavShell = document.querySelector(".dash-nav-shell");
+const tabNavWrap = document.querySelector(".dash-nav-wrap");
 const rootApp = document.querySelector("ion-app");
 
 const entryModal = document.getElementById("entry-modal");
@@ -54,6 +56,7 @@ let selectedCategoryValue = "";
 let selectedAttachmentFile = null;
 let categories = [];
 let savingEntry = false;
+const AUTH_TOKEN_KEY = "caixa_auth_token";
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -91,6 +94,27 @@ function showError(message) {
   errorEl.textContent = message;
   errorEl.hidden = false;
   infoEl.hidden = true;
+  if (entriesMetaEl && String(entriesMetaEl.textContent || "").trim() === "--") {
+    entriesMetaEl.textContent = "Sem dados no período";
+  }
+}
+
+function getStoredAuthToken() {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function authHeaders(extra = {}) {
+  const token = getStoredAuthToken();
+  const headers = { ...extra };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    headers["X-Auth-Token"] = token;
+  }
+  return headers;
 }
 
 function showInfo(message) {
@@ -115,6 +139,8 @@ function escapeHtml(value) {
 }
 
 function showTab(tabName) {
+  const previousActive = tabButtons.find((button) => button.classList.contains("is-active"));
+  const transitionToken = ++navTransitionToken;
   tabSections.forEach((section) => {
     section.hidden = section.dataset.tabContent !== tabName;
   });
@@ -123,10 +149,203 @@ function showTab(tabName) {
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-selected", isActive ? "true" : "false");
   });
+
+  const active = tabButtons.find((button) => button.classList.contains("is-active"));
+  triggerTabLiquidFill(previousActive, active, transitionToken);
+
+  requestAnimationFrame(() => {
+    void scrollActiveTabIntoView(transitionToken);
+  });
+}
+
+function ensureTabFillLayers() {
+  return;
+}
+
+function syncTabPill() {
+  return;
+}
+
+function triggerTabLiquidFill(previousActive, active, transitionToken) {
+  if (!active || transitionToken !== navTransitionToken) return;
+
+  const prevIndex = previousActive ? tabButtons.indexOf(previousActive) : -1;
+  const currIndex = tabButtons.indexOf(active);
+  const direction = prevIndex !== -1 ? Math.sign(currIndex - prevIndex) || 1 : 1;
+  const liquidClasses = ["liquid-fill-from-left", "liquid-fill-from-right"];
+
+  tabButtons.forEach((button) => {
+    liquidClasses.forEach((className) => button.classList.remove(className));
+  });
+
+  // Force animation restart reliably on the active tab only.
+  if (active) {
+    void active.offsetWidth;
+  }
+
+  active.classList.add(direction > 0 ? "liquid-fill-from-right" : "liquid-fill-from-left");
+
+  window.setTimeout(() => {
+    liquidClasses.forEach((className) => active.classList.remove(className));
+  }, 360);
+}
+
+let navScrollFrame = null;
+let navTransitionToken = 0;
+function cancelNavScrollAnimation() {
+  if (navScrollFrame !== null) {
+    cancelAnimationFrame(navScrollFrame);
+    navScrollFrame = null;
+  }
+}
+
+function animateNavScrollTo(targetLeft, duration = 520, transitionToken = navTransitionToken) {
+  if (!tabNavWrap) return Promise.resolve(false);
+  cancelNavScrollAnimation();
+
+  const startLeft = tabNavWrap.scrollLeft;
+  const distance = targetLeft - startLeft;
+  if (Math.abs(distance) < 1) return Promise.resolve(false);
+
+  return new Promise((resolve) => {
+    const startAt = performance.now();
+    const step = (now) => {
+      if (transitionToken !== navTransitionToken) {
+        cancelNavScrollAnimation();
+        resolve(false);
+        return;
+      }
+      const t = Math.max(0, Math.min(1, (now - startAt) / duration));
+      const eased = t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      tabNavWrap.scrollLeft = startLeft + (distance * eased);
+      if (t < 1) {
+        navScrollFrame = requestAnimationFrame(step);
+        return;
+      }
+      navScrollFrame = null;
+      resolve(true);
+    };
+    navScrollFrame = requestAnimationFrame(step);
+  });
+}
+
+function scrollActiveTabIntoView(transitionToken = navTransitionToken) {
+  if (!tabNavWrap) return Promise.resolve(false);
+  if (transitionToken !== navTransitionToken) return Promise.resolve(false);
+  const active = tabButtons.find((button) => button.classList.contains("is-active"));
+  if (!active) return Promise.resolve(false);
+  const navCss = getComputedStyle(tabNavShell || tabNavWrap);
+  const leftFade = parseFloat(navCss.getPropertyValue("--tab-fade-left-w")) || 0;
+  const rightFade = parseFloat(navCss.getPropertyValue("--tab-fade-right-w")) || 60;
+  const fadeInset = parseFloat(navCss.getPropertyValue("--tab-fade-inset")) || 0;
+  const safeLeft = parseFloat(navCss.getPropertyValue("--tab-safe-left")) || 8;
+  const safeRight = parseFloat(navCss.getPropertyValue("--tab-safe-right")) || 28;
+  const leftSafe = fadeInset + leftFade + safeLeft;
+  const rightSafe = fadeInset + rightFade + safeRight;
+  const currentLeft = tabNavWrap.scrollLeft;
+  const viewport = tabNavWrap.clientWidth;
+  const currentRight = currentLeft + viewport;
+  const itemLeft = active.offsetLeft;
+  const itemRight = itemLeft + active.offsetWidth;
+  const safeLeftBound = currentLeft + leftSafe;
+  const safeRightBound = currentRight - rightSafe;
+  const centeredScroll = itemLeft + (active.offsetWidth / 2) - (viewport / 2);
+
+  let targetScroll = centeredScroll;
+  if (itemLeft < safeLeftBound) targetScroll = Math.min(targetScroll, itemLeft - leftSafe);
+  if (itemRight > safeRightBound) targetScroll = Math.max(targetScroll, itemRight - viewport + rightSafe);
+
+  const maxScroll = Math.max(0, tabNavWrap.scrollWidth - tabNavWrap.clientWidth);
+  const clamped = Math.max(0, Math.min(targetScroll, maxScroll));
+  if (Math.abs(clamped - currentLeft) > 1) {
+    return animateNavScrollTo(clamped, 620, transitionToken);
+  }
+  return Promise.resolve(false);
+}
+
+function setupTabDragScroll() {
+  if (!tabNavWrap) return;
+  let dragging = false;
+  let startX = 0;
+  let startScroll = 0;
+  let lastX = 0;
+  let lastT = 0;
+  let velocity = 0;
+  let momentumFrame = null;
+
+  const stopMomentum = () => {
+    if (momentumFrame !== null) {
+      cancelAnimationFrame(momentumFrame);
+      momentumFrame = null;
+    }
+  };
+
+  const startMomentum = () => {
+    stopMomentum();
+    const step = () => {
+      if (Math.abs(velocity) < 0.08) {
+        momentumFrame = null;
+        return;
+      }
+      tabNavWrap.scrollLeft -= velocity * 16;
+      velocity *= 0.92;
+      momentumFrame = requestAnimationFrame(step);
+    };
+    momentumFrame = requestAnimationFrame(step);
+  };
+
+  tabNavWrap.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    navTransitionToken += 1;
+    cancelNavScrollAnimation();
+    stopMomentum();
+    dragging = true;
+    startX = event.clientX;
+    startScroll = tabNavWrap.scrollLeft;
+    lastX = event.clientX;
+    lastT = performance.now();
+    velocity = 0;
+    tabNavWrap.classList.add("is-dragging");
+    tabNavWrap.setPointerCapture(event.pointerId);
+  });
+
+  tabNavWrap.addEventListener("pointermove", (event) => {
+    if (!dragging) return;
+    const deltaX = event.clientX - startX;
+    tabNavWrap.scrollLeft = startScroll - deltaX;
+    const now = performance.now();
+    const dt = Math.max(1, now - lastT);
+    const dx = event.clientX - lastX;
+    velocity = dx / dt;
+    lastX = event.clientX;
+    lastT = now;
+  });
+
+  const stopDragging = (event) => {
+    if (!dragging) return;
+    dragging = false;
+    tabNavWrap.classList.remove("is-dragging");
+    startMomentum();
+    if (event && typeof event.pointerId === "number") {
+      try {
+        tabNavWrap.releasePointerCapture(event.pointerId);
+      } catch {
+        // ignore capture errors
+      }
+    }
+  };
+
+  tabNavWrap.addEventListener("pointerup", stopDragging);
+  tabNavWrap.addEventListener("pointercancel", stopDragging);
+  tabNavWrap.addEventListener("lostpointercapture", stopDragging);
+  tabNavWrap.addEventListener("scroll", syncTabPill, { passive: true });
 }
 
 function setupTabNav() {
   if (!tabButtons.length || !tabSections.length) return;
+  ensureTabFillLayers();
 
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -136,7 +355,9 @@ function setupTabNav() {
     });
   });
 
-  showTab("lancamentos");
+  showTab("painel");
+  window.addEventListener("resize", syncTabPill, { passive: true });
+  setupTabDragScroll();
 }
 
 function normalizeText(value) {
@@ -555,6 +776,7 @@ async function uploadAttachment(file) {
   const response = await fetch("/api/upload", {
     method: "POST",
     credentials: "same-origin",
+    headers: authHeaders(),
     body: formData,
   });
 
@@ -651,10 +873,10 @@ async function createEntry() {
     const response = await fetch("/api/entries", {
       method: "POST",
       credentials: "same-origin",
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
         Accept: "application/json",
-      },
+      }),
       body: JSON.stringify({
         type,
         amount,
@@ -852,16 +1074,24 @@ async function authFetch(path) {
   return fetch(path, {
     method: "GET",
     credentials: "same-origin",
-    headers: { Accept: "application/json" },
+    headers: authHeaders({ Accept: "application/json" }),
   });
+}
+
+async function safeJson(response, fallback) {
+  try {
+    return await response.json();
+  } catch {
+    return fallback;
+  }
 }
 
 async function loadDashboard() {
   hideMessages();
-  refreshBtn.disabled = true;
+  if (refreshBtn) refreshBtn.disabled = true;
 
   const month = monthRange();
-  periodEl.textContent = `Período: ${periodLabel()}`;
+  if (periodEl) periodEl.textContent = `Período: ${periodLabel()}`;
 
   try {
     const [profileRes, monthAggRes, summaryRes, entriesRes] = await Promise.all([
@@ -881,31 +1111,31 @@ async function loadDashboard() {
     }
 
     const [profile, monthAgg, summary, entries] = await Promise.all([
-      profileRes.json(),
-      monthAggRes.json(),
-      summaryRes.json(),
-      entriesRes.json(),
+      safeJson(profileRes, {}),
+      safeJson(monthAggRes, {}),
+      safeJson(summaryRes, {}),
+      safeJson(entriesRes, []),
     ]);
 
     const displayName = profile?.name || profile?.email || "Usuário";
-    userTitleEl.textContent = displayName;
+    if (userTitleEl) userTitleEl.textContent = displayName;
 
     const totals = monthAgg?.totals || {};
     const balance = Number(totals.balance || 0);
     const totalIn = Number(totals.in || 0);
     const totalOut = Number(totals.out || 0);
 
-    kpiBalance.textContent = money.format(balance);
+    if (kpiBalance) kpiBalance.textContent = money.format(balance);
     if (balanceHeadEl) {
       balanceHeadEl.textContent = money.format(balance);
       balanceHeadEl.className = `topbar-balance__value ${toAmountClass(balance)}`.trim();
     }
-    budgetLine.textContent = `${money.format(totalIn + totalOut)} orçado no mês`;
+    if (budgetLine) budgetLine.textContent = `${money.format(totalIn + totalOut)} orçado no mês`;
 
     const trend = Number((summary?.last_12_months || []).slice(-1)[0]?.month_balance || 0);
     const trendPrefix = trend >= 0 ? "+" : "-";
-    trendLabel.textContent = `Resultado do mês ${trendPrefix} ${money.format(Math.abs(trend))}`;
-    trendLine.setAttribute("points", polylinePoints(summary?.last_12_months || []));
+    if (trendLabel) trendLabel.textContent = `Resultado do mês ${trendPrefix} ${money.format(Math.abs(trend))}`;
+    if (trendLine) trendLine.setAttribute("points", polylinePoints(summary?.last_12_months || []));
 
     const listEntries = Array.isArray(entries) ? sortEntriesByDateDesc(entries).slice(0, 20) : [];
     renderRows(entriesList, listEntries, "entry", "Nenhum lançamento encontrado.");
@@ -914,28 +1144,33 @@ async function loadDashboard() {
       entriesMetaEl.textContent = count === 1 ? "1 item recente" : `${count} itens recentes`;
     }
 
-    const pendingEntries = Array.isArray(entries)
-      ? entries.filter((entry) => Number(entry.needs_review || 0) === 1).slice(0, 3)
-      : [];
-    renderRows(reviewList, pendingEntries, "review", "Tudo revisado por enquanto.");
-    if (reviewActionEl) reviewActionEl.hidden = pendingEntries.length === 0;
+    try {
+      const pendingEntries = Array.isArray(entries)
+        ? entries.filter((entry) => Number(entry.needs_review || 0) === 1).slice(0, 3)
+        : [];
+      renderRows(reviewList, pendingEntries, "review", "Tudo revisado por enquanto.");
+      if (reviewActionEl) reviewActionEl.hidden = pendingEntries.length === 0;
 
-    const today = todayIsoDate();
-    const nextEntries = Array.isArray(entries)
-      ? entries
-          .filter((entry) => entry.type === "out" && (entry.date || "") >= today)
-          .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
-          .slice(0, 3)
-      : [];
-    renderRows(nextList, nextEntries, "next", "Nenhum lançamento futuro.");
+      const today = todayIsoDate();
+      const nextEntries = Array.isArray(entries)
+        ? entries
+            .filter((entry) => entry.type === "out" && (entry.date || "") >= today)
+            .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
+            .slice(0, 3)
+        : [];
+      renderRows(nextList, nextEntries, "next", "Nenhum lançamento futuro.");
+      renderCategories(monthAgg?.by_category || []);
+    } catch (sectionError) {
+      console.error("Erro ao renderizar seções secundárias do dashboard:", sectionError);
+    }
 
-    renderCategories(monthAgg?.by_category || []);
     await loadCategories();
     showInfo(`Atualizado com dados de ${periodLabel()}`);
-  } catch {
-    showError("Falha de rede ao carregar os dados.");
+  } catch (error) {
+    console.error("Erro ao carregar dashboard:", error);
+    showError("Falha ao processar os dados do dashboard.");
   } finally {
-    refreshBtn.disabled = false;
+    if (refreshBtn) refreshBtn.disabled = false;
   }
 }
 
@@ -944,9 +1179,19 @@ async function logout() {
     await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "same-origin",
-      headers: { Accept: "application/json" },
+      headers: authHeaders({ Accept: "application/json" }),
     });
   } finally {
+    try {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+    } catch {
+      // ignore storage errors
+    }
+    try {
+      document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax";
+    } catch {
+      // ignore cookie errors
+    }
     window.location.href = "/";
   }
 }
