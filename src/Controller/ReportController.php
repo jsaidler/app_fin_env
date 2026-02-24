@@ -48,6 +48,30 @@ class ReportController extends BaseController
         Response::json($report);
     }
 
+    public function entriesGroups(): void
+    {
+        $uid = $this->requireAuth();
+        $categoriesRaw = $_GET['categories'] ?? ($_GET['category'] ?? null);
+        $categories = [];
+        if (is_array($categoriesRaw)) {
+            $categories = array_values(array_filter(array_map('trim', $categoriesRaw), fn($v) => $v !== ''));
+        } elseif (is_string($categoriesRaw) && trim($categoriesRaw) !== '') {
+            $categories = array_values(array_filter(array_map('trim', explode(',', $categoriesRaw)), fn($v) => $v !== ''));
+        }
+
+        $filters = [
+            'start' => $_GET['start'] ?? null,
+            'end' => $_GET['end'] ?? null,
+            'type' => $_GET['type'] ?? null,
+            'q' => $_GET['q'] ?? null,
+            'categories' => $categories,
+        ];
+
+        $service = new ReportService($this->entryRepo());
+        $data = $service->entriesGroupsReport($uid, $filters);
+        Response::json($data);
+    }
+
     private function entryRepo()
     {
         return new SqliteEntryRepository($this->db());

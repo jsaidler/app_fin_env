@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -12,84 +12,95 @@ body {
 
 body {
   margin: 0;
-  font-family: var(--font-sans);
-  color: var(--color-on-hero);
   background:
     radial-gradient(120% 70% at 100% -10%, rgba(255, 255, 255, 0.14), transparent 58%),
     radial-gradient(80% 60% at -10% 100%, rgba(255, 255, 255, 0.08), transparent 55%),
-    var(--hero-gradient);
+    linear-gradient(180deg, #005d97 0%, #005d97 100%);
+  font-family: var(--font-sans);
+  color: var(--color-on-hero);
+}
+
+body.auth-checking .login-shell {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .login-shell {
   min-height: 100dvh;
   padding:
-    max(var(--space-4), var(--safe-top))
+    max(var(--space-3), var(--safe-top))
     max(var(--space-4), var(--safe-right))
     max(var(--space-4), var(--safe-bottom))
     max(var(--space-4), var(--safe-left));
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: clamp(10px, 2.4vw, 16px);
+  gap: 0;
+  width: min(100%, 560px);
+  margin: 0 auto;
 }
 
 .login-topbar {
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 34px;
+  width: min(100%, 380px);
+  margin: 0 auto;
+  align-self: start;
 }
 
 .login-topbar__logo {
-  width: min(54vw, 204px);
+  width: min(44vw, 152px);
   height: auto;
   object-fit: contain;
 }
 
 .login-stage {
-  width: min(100%, 416px);
+  width: min(100%, 380px);
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(12px, 2.8vw, 18px);
-  align-self: stretch;
-  justify-content: center;
-  padding-top: clamp(2px, 0.8vh, 8px);
-  padding-bottom: clamp(8px, 2vh, 18px);
-  border: 0;
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: stretch;
+  gap: 14px;
+  align-self: center;
   background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
-  backdrop-filter: none;
-  animation: none;
+  padding: 0;
+  margin-top: 0;
+  transform: translateY(-8vh);
 }
 
 .login-head {
   display: grid;
-  gap: 4px;
+  gap: 8px;
+  margin-top: 0;
 }
 
 .login-eyebrow {
   margin: 0;
   color: var(--color-on-hero);
-  font-size: clamp(36px, 9vw, 42px);
+  font-size: clamp(18px, 5.4vw, 24px);
   letter-spacing: -0.01em;
-  text-transform: none;
-  font-weight: 800;
-  line-height: 0.98;
+  font-weight: 700;
+  line-height: 1.05;
 }
 
 #login-title {
   margin: 0;
-  color: color-mix(in srgb, var(--color-white) 88%, transparent);
-  font-size: clamp(24px, 6vw, 32px);
-  line-height: 1.02;
-  letter-spacing: -0.012em;
-  font-weight: 650;
+  color: color-mix(in srgb, var(--color-white) 84%, transparent);
+  font-size: clamp(14px, 4.2vw, 18px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-weight: 700;
 }
 
 .login-form {
   display: grid;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 0;
+  gap: 16px;
+  padding-top: 0;
+  align-self: auto;
 }
 
 .login-form[hidden] {
@@ -102,11 +113,11 @@ body {
   background: transparent;
   padding: 0;
   font-size: var(--font-size-xs);
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .login-feedback--error {
-  color: color-mix(in srgb, var(--color-white) 92%, var(--color-danger) 8%);
+  color: color-mix(in srgb, var(--color-white) 90%, var(--color-danger) 10%);
 }
 
 .login-feedback--ok {
@@ -119,30 +130,30 @@ body {
 
 .login-field {
   display: grid;
-  gap: 4px;
+  gap: 8px;
 }
 
 .login-label {
   margin: 0;
-  color: color-mix(in srgb, var(--color-white) 84%, transparent);
-  font-size: var(--font-size-xs);
+  color: color-mix(in srgb, var(--color-white) 86%, transparent);
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .login-input {
   min-height: 42px;
   border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-white) 24%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-white) 28%, transparent);
   border-radius: 0;
   background: transparent;
-  padding: 0 0 6px;
+  padding: 0 0 10px;
   width: 100%;
   color: var(--color-on-hero);
-  font-size: 17px;
+  font-size: 14px;
   font-family: var(--font-sans);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
   transition: border-color 120ms ease, box-shadow 120ms ease;
   caret-color: var(--color-on-hero);
@@ -165,18 +176,19 @@ body {
 .login-form .c-btn {
   width: 100%;
   justify-content: center;
-  margin-top: 8px;
-  min-height: 50px;
+  margin-top: 10px;
+  min-height: 40px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--color-white) 96%, transparent);
-  color: var(--color-primary-strong);
+  color: #005d97;
   box-shadow: none;
+  font-size: 14px;
   transition: transform 100ms ease, background-color 140ms ease;
 }
 
 .login-form .c-btn:hover,
 .login-form .c-btn.is-hover {
-  background: color-mix(in srgb, var(--color-white) 94%, var(--color-primary) 6%);
+  background: color-mix(in srgb, var(--color-white) 93%, #005d97 7%);
   transform: translateY(-1px);
 }
 
@@ -185,7 +197,7 @@ body {
 }
 
 .login-form .c-btn .c-spinner {
-  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  border-color: color-mix(in srgb, #005d97 55%, transparent);
   border-top-color: transparent;
 }
 
@@ -195,13 +207,13 @@ body {
 
 .login-link {
   width: fit-content;
-  margin-top: 2px;
+  margin-top: 6px;
   padding: 0;
   border: 0;
   background: transparent;
   color: color-mix(in srgb, var(--color-white) 84%, transparent);
   font: inherit;
-  font-size: var(--font-size-sm);
+  font-size: 12px;
   line-height: 1.3;
   cursor: pointer;
 }
@@ -219,22 +231,19 @@ body {
 
 @media (max-width: 460px) {
   .login-shell {
-    gap: clamp(8px, 2.2vw, 12px);
+    gap: 12px;
   }
 
   .login-topbar__logo {
-    width: min(53vw, 188px);
+    width: min(52vw, 172px);
   }
 
   .login-stage {
     width: 100%;
-    gap: 11px;
-    padding-top: 2px;
-    padding-bottom: 10px;
-  }
-
-  .login-input {
-    font-size: 17px;
+    gap: 12px;
+    margin-top: 0;
+    padding: 0;
+    transform: translateY(-5vh);
   }
 }
 
@@ -244,3 +253,4 @@ body {
     transition: none;
   }
 }
+

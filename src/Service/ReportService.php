@@ -135,6 +135,100 @@ class ReportService
         ];
     }
 
+    public function entriesGroupsReport(int $userId, array $filters): array
+    {
+        $typeFilter = trim((string)($filters['type'] ?? ''));
+        $deletedOnly = $typeFilter === 'deleted' || !empty($filters['deleted_only']);
+        $entries = $this->entries->listByUser($userId, $deletedOnly);
+        if ($deletedOnly) {
+            $entries = array_values(array_filter($entries, fn($e) => !empty($e->deletedAt)));
+        }
+        $filtered = $this->filterEntries($entries, $filters);
+        $approvedFiltered = $this->approvedEntries($filtered);
+
+        // Totais por nível independentes de filtros comuns.
+        // No modo "deleted", o escopo-base são todos os excluídos.
+        $approvedAll = $deletedOnly ? $approvedFiltered : $this->approvedEntries($entries);
+
+        $groupedFiltered = $this->groupedByYearMonth($approvedFiltered);
+        $groupedAllTotals = $this->groupedByYearMonth($approvedAll);
+        $grouped = $this->mergeGroupTotals($groupedFiltered, $groupedAllTotals);
+
+        return [
+            'totals' => $this->totals($approvedAll),
+            'count' => count($approvedFiltered),
+            'groups' => $grouped,
+        ];
+    }
+
+    /**
+     * Mantém estrutura/entries filtrados, mas troca totais de ano/mês/dia pelos totais-base do período.
+     *
+     * @param array<int, array<string, mixed>> $filtered
+     * @param array<int, array<string, mixed>> $base
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeGroupTotals(array $filtered, array $base): array
+    {
+        $baseYears = [];
+        foreach ($base as $yearNode) {
+            $yearKey = (string)($yearNode['year'] ?? '');
+            if ($yearKey === '') {
+                continue;
+            }
+            $baseYears[$yearKey] = $yearNode;
+        }
+
+        return array_map(function ($yearNode) use ($baseYears) {
+            $yearKey = (string)($yearNode['year'] ?? '');
+            $baseYear = $baseYears[$yearKey] ?? null;
+            if (is_array($baseYear) && isset($baseYear['totals'])) {
+                $yearNode['totals'] = $baseYear['totals'];
+            }
+
+            $baseMonths = [];
+            if (is_array($baseYear) && !empty($baseYear['months']) && is_array($baseYear['months'])) {
+                foreach ($baseYear['months'] as $monthNode) {
+                    $monthKey = (string)($monthNode['month'] ?? '');
+                    if ($monthKey !== '') {
+                        $baseMonths[$monthKey] = $monthNode;
+                    }
+                }
+            }
+
+            $yearNode['months'] = array_map(function ($monthNode) use ($baseMonths) {
+                $monthKey = (string)($monthNode['month'] ?? '');
+                $baseMonth = $baseMonths[$monthKey] ?? null;
+                if (is_array($baseMonth) && isset($baseMonth['totals'])) {
+                    $monthNode['totals'] = $baseMonth['totals'];
+                }
+
+                $baseDays = [];
+                if (is_array($baseMonth) && !empty($baseMonth['days']) && is_array($baseMonth['days'])) {
+                    foreach ($baseMonth['days'] as $dayNode) {
+                        $dayKey = (string)($dayNode['date'] ?? '');
+                        if ($dayKey !== '') {
+                            $baseDays[$dayKey] = $dayNode;
+                        }
+                    }
+                }
+
+                $monthNode['days'] = array_map(function ($dayNode) use ($baseDays) {
+                    $dayKey = (string)($dayNode['date'] ?? '');
+                    $baseDay = $baseDays[$dayKey] ?? null;
+                    if (is_array($baseDay) && isset($baseDay['totals'])) {
+                        $dayNode['totals'] = $baseDay['totals'];
+                    }
+                    return $dayNode;
+                }, is_array($monthNode['days'] ?? null) ? $monthNode['days'] : []);
+
+                return $monthNode;
+            }, is_array($yearNode['months'] ?? null) ? $yearNode['months'] : []);
+
+            return $yearNode;
+        }, $filtered);
+    }
+
     public function filterEntriesForUser(int $userId, array $filters): array
     {
         $entries = $this->entries->listByUser($userId);
@@ -151,29 +245,202 @@ class ReportService
     private function filterEntries(array $entries, array $filters): array
     {
         $type = $filters['type'] ?? null;
-        if ($type === 'all' || $type === '') {
+        if ($type === 'all' || $type === '' || $type === 'deleted') {
             $type = null;
         }
-        $category = trim((string)($filters['category'] ?? ''));
-        if ($category === '') {
-            $category = null;
+        $includeDeleted = (bool)($filters['include_deleted'] ?? false);
+        $deletedOnly = (bool)($filters['deleted_only'] ?? false) || (($filters['type'] ?? null) === 'deleted');
+
+        if ($deletedOnly) {
+            return array_values(array_filter($entries, fn($e) => !empty($e->deletedAt)));
         }
-        $category = $category !== null ? $this->lower($category) : null;
+        $categories = [];
+        if (!empty($filters['categories']) && is_array($filters['categories'])) {
+            $categories = array_values(array_filter(array_map(function ($value) {
+                $text = trim((string)$value);
+                return $text !== '' ? $this->lower($text) : '';
+            }, $filters['categories']), fn($value) => $value !== ''));
+        } else {
+            $category = trim((string)($filters['category'] ?? ''));
+            if ($category !== '') {
+                $categories = [$this->lower($category)];
+            }
+        }
+        $query = trim((string)($filters['q'] ?? ''));
+        $query = $query !== '' ? $this->lower($query) : null;
         [$start, $end] = $this->normalizeRange($filters);
 
-        return array_values(array_filter($entries, function ($e) use ($type, $category, $start, $end) {
-            if (!empty($e->deletedAt)) {
+        return array_values(array_filter($entries, function ($e) use ($type, $categories, $query, $start, $end, $includeDeleted, $deletedOnly) {
+            if (!$includeDeleted && !$deletedOnly && !empty($e->deletedAt)) {
+                return false;
+            }
+            if ($deletedOnly && empty($e->deletedAt)) {
                 return false;
             }
             if ($type && $e->type !== $type) {
                 return false;
             }
             $entryCategory = trim((string)($e->category ?? ''));
-            if ($category !== null && $this->lower($entryCategory) !== $category) {
+            if ($categories && !in_array($this->lower($entryCategory), $categories, true)) {
                 return false;
+            }
+            if ($query !== null) {
+                $description = trim((string)($e->description ?? ''));
+                $searchIndex = $this->lower($description . ' ' . $entryCategory . ' ' . (string)$e->date);
+                if (strpos($searchIndex, $query) === false) {
+                    return false;
+                }
             }
             return $this->isInRange((string)$e->date, $start, $end);
         }));
+    }
+
+    /** @param array<int, object> $entries */
+    private function groupedByYearMonth(array $entries): array
+    {
+        usort($entries, function ($a, $b) {
+            $byDate = strcmp((string)$b->date, (string)$a->date);
+            if ($byDate !== 0) {
+                return $byDate;
+            }
+            return strcmp((string)($b->updatedAt ?? $b->createdAt ?? ''), (string)($a->updatedAt ?? $a->createdAt ?? ''));
+        });
+
+        $years = [];
+
+        foreach ($entries as $entry) {
+            $date = \DateTimeImmutable::createFromFormat('Y-m-d', (string)$entry->date);
+            if (!$date) {
+                continue;
+            }
+
+            $yearKey = $date->format('Y');
+            $monthKey = $date->format('Y-m');
+
+            if (!isset($years[$yearKey])) {
+                $years[$yearKey] = [
+                    'year' => $yearKey,
+                    'label' => $yearKey,
+                    'totals' => ['in' => 0.0, 'out' => 0.0, 'balance' => 0.0, 'count' => 0],
+                    'months' => [],
+                ];
+            }
+            $this->accumulateEntryTotals($years[$yearKey]['totals'], $entry);
+
+            if (!isset($years[$yearKey]['months'][$monthKey])) {
+                $years[$yearKey]['months'][$monthKey] = [
+                    'month' => $monthKey,
+                    'label' => $this->monthLabelPt($date),
+                    'totals' => ['in' => 0.0, 'out' => 0.0, 'balance' => 0.0, 'count' => 0],
+                    'days' => [],
+                ];
+            }
+            $this->accumulateEntryTotals($years[$yearKey]['months'][$monthKey]['totals'], $entry);
+
+            $dayKey = $date->format('Y-m-d');
+            if (!isset($years[$yearKey]['months'][$monthKey]['days'][$dayKey])) {
+                $years[$yearKey]['months'][$monthKey]['days'][$dayKey] = [
+                    'date' => $dayKey,
+                    'label' => $this->dayLabelPt($date),
+                    'totals' => ['in' => 0.0, 'out' => 0.0, 'balance' => 0.0, 'count' => 0],
+                    'entries' => [],
+                ];
+            }
+
+            $this->accumulateEntryTotals($years[$yearKey]['months'][$monthKey]['days'][$dayKey]['totals'], $entry);
+            $years[$yearKey]['months'][$monthKey]['days'][$dayKey]['entries'][] = $entry->toArray();
+        }
+
+        krsort($years);
+        $result = array_values(array_map(function ($yearNode) {
+            krsort($yearNode['months']);
+            $yearNode['months'] = array_values(array_map(function ($monthNode) {
+                krsort($monthNode['days']);
+                $monthNode['days'] = array_values(array_map(function ($dayNode) {
+                    usort($dayNode['entries'], function ($a, $b) {
+                        $byDate = strcmp((string)($b['date'] ?? ''), (string)($a['date'] ?? ''));
+                        if ($byDate !== 0) {
+                            return $byDate;
+                        }
+                        return strcmp((string)($b['updated_at'] ?? $b['created_at'] ?? ''), (string)($a['updated_at'] ?? $a['created_at'] ?? ''));
+                    });
+                    return $dayNode;
+                }, $monthNode['days']));
+                return $monthNode;
+            }, $yearNode['months']));
+            return $yearNode;
+        }, $years));
+
+        return $result;
+    }
+
+    private function accumulateEntryTotals(array &$totals, object $entry): void
+    {
+        $amount = (float)abs((float)$entry->amount);
+        if ($entry->type === 'in') {
+            $totals['in'] += $amount;
+            $totals['balance'] += $amount;
+        } else {
+            $totals['out'] += $amount;
+            $totals['balance'] -= $amount;
+        }
+        $totals['count'] += 1;
+    }
+
+    private function monthLabelPt(\DateTimeImmutable $date): string
+    {
+        $months = [
+            '01' => 'janeiro',
+            '02' => 'fevereiro',
+            '03' => 'marco',
+            '04' => 'abril',
+            '05' => 'maio',
+            '06' => 'junho',
+            '07' => 'julho',
+            '08' => 'agosto',
+            '09' => 'setembro',
+            '10' => 'outubro',
+            '11' => 'novembro',
+            '12' => 'dezembro',
+        ];
+        $m = $date->format('m');
+        $name = $months[$m] ?? $m;
+        $name = function_exists('mb_convert_case')
+            ? mb_convert_case($name, MB_CASE_TITLE, 'UTF-8')
+            : ucfirst($name);
+        return $name . ' ' . $date->format('Y');
+    }
+
+    private function dayLabelPt(\DateTimeImmutable $date): string
+    {
+        $weekdays = [
+            '1' => 'seg',
+            '2' => 'ter',
+            '3' => 'qua',
+            '4' => 'qui',
+            '5' => 'sex',
+            '6' => 'sab',
+            '7' => 'dom',
+        ];
+        $months = [
+            '01' => 'janeiro',
+            '02' => 'fevereiro',
+            '03' => 'marco',
+            '04' => 'abril',
+            '05' => 'maio',
+            '06' => 'junho',
+            '07' => 'julho',
+            '08' => 'agosto',
+            '09' => 'setembro',
+            '10' => 'outubro',
+            '11' => 'novembro',
+            '12' => 'dezembro',
+        ];
+
+        $weekday = $weekdays[$date->format('N')] ?? '';
+        $day = $date->format('d');
+        $month = $months[$date->format('m')] ?? $date->format('m');
+        return sprintf('%s, %s de %s', $weekday, $day, $month);
     }
 
     private function normalizeRange(array $filters): array

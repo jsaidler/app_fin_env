@@ -14,8 +14,14 @@
   <link rel="stylesheet" href="/assets/css/tokens.css" />
   <link rel="stylesheet" href="/assets/css/components.css" />
   <link rel="stylesheet" href="/assets/css/app.css" />
+  <link rel="preload" href="/assets/vendor/ionic/css/ionic.bundle.css" as="style" />
+  <link rel="preload" href="/assets/css/dashboard.css" as="style" />
+  <link rel="modulepreload" href="/assets/vendor/ionic/dist/ionic/ionic.esm.js" />
+  <link rel="modulepreload" href="/assets/js/dashboard.js" />
+  <link rel="prefetch" href="/dashboard" />
+  <script type="module" src="/assets/js/app.js"></script>
 </head>
-<body>
+<body class="auth-checking">
   <main class="login-shell">
     <header class="login-topbar" aria-label="Marca do sistema">
       <img class="login-topbar__logo" src="/assets/img/logo-mono-white.webp" alt="Envisione Assessoria Contábil" />
@@ -85,7 +91,5 @@
       </form>
     </section>
   </main>
-
-  <script type="module" src="/assets/js/app.js"></script>
 </body>
 </html>

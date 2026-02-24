@@ -16,10 +16,7 @@ class Image
         if ($file['error'] !== UPLOAD_ERR_OK) {
             throw new \RuntimeException('Upload failed');
         }
-        $maxBytes = 10 * 1024 * 1024;
-        if (($file['size'] ?? 0) > $maxBytes) {
-            throw new \RuntimeException('Arquivo muito grande (max 10MB)');
-        }
+        $fileSize = (int)($file['size'] ?? 0);
         $mime = null;
         if (function_exists('finfo_open')) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -40,6 +37,13 @@ class Image
         $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
         if (!in_array($mime, $allowed, true)) {
             throw new \RuntimeException('Formato de arquivo nao permitido');
+        }
+
+        if ($mime === 'application/pdf' && $fileSize > (1 * 1024 * 1024)) {
+            throw new \RuntimeException('Arquivo PDF muito grande (max 1MB)');
+        }
+        if ($mime !== 'application/pdf' && $fileSize > (10 * 1024 * 1024)) {
+            throw new \RuntimeException('Arquivo muito grande (max 10MB)');
         }
 
         $uid = trim((string)$userId, '/');

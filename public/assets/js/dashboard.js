@@ -1,4 +1,4 @@
-﻿const periodEl = document.getElementById("dash-period");
+const periodEl = document.getElementById("dash-period");
 const userTitleEl = document.getElementById("dash-user-title");
 const balanceHeadEl = document.getElementById("dash-balance-head");
 const entriesMetaEl = document.getElementById("dash-entries-meta");
@@ -16,19 +16,52 @@ const reviewList = document.getElementById("review-list");
 const reviewActionEl = document.getElementById("review-action");
 const nextList = document.getElementById("next-list");
 const catGrid = document.getElementById("cat-grid");
+const categoriesListScreen = document.getElementById("categories-list-screen");
+const catSoFarEl = document.getElementById("cat-so-far");
+const catLastMonthEl = document.getElementById("cat-last-month");
+const catDonutEl = document.getElementById("cat-donut");
 const entriesList = document.getElementById("entries-list");
+const entriesSearchInput = document.getElementById("entries-search-input");
+const txSearchOverlay = document.getElementById("tx-search-overlay");
+const filterPanel = document.querySelector(".tx-filter-panel");
+const filterPanelPeriod = document.getElementById("entries-filter-panel-period");
+const openEntryFiltersSummaryBtn = document.getElementById("open-entry-filters-summary");
+
+const entriesFilterModal = document.getElementById("entries-filter-modal");
+const closeEntryFiltersBtn = document.getElementById("close-entry-filters");
+const cancelEntryFiltersBtn = document.getElementById("cancel-entry-filters");
+const clearEntryFiltersBtn = document.getElementById("clear-entry-filters");
+const applyEntryFiltersBtn = document.getElementById("apply-entry-filters");
+const entriesFilterType = document.getElementById("entries-filter-type");
+const entriesFilterCategories = document.getElementById("entries-filter-categories");
+
+const openEntriesFilterStartDateBtn = document.getElementById("open-entries-filter-start-date");
+const openEntriesFilterEndDateBtn = document.getElementById("open-entries-filter-end-date");
+const selectedEntriesFilterStartDateEl = document.getElementById("selected-entries-filter-start-date");
+const selectedEntriesFilterEndDateEl = document.getElementById("selected-entries-filter-end-date");
+const entriesFilterStartDateModal = document.getElementById("entries-filter-start-date-modal");
+const entriesFilterEndDateModal = document.getElementById("entries-filter-end-date-modal");
+const closeEntriesFilterStartDateModalBtn = document.getElementById("close-entries-filter-start-date-modal");
+const closeEntriesFilterEndDateModalBtn = document.getElementById("close-entries-filter-end-date-modal");
+const entriesFilterStartDatePicker = document.getElementById("entries-filter-start-date-picker");
+const entriesFilterEndDatePicker = document.getElementById("entries-filter-end-date-picker");
 
 const tabButtons = Array.from(document.querySelectorAll(".dash-tab"));
 const tabSections = Array.from(document.querySelectorAll("[data-tab-content]"));
 const tabNavShell = document.querySelector(".dash-nav-shell");
 const tabNavWrap = document.querySelector(".dash-nav-wrap");
 const rootApp = document.querySelector("ion-app");
+const pageLoadingOverlay = document.getElementById("page-loading-overlay");
 
 const entryModal = document.getElementById("entry-modal");
 const openEntryBtn = document.getElementById("open-entry");
+const openEntryInlineBtn = document.getElementById("open-entry-inline");
 const closeEntryBtn = document.getElementById("close-entry");
 const cancelEntryBtn = document.getElementById("cancel-entry");
+const deleteEntryBtn = document.getElementById("delete-entry");
 const saveEntryBtn = document.getElementById("save-entry");
+const restoreEntryBtn = document.getElementById("restore-entry");
+const entryModalTitleEl = document.getElementById("entry-modal-title");
 const entryTypeInput = document.getElementById("entry-type");
 const entryAmountInput = document.getElementById("entry-amount");
 const openCategoryBtn = document.getElementById("open-category");
@@ -51,11 +84,26 @@ const attachmentPreviewImage = document.getElementById("attachment-preview-image
 const attachmentPreviewPdf = document.getElementById("attachment-preview-pdf");
 const attachmentPreviewName = document.getElementById("attachment-preview-name");
 const clearAttachmentBtn = document.getElementById("clear-attachment");
+const attachmentViewerModal = document.getElementById("attachment-viewer-modal");
+const closeAttachmentViewerBtn = document.getElementById("close-attachment-viewer");
+const attachmentViewerImage = document.getElementById("attachment-viewer-image");
+const attachmentViewerPdf = document.getElementById("attachment-viewer-pdf");
+const attachmentPathWrapEl = document.getElementById("attachment-path-wrap");
+const attachmentPathEl = document.getElementById("attachment-path");
 let selectedDateISO = "";
 let selectedCategoryValue = "";
 let selectedAttachmentFile = null;
 let categories = [];
 let savingEntry = false;
+let editingEntryId = null;
+let editingEntryAttachmentPath = "";
+let editingEntryDeleted = false;
+let entriesSearchTerm = "";
+let searchDebounceTimer = null;
+let loadedEntriesIndex = new Map();
+let initialBootPending = true;
+let entryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
+let draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
 const AUTH_TOKEN_KEY = "caixa_auth_token";
 
 const money = new Intl.NumberFormat("pt-BR", {
@@ -95,7 +143,7 @@ function showError(message) {
   errorEl.hidden = false;
   infoEl.hidden = true;
   if (entriesMetaEl && String(entriesMetaEl.textContent || "").trim() === "--") {
-    entriesMetaEl.textContent = "Sem dados no período";
+    entriesMetaEl.textContent = "Sem dados no perÃ­odo";
   }
 }
 
@@ -141,9 +189,14 @@ function escapeHtml(value) {
 function showTab(tabName) {
   const previousActive = tabButtons.find((button) => button.classList.contains("is-active"));
   const transitionToken = ++navTransitionToken;
+  const isLancamentos = tabName === "lancamentos";
   tabSections.forEach((section) => {
     section.hidden = section.dataset.tabContent !== tabName;
   });
+  if (txSearchOverlay) {
+    txSearchOverlay.classList.toggle("is-visible", isLancamentos);
+    txSearchOverlay.setAttribute("aria-hidden", isLancamentos ? "false" : "true");
+  }
   tabButtons.forEach((button) => {
     const isActive = button.dataset.tab === tabName;
     button.classList.toggle("is-active", isActive);
@@ -201,34 +254,27 @@ function cancelNavScrollAnimation() {
 
 function animateNavScrollTo(targetLeft, duration = 520, transitionToken = navTransitionToken) {
   if (!tabNavWrap) return Promise.resolve(false);
-  cancelNavScrollAnimation();
+  if (transitionToken !== navTransitionToken) return Promise.resolve(false);
+  const current = tabNavWrap.scrollLeft;
+  if (Math.abs(targetLeft - current) < 1) return Promise.resolve(false);
+  tabNavWrap.scrollTo({ left: targetLeft, behavior: "smooth" });
+  return Promise.resolve(true);
+}
 
-  const startLeft = tabNavWrap.scrollLeft;
-  const distance = targetLeft - startLeft;
-  if (Math.abs(distance) < 1) return Promise.resolve(false);
-
-  return new Promise((resolve) => {
-    const startAt = performance.now();
-    const step = (now) => {
-      if (transitionToken !== navTransitionToken) {
-        cancelNavScrollAnimation();
-        resolve(false);
-        return;
-      }
-      const t = Math.max(0, Math.min(1, (now - startAt) / duration));
-      const eased = t < 0.5
-        ? 4 * t * t * t
-        : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      tabNavWrap.scrollLeft = startLeft + (distance * eased);
-      if (t < 1) {
-        navScrollFrame = requestAnimationFrame(step);
-        return;
-      }
-      navScrollFrame = null;
-      resolve(true);
-    };
-    navScrollFrame = requestAnimationFrame(step);
-  });
+function setInitialLoading(active) {
+  if (!rootApp) return;
+  if (active) {
+    if (window.__dashboardLoading && typeof window.__dashboardLoading.begin === "function") {
+      window.__dashboardLoading.begin();
+    } else {
+      rootApp.classList.add("is-booting");
+      rootApp.classList.remove("is-boot-exiting");
+    }
+  } else {
+    rootApp.classList.remove("is-boot-exiting");
+    rootApp.classList.remove("is-booting");
+  }
+  if (pageLoadingOverlay) pageLoadingOverlay.setAttribute("aria-hidden", active ? "false" : "true");
 }
 
 function scrollActiveTabIntoView(transitionToken = navTransitionToken) {
@@ -297,7 +343,7 @@ function setupTabDragScroll() {
   };
 
   tabNavWrap.addEventListener("pointerdown", (event) => {
-    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     navTransitionToken += 1;
     cancelNavScrollAnimation();
     stopMomentum();
@@ -355,7 +401,7 @@ function setupTabNav() {
     });
   });
 
-  showTab("painel");
+  showTab("lancamentos");
   window.addEventListener("resize", syncTabPill, { passive: true });
   setupTabDragScroll();
 }
@@ -389,6 +435,18 @@ function monthRange() {
   return `${year}-${month}`;
 }
 
+function previousMonthRange(monthKey) {
+  const [year, month] = String(monthKey || "").split("-").map((value) => Number(value));
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    const now = new Date();
+    now.setMonth(now.getMonth() - 1);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+  const date = new Date(year, month - 1, 1);
+  date.setMonth(date.getMonth() - 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function periodLabel() {
   const now = new Date();
   return now.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -403,6 +461,67 @@ function formatIsoDate(isoDate) {
   const [year, month, day] = String(isoDate).split("-");
   if (!year || !month || !day) return "";
   return `${day}/${month}/${year}`;
+}
+
+function currentMonthBounds() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const toIso = (value) => {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+  return { start: toIso(start), end: toIso(end) };
+}
+
+function initEntryFilters() {
+  const bounds = currentMonthBounds();
+  entryFilters = { startDate: bounds.start, endDate: bounds.end, type: "all", categories: [] };
+  draftEntryFilters = { ...entryFilters, categories: [...entryFilters.categories] };
+}
+
+function buildEntriesGroupsQueryString(filters, searchTerm) {
+  const query = new URLSearchParams();
+  if (String(filters?.type || "") === "deleted") {
+    query.set("type", "deleted");
+    query.set("deleted_only", "1");
+    return query.toString();
+  }
+  if (filters?.startDate) query.set("start", filters.startDate);
+  if (filters?.endDate) query.set("end", filters.endDate);
+  query.set("type", String(filters?.type || "all"));
+  if (String(searchTerm || "").trim()) query.set("q", String(searchTerm || "").trim());
+  for (const category of (filters?.categories || [])) {
+    query.append("categories[]", category);
+  }
+  return query.toString();
+}
+
+function setEntryDirectionHint(categoryName) {
+  const directionEl = document.getElementById("selected-category-direction");
+  const categoryValueEl = document.getElementById("selected-category");
+  const category = categories.find((item) => String(item?.name || "") === String(categoryName || ""));
+  const type = String(category?.type || "");
+  if (!directionEl || !type) {
+    if (directionEl) directionEl.hidden = true;
+    if (categoryValueEl) categoryValueEl.classList.remove("is-in", "is-out");
+    return;
+  }
+  directionEl.hidden = false;
+  directionEl.textContent = type === "in" ? "arrow_downward" : "arrow_upward";
+  directionEl.classList.remove("is-in", "is-out");
+  directionEl.classList.add(type === "in" ? "is-in" : "is-out");
+  if (categoryValueEl) {
+    categoryValueEl.classList.remove("is-in", "is-out");
+    categoryValueEl.classList.add(type === "in" ? "is-in" : "is-out");
+  }
+}
+
+function entryTypeFromSelectedCategory() {
+  const category = categories.find((item) => String(item?.name || "") === String(selectedCategoryValue || ""));
+  return String(category?.type || "");
 }
 
 function parseMoneyInput(value) {
@@ -461,15 +580,39 @@ function setSaveButtonVisualState(state = "idle") {
   if (!saveEntryBtn) return;
   const isDisabled = state === "disabled" || state === "saving";
   saveEntryBtn.disabled = isDisabled;
-  saveEntryBtn.textContent = state === "saving" ? "Salvando..." : "Salvar";
+  saveEntryBtn.classList.toggle("is-disabled", state === "disabled");
   saveEntryBtn.classList.toggle("is-saving", state === "saving");
+  saveEntryBtn.textContent = state === "saving" ? "Salvando..." : "Salvar";
+}
+
+function setEntryModalMode(mode = "create") {
+  const isEdit = mode === "edit";
+  const isDeleted = mode === "deleted";
+  if (entryModalTitleEl) {
+    entryModalTitleEl.textContent = isDeleted ? "LanÃ§amento excluÃ­do" : (isEdit ? "Editar lanÃ§amento" : "Nova entrada");
+  }
+  if (deleteEntryBtn) {
+    const showDelete = isEdit && !isDeleted;
+    deleteEntryBtn.hidden = !showDelete;
+    deleteEntryBtn.style.display = showDelete ? "" : "none";
+  }
+  if (restoreEntryBtn) {
+    restoreEntryBtn.hidden = !isDeleted;
+    restoreEntryBtn.style.display = isDeleted ? "" : "none";
+  }
+  if (saveEntryBtn) {
+    saveEntryBtn.hidden = isDeleted;
+    saveEntryBtn.style.display = isDeleted ? "none" : "";
+  }
 }
 
 function updateEntryFlowUi() {
-  if (openCategoryBtn) openCategoryBtn.disabled = false;
-  if (openDateBtn) openDateBtn.disabled = false;
-  if (openAttachmentBtn) openAttachmentBtn.disabled = false;
-  if (entryDescriptionInput) entryDescriptionInput.disabled = false;
+  const locked = Boolean(editingEntryDeleted);
+  if (openCategoryBtn) openCategoryBtn.disabled = locked;
+  if (openDateBtn) openDateBtn.disabled = locked;
+  if (openAttachmentBtn) openAttachmentBtn.disabled = locked;
+  if (entryDescriptionInput) entryDescriptionInput.disabled = locked;
+  if (entryAmountInput) entryAmountInput.disabled = locked;
 }
 
 function setAttachmentPreview(file) {
@@ -488,6 +631,8 @@ function setAttachmentPreview(file) {
       attachmentNameEl.textContent = "Toque para anexar foto ou PDF";
       attachmentNameEl.classList.add("is-placeholder");
     }
+    if (attachmentPathEl) attachmentPathEl.textContent = "";
+    if (attachmentPathWrapEl) attachmentPathWrapEl.hidden = true;
     return;
   }
 
@@ -498,6 +643,8 @@ function setAttachmentPreview(file) {
     attachmentNameEl.textContent = formatAttachmentLabel(fileName);
     attachmentNameEl.classList.remove("is-placeholder");
   }
+  if (attachmentPathEl) attachmentPathEl.textContent = "SerÃ¡ definido ao salvar";
+  if (attachmentPathWrapEl) attachmentPathWrapEl.hidden = false;
   if (attachmentPreviewName) attachmentPreviewName.textContent = fileName;
   if (attachmentPreview) attachmentPreview.hidden = false;
 
@@ -528,14 +675,114 @@ function setAttachmentPreview(file) {
   };
   reader.onerror = () => {
     clearAttachmentSelection();
-    showError("Não foi possível carregar a pré-visualização do comprovante.");
+    showError("NÃ£o foi possÃ­vel carregar a prÃ©-visualizaÃ§Ã£o do comprovante.");
   };
   reader.readAsDataURL(file);
 }
 
-function clearAttachmentSelection() {
+async function closeAttachmentViewer() {
+  try {
+    await attachmentViewerModal?.dismiss();
+  } catch {
+    // modal may already be closed
+  }
+  if (attachmentViewerImage) {
+    attachmentViewerImage.hidden = true;
+    attachmentViewerImage.removeAttribute("src");
+  }
+  if (attachmentViewerPdf) {
+    attachmentViewerPdf.hidden = true;
+    attachmentViewerPdf.removeAttribute("src");
+  }
+}
+
+async function openAttachmentViewer(source, isPdf = false) {
+  const src = String(source || "").trim();
+  if (!src) return;
+  if (isPdf) {
+    if (attachmentViewerPdf) {
+      attachmentViewerPdf.src = src;
+      attachmentViewerPdf.hidden = false;
+    }
+    if (attachmentViewerImage) {
+      attachmentViewerImage.hidden = true;
+      attachmentViewerImage.removeAttribute("src");
+    }
+  } else {
+    if (attachmentViewerImage) {
+      attachmentViewerImage.src = src;
+      attachmentViewerImage.hidden = false;
+    }
+    if (attachmentViewerPdf) {
+      attachmentViewerPdf.hidden = true;
+      attachmentViewerPdf.removeAttribute("src");
+    }
+  }
+  await attachmentViewerModal?.present();
+}
+
+function attachmentUrlFromPath(path) {
+  const raw = String(path || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/uploads/")) return raw;
+  return `/uploads/${raw.replace(/^\/+/, "")}`;
+}
+
+function setAttachmentPreviewFromPath(path) {
+  const raw = String(path || "").trim();
+  if (!raw) {
+    setAttachmentPreview(null);
+    return;
+  }
+
+  const fileNameRaw = raw.split("/").pop() || "arquivo";
+  let fileName = fileNameRaw;
+  try {
+    fileName = decodeURIComponent(fileNameRaw);
+  } catch {
+    fileName = fileNameRaw;
+  }
+  const src = attachmentUrlFromPath(raw);
+  const isPdf = raw.toLowerCase().endsWith(".pdf");
+
   selectedAttachmentFile = null;
   if (attachmentInput) attachmentInput.value = "";
+  if (attachmentNameEl) {
+    attachmentNameEl.textContent = formatAttachmentLabel(fileName);
+    attachmentNameEl.classList.remove("is-placeholder");
+  }
+  if (attachmentPathEl) attachmentPathEl.textContent = raw;
+  if (attachmentPathWrapEl) attachmentPathWrapEl.hidden = false;
+  if (attachmentPreviewName) attachmentPreviewName.textContent = fileName;
+  if (attachmentPreview) attachmentPreview.hidden = false;
+
+  if (isPdf) {
+    if (attachmentPreviewPdf) {
+      attachmentPreviewPdf.src = src;
+      attachmentPreviewPdf.hidden = false;
+    }
+    if (attachmentPreviewImage) {
+      attachmentPreviewImage.hidden = true;
+      attachmentPreviewImage.removeAttribute("src");
+    }
+    return;
+  }
+
+  if (attachmentPreviewImage) {
+    attachmentPreviewImage.src = src;
+    attachmentPreviewImage.hidden = false;
+  }
+  if (attachmentPreviewPdf) {
+    attachmentPreviewPdf.hidden = true;
+    attachmentPreviewPdf.removeAttribute("src");
+  }
+}
+
+function clearAttachmentSelection(clearStoredPath = false) {
+  selectedAttachmentFile = null;
+  if (attachmentInput) attachmentInput.value = "";
+  if (clearStoredPath) editingEntryAttachmentPath = "";
   setAttachmentPreview(null);
 }
 
@@ -577,7 +824,8 @@ async function closeDateSheet() {
 }
 
 function isEntryFormValid() {
-  const type = String(entryTypeInput?.value || "").trim();
+  if (editingEntryDeleted) return false;
+  const type = entryTypeFromSelectedCategory();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
   const date = String(selectedDateISO || "").slice(0, 10).trim();
@@ -588,10 +836,20 @@ function isEntryFormValid() {
     && /^\d{4}-\d{2}-\d{2}$/.test(date);
 }
 
+function hasEntryMinimumRequiredData() {
+  const amount = parseMoneyInput(entryAmountInput?.value || "");
+  const category = String(selectedCategoryValue || "").trim();
+  return Number.isFinite(amount) && amount > 0 && category.length > 0;
+}
+
 function updateSaveState() {
   updateEntryFlowUi();
   if (savingEntry) {
     setSaveButtonVisualState("saving");
+    return;
+  }
+  if (!hasEntryMinimumRequiredData()) {
+    setSaveButtonVisualState("disabled");
     return;
   }
   setSaveButtonVisualState(isEntryFormValid() ? "idle" : "disabled");
@@ -613,16 +871,39 @@ function renderCategoryOptions(type = "") {
     categoryListEl.innerHTML = `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
     return;
   }
+  const groups = [
+    { key: "in", title: "Entrada", icon: "arrow_downward" },
+    { key: "out", title: "SaÃ­da", icon: "arrow_upward" },
+  ];
 
-  categoryListEl.innerHTML = searched
-    .map((category) => {
-      const label = String(category?.name || "").trim();
-      const safeLabel = escapeHtml(label);
-      const encodedLabel = encodeURIComponent(label);
-      const isSelected = selectedCategoryValue === label;
-      return `<button type="button" class="category-option" data-category="${encodedLabel}"${isSelected ? ' aria-current="true"' : ""}>${safeLabel}</button>`;
+  const html = groups
+    .map((group) => {
+      const options = searched.filter((category) => String(category?.type || "") === group.key);
+      if (!options.length) return "";
+      const optionsHtml = options
+        .map((category) => {
+          const label = String(category?.name || "").trim();
+          const safeLabel = escapeHtml(label);
+          const encodedLabel = encodeURIComponent(label);
+          const isSelected = selectedCategoryValue === label;
+          return `
+            <button type="button" class="category-option is-${group.key}" data-category="${encodedLabel}"${isSelected ? ' aria-current="true"' : ""}>
+              <span class="category-option__lead"><span class="material-symbols-rounded">${group.icon}</span></span>
+              <span class="category-option__text">${safeLabel}</span>
+            </button>
+          `;
+        })
+        .join("");
+      return `
+        <section class="category-group">
+          <h4 class="category-group__title">${group.title}</h4>
+          <div class="category-group__items">${optionsHtml}</div>
+        </section>
+      `;
     })
     .join("");
+
+  categoryListEl.innerHTML = html || `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
 }
 
 function toAmountClass(value) {
@@ -660,15 +941,24 @@ function rowTemplate(item, mode) {
   const amountClass = toAmountClass(signed);
   const title = escapeHtml(item.description || item.category || "Movimento");
   const category = escapeHtml(item.category || "Sem categoria");
-  const subtitle = mode === "next"
-    ? `Vence em ${asDateLabel(item.date)}`
-    : mode === "entry"
-      ? `${asDateLabel(item.date)} - ${category}`
-      : category;
+  if (mode === "entry") {
+    const chipTone = item.type === "in" ? "entry-chip--in" : "entry-chip--out";
+    const entryId = Number(item.id || 0);
+    return `
+      <button type="button" class="entry-row entry-row--button" data-entry-id="${entryId}" aria-label="Editar lanÃ§amento ${title}">
+        <div class="entry-row__title">${title}</div>
+        <div class="entry-row__chips">
+          <span class="entry-chip ${chipTone}">${category}</span>
+        </div>
+        <div class="entry-row__value ${amountClass}">${money.format(signed)}</div>
+      </button>
+    `;
+  }
 
+  const subtitle = mode === "next" ? `Vence em ${asDateLabel(item.date)}` : category;
   return `
     <div class="row">
-      <div class="icon-circle"><span class="material-symbols-rounded">${mode === "entry" ? movementGlyph(item) : categoryGlyph(item.category || item.description || "")}</span></div>
+      <div class="icon-circle"><span class="material-symbols-rounded">${categoryGlyph(item.category || item.description || "")}</span></div>
       <div>
         <div class="row-title">${title}</div>
         <div class="row-meta">${subtitle}</div>
@@ -676,6 +966,293 @@ function rowTemplate(item, mode) {
       <div class="row-value ${amountClass}">${money.format(signed)}</div>
     </div>
   `;
+}
+
+function renderEntriesEmptyState(container, message = "Nenhum lanÃ§amento no perÃ­odo.") {
+  container.innerHTML = `
+    <div class="tx-empty-state" role="status" aria-live="polite">
+      <p class="tx-empty-state__title">Nenhum lanÃ§amento</p>
+      <p class="tx-empty-state__text">${escapeHtml(message)}</p>
+    </div>
+  `;
+}
+
+function renderEntriesGroupedFromServer(container, groups, emptyText) {
+  if (!Array.isArray(groups) || groups.length === 0) {
+    renderEntriesEmptyState(container, emptyText || "Nenhum lanÃ§amento encontrado.");
+    return;
+  }
+
+  loadedEntriesIndex = new Map();
+  container.innerHTML = groups
+    .map((yearNode) => {
+      const yearBalance = Number(yearNode?.totals?.balance || 0);
+      const yearClass = toAmountClass(yearBalance);
+      const months = (Array.isArray(yearNode?.months) ? yearNode.months : [])
+        .map((monthNode) => {
+          const monthBalance = Number(monthNode?.totals?.balance || 0);
+          const monthClass = toAmountClass(monthBalance);
+          const days = (Array.isArray(monthNode?.days) ? monthNode.days : [])
+            .map((dayNode) => {
+              const dayBalanceValue = Number(dayNode?.totals?.balance || 0);
+              const dayClass = toAmountClass(dayBalanceValue);
+              const rows = (Array.isArray(dayNode?.entries) ? dayNode.entries : [])
+                .map((item) => {
+                  const id = Number(item?.id || 0);
+                  if (id > 0) loadedEntriesIndex.set(id, item);
+                  return rowTemplate(item, "entry");
+                })
+                .join("");
+              return `
+                <section class="entry-day">
+                  <header class="entry-day__head">
+                    <div class="entry-group entry-group--day">${escapeHtml(String(dayNode?.label || ""))}</div>
+                    <div class="entry-day__value ${dayClass}">${money.format(dayBalanceValue)}</div>
+                  </header>
+                  <div class="entry-cluster__rows">${rows}</div>
+                </section>
+              `;
+            })
+            .join("");
+          return `
+            <section class="entry-month">
+              <header class="entry-month__head">
+                <div class="entry-month__title">${escapeHtml(String(monthNode?.label || monthNode?.month || ""))}</div>
+                <div class="entry-month__value ${monthClass}">${money.format(monthBalance)}</div>
+              </header>
+              ${days}
+            </section>
+          `;
+        })
+        .join("");
+      return `
+        <section class="entry-year">
+          <header class="entry-year__head">
+            <div class="entry-group entry-group--year">${escapeHtml(String(yearNode?.label || yearNode?.year || ""))}</div>
+            <div class="entry-year__value ${yearClass}">${money.format(yearBalance)}</div>
+          </header>
+          ${months}
+        </section>
+      `;
+    })
+    .join("");
+}
+
+function formatFilterPanel() {
+  if (!filterPanelPeriod) return;
+  if (entryFilters.type === "deleted") {
+    filterPanelPeriod.textContent = "ExcluÃ­dos (todos)";
+    return;
+  }
+  const start = formatIsoDate(entryFilters.startDate);
+  const end = formatIsoDate(entryFilters.endDate);
+  filterPanelPeriod.textContent = start && end ? `${start} atÃ© ${end}` : "--";
+}
+
+function syncFilterDraftToUi() {
+  if (entriesFilterStartDatePicker) entriesFilterStartDatePicker.value = draftEntryFilters.startDate || "";
+  if (entriesFilterEndDatePicker) entriesFilterEndDatePicker.value = draftEntryFilters.endDate || "";
+  if (selectedEntriesFilterStartDateEl) selectedEntriesFilterStartDateEl.textContent = formatIsoDate(draftEntryFilters.startDate);
+  if (selectedEntriesFilterEndDateEl) selectedEntriesFilterEndDateEl.textContent = formatIsoDate(draftEntryFilters.endDate);
+  if (entriesFilterType) entriesFilterType.value = draftEntryFilters.type || "all";
+  const deletedMode = draftEntryFilters.type === "deleted";
+  if (openEntriesFilterStartDateBtn) openEntriesFilterStartDateBtn.disabled = deletedMode;
+  if (openEntriesFilterEndDateBtn) openEntriesFilterEndDateBtn.disabled = deletedMode;
+  if (entriesFilterCategories) entriesFilterCategories.style.pointerEvents = deletedMode ? "none" : "";
+  if (entriesFilterCategories) entriesFilterCategories.style.opacity = deletedMode ? "0.5" : "";
+
+  const selected = new Set(draftEntryFilters.categories || []);
+  const categoriesHtml = categories.map((category) => {
+    const name = String(category?.name || "").trim();
+    const type = String(category?.type || "");
+    const selectedClass = selected.has(name) ? " is-selected" : "";
+    const tone = type === "in" ? "is-in" : "is-out";
+    return `<button type="button" class="filter-category-chip ${tone}${selectedClass}" data-category="${encodeURIComponent(name)}">${escapeHtml(name)}</button>`;
+  }).join("");
+  if (entriesFilterCategories) entriesFilterCategories.innerHTML = categoriesHtml;
+}
+
+function applyTypeRulesOnDraft(type) {
+  draftEntryFilters.type = type;
+  const ins = categories.filter((c) => String(c?.type || "") === "in").map((c) => String(c?.name || ""));
+  const outs = categories.filter((c) => String(c?.type || "") === "out").map((c) => String(c?.name || ""));
+  const current = new Set(draftEntryFilters.categories || []);
+
+  if (type === "deleted") {
+    draftEntryFilters.startDate = "";
+    draftEntryFilters.endDate = "";
+    draftEntryFilters.categories = [];
+    return;
+  }
+  if (type === "all") {
+    draftEntryFilters.categories = categories.map((c) => String(c?.name || ""));
+    return;
+  }
+  if (type === "in") {
+    const inSelected = ins.some((name) => current.has(name));
+    draftEntryFilters.categories = inSelected ? ins.filter((name) => current.has(name)) : ins;
+    return;
+  }
+  const outSelected = outs.some((name) => current.has(name));
+  draftEntryFilters.categories = outSelected ? outs.filter((name) => current.has(name)) : outs;
+}
+
+function startSearchDebouncedReload() {
+  if (searchDebounceTimer) window.clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = window.setTimeout(() => {
+    void loadDashboard();
+  }, 220);
+}
+
+async function openEntryFiltersModal() {
+  await loadCategories();
+  draftEntryFilters = { ...entryFilters, categories: [...entryFilters.categories] };
+  syncFilterDraftToUi();
+  await entriesFilterModal?.present();
+}
+
+async function closeEntryFiltersModal() {
+  try {
+    await entriesFilterModal?.dismiss();
+  } catch {
+    // modal may already be closed
+  }
+}
+
+async function openEntryEditor(entryId) {
+  const entry = loadedEntriesIndex.get(Number(entryId));
+  if (!entry) return;
+  await loadCategories();
+  resetEntryForm();
+  editingEntryId = Number(entry.id || 0);
+  editingEntryAttachmentPath = String(entry.attachment_path || "");
+  const deletedAtRaw = entry?.deleted_at;
+  const deletedAtText = typeof deletedAtRaw === "string" ? deletedAtRaw.trim().toLowerCase() : "";
+  const hasDeletedAt = deletedAtRaw != null && deletedAtText !== "" && deletedAtText !== "null" && deletedAtText !== "0";
+  const status = String(entry?.status || "").toLowerCase();
+  const hasDeletedStatus = status === "deleted_soft" || status === "deleted_hard";
+  editingEntryDeleted = hasDeletedAt || hasDeletedStatus;
+  if (entryAmountInput) entryAmountInput.value = formatMoneyInput(Number(entry.amount || 0));
+  selectedCategoryValue = String(entry.category || "");
+  if (selectedCategoryEl) {
+    selectedCategoryEl.textContent = selectedCategoryValue || "Selecionar categoria";
+    selectedCategoryEl.classList.toggle("is-placeholder", !selectedCategoryValue);
+  }
+  setEntryDirectionHint(selectedCategoryValue);
+  setEntryTheme(entryTypeFromSelectedCategory() || "neutral");
+  setEntryModalMode(editingEntryDeleted ? "deleted" : "edit");
+  selectedDateISO = String(entry.date || todayIsoDate()).slice(0, 10);
+  if (datePicker) datePicker.value = selectedDateISO;
+  if (selectedDateEl) {
+    selectedDateEl.textContent = formatIsoDate(selectedDateISO);
+    selectedDateEl.classList.remove("is-placeholder");
+  }
+  if (entryDescriptionInput) entryDescriptionInput.value = String(entry.description || "");
+  setAttachmentPreviewFromPath(editingEntryAttachmentPath);
+  updateSaveState();
+  await entryModal?.present();
+  setEntryLayerState(true);
+}
+
+function setupEntriesInteractions() {
+  openEntryFiltersSummaryBtn?.addEventListener("click", () => {
+    void openEntryFiltersModal();
+  });
+  filterPanel?.addEventListener("click", () => {
+    void openEntryFiltersModal();
+  });
+  closeEntryFiltersBtn?.addEventListener("click", () => void closeEntryFiltersModal());
+  cancelEntryFiltersBtn?.addEventListener("click", () => void closeEntryFiltersModal());
+
+  clearEntryFiltersBtn?.addEventListener("click", () => {
+    const bounds = currentMonthBounds();
+    draftEntryFilters = { startDate: bounds.start, endDate: bounds.end, type: "all", categories: categories.map((c) => String(c?.name || "")) };
+    syncFilterDraftToUi();
+    entryFilters = { ...draftEntryFilters, categories: [...draftEntryFilters.categories] };
+    formatFilterPanel();
+    void closeEntryFiltersModal();
+    void loadDashboard();
+  });
+
+  applyEntryFiltersBtn?.addEventListener("click", () => {
+    entryFilters = { ...draftEntryFilters, categories: [...draftEntryFilters.categories] };
+    if (entryFilters.type === "deleted") {
+      entriesSearchTerm = "";
+      if (entriesSearchInput) entriesSearchInput.value = "";
+    }
+    formatFilterPanel();
+    void closeEntryFiltersModal();
+    void loadDashboard();
+  });
+
+  entriesFilterType?.addEventListener("ionChange", (event) => {
+    const type = String(event?.detail?.value || "all");
+    applyTypeRulesOnDraft(type);
+    syncFilterDraftToUi();
+  });
+
+  entriesFilterCategories?.addEventListener("click", (event) => {
+    if (draftEntryFilters.type === "deleted") return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest(".filter-category-chip");
+    if (!button) return;
+    const name = decodeURIComponent(String(button.getAttribute("data-category") || ""));
+    const selected = new Set(draftEntryFilters.categories || []);
+    if (selected.has(name)) selected.delete(name); else selected.add(name);
+    draftEntryFilters.categories = [...selected];
+    syncFilterDraftToUi();
+  });
+
+  openEntriesFilterStartDateBtn?.addEventListener("click", async () => {
+    await entriesFilterStartDateModal?.present();
+  });
+  openEntriesFilterEndDateBtn?.addEventListener("click", async () => {
+    await entriesFilterEndDateModal?.present();
+  });
+  closeEntriesFilterStartDateModalBtn?.addEventListener("click", async () => {
+    try { await entriesFilterStartDateModal?.dismiss(); } catch {}
+  });
+  closeEntriesFilterEndDateModalBtn?.addEventListener("click", async () => {
+    try { await entriesFilterEndDateModal?.dismiss(); } catch {}
+  });
+
+  entriesFilterStartDatePicker?.addEventListener("ionChange", (event) => {
+    const value = String(event?.detail?.value || "").slice(0, 10);
+    if (!value) return;
+    draftEntryFilters.startDate = value;
+    syncFilterDraftToUi();
+    void entriesFilterStartDateModal?.dismiss();
+  });
+
+  entriesFilterEndDatePicker?.addEventListener("ionChange", (event) => {
+    const value = String(event?.detail?.value || "").slice(0, 10);
+    if (!value) return;
+    draftEntryFilters.endDate = value;
+    syncFilterDraftToUi();
+    void entriesFilterEndDateModal?.dismiss();
+  });
+
+  entriesSearchInput?.addEventListener("input", () => {
+    if (entryFilters.type === "deleted") {
+      entriesSearchInput.value = "";
+      entriesSearchTerm = "";
+      return;
+    }
+    entriesSearchTerm = String(entriesSearchInput.value || "").trim();
+    startSearchDebouncedReload();
+  });
+
+  entriesList?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest(".entry-row--button");
+    if (!button) return;
+    const entryId = Number(button.getAttribute("data-entry-id") || 0);
+    if (entryId > 0) {
+      void openEntryEditor(entryId);
+    }
+  });
 }
 
 function renderRows(container, items, mode, emptyText) {
@@ -692,7 +1269,6 @@ function renderRows(container, items, mode, emptyText) {
     `;
     return;
   }
-
   container.innerHTML = items.map((item) => rowTemplate(item, mode)).join("");
 }
 
@@ -747,6 +1323,82 @@ function renderCategories(items) {
     .join("");
 }
 
+function toneClassForCategory(name) {
+  const key = normalizeText(name);
+  let sum = 0;
+  for (let i = 0; i < key.length; i += 1) sum += key.charCodeAt(i);
+  return `tone-${(sum % 6) + 1}`;
+}
+
+function renderCategoriesTab(currentAgg, previousAgg) {
+  if (!categoriesListScreen) return;
+
+  const currentItems = Array.isArray(currentAgg?.by_category) ? currentAgg.by_category : [];
+  const previousItems = Array.isArray(previousAgg?.by_category) ? previousAgg.by_category : [];
+  const prevMap = new Map(previousItems.map((item) => [String(item?.name || ""), Number(item?.out || 0)]));
+
+  const currentMonthOut = Number(currentAgg?.totals?.out || 0);
+  const previousMonthOut = Number(previousAgg?.totals?.out || 0);
+  if (catSoFarEl) catSoFarEl.textContent = money.format(currentMonthOut);
+  if (catLastMonthEl) catLastMonthEl.textContent = money.format(previousMonthOut);
+
+  const topForDonut = currentItems
+    .map((item) => ({ name: String(item?.name || ""), out: Number(item?.out || 0) }))
+    .filter((item) => item.out > 0)
+    .sort((a, b) => b.out - a.out)
+    .slice(0, 4);
+  const donutTotal = topForDonut.reduce((acc, item) => acc + item.out, 0);
+  if (catDonutEl) {
+    if (!donutTotal) {
+      catDonutEl.style.background = "conic-gradient(#dfe4ee 0turn 1turn)";
+    } else {
+      const colors = ["#ea8a32", "#7c2fe0", "#de4f42", "#53b241"];
+      let cursor = 0;
+      const segments = topForDonut.map((item, index) => {
+        const fraction = item.out / donutTotal;
+        const start = cursor;
+        cursor += fraction;
+        return `${colors[index % colors.length]} ${start}turn ${cursor}turn`;
+      });
+      catDonutEl.style.background = `conic-gradient(${segments.join(", ")})`;
+    }
+  }
+
+  const listItems = currentItems
+    .map((item) => {
+      const name = String(item?.name || "").trim();
+      const currOut = Number(item?.out || 0);
+      const prevOut = Number(prevMap.get(name) || 0);
+      return { name, currOut, prevOut };
+    })
+    .filter((item) => item.name);
+
+  if (!listItems.length) {
+    categoriesListScreen.innerHTML = `<p class="cat-empty">Sem dados de categorias no perÃ­odo.</p>`;
+    return;
+  }
+
+  categoriesListScreen.innerHTML = listItems
+    .map((item) => {
+      const icon = categoryGlyph(item.name);
+      const safeName = escapeHtml(item.name);
+      const base = Math.max(item.prevOut, item.currOut, 1);
+      const width = Math.max(4, Math.min(100, Math.round((item.currOut / base) * 100)));
+      const overClass = item.currOut > item.prevOut ? " is-over" : "";
+      return `
+        <div class="cat-row">
+          <div class="cat-row__meta">
+            <span class="cat-chip ${toneClassForCategory(item.name)}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
+            <span class="cat-row__bar"><span class="cat-row__bar-fill${overClass}" style="width:${width}%"></span></span>
+          </div>
+          <div class="cat-row__curr">${money.format(item.currOut)}</div>
+          <div class="cat-row__prev">${money.format(item.prevOut)}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 async function loadCategories() {
   try {
     const response = await authFetch("/api/categories");
@@ -756,15 +1408,20 @@ async function loadCategories() {
     }
     if (!response.ok) {
       categories = [];
-      renderCategoryOptions(entryTypeInput?.value || "");
+    renderCategoryOptions("");
       return;
     }
     const data = await response.json();
     categories = Array.isArray(data) ? data : [];
-    renderCategoryOptions(entryTypeInput?.value || "");
+    if (!entryFilters.categories.length) {
+      entryFilters.categories = categories.map((item) => String(item?.name || ""));
+      draftEntryFilters.categories = [...entryFilters.categories];
+      formatFilterPanel();
+    }
+    renderCategoryOptions("");
   } catch {
     categories = [];
-    renderCategoryOptions(entryTypeInput?.value || "");
+    renderCategoryOptions("");
   }
 }
 
@@ -793,7 +1450,7 @@ async function uploadAttachment(file) {
   }
 
   if (!response.ok || !data?.file) {
-    throw new Error(data?.error || "Não foi possível enviar o comprovante.");
+    throw new Error(data?.error || "NÃ£o foi possÃ­vel enviar o comprovante.");
   }
 
   return String(data.file);
@@ -801,7 +1458,11 @@ async function uploadAttachment(file) {
 
 function resetEntryForm() {
   if (entryTypeInput) entryTypeInput.value = "";
-  setEntryTheme("");
+  editingEntryId = null;
+  editingEntryAttachmentPath = "";
+  editingEntryDeleted = false;
+  setEntryModalMode("create");
+  setEntryTheme("neutral");
   if (entryAmountInput) entryAmountInput.value = formatMoneyInput(0);
   selectedCategoryValue = "";
   if (categorySearchInput) categorySearchInput.value = "";
@@ -809,6 +1470,7 @@ function resetEntryForm() {
     selectedCategoryEl.textContent = "Selecionar categoria";
     selectedCategoryEl.classList.add("is-placeholder");
   }
+  setEntryDirectionHint("");
   setPickerExpanded(openCategoryBtn, false);
   if (entryDescriptionInput) entryDescriptionInput.value = "";
   selectedDateISO = todayIsoDate();
@@ -827,11 +1489,13 @@ async function openEntryModal() {
   hideMessages();
   resetEntryForm();
   await loadCategories();
+  setEntryModalMode("create");
   await entryModal?.present();
   setEntryLayerState(true);
 }
 
 async function closeEntryModal() {
+  await closeAttachmentViewer();
   await closeCategorySheet();
   await closeDateSheet();
   await entryModal?.dismiss();
@@ -840,26 +1504,26 @@ async function closeEntryModal() {
 }
 
 async function createEntry() {
-  const type = String(entryTypeInput?.value || "").trim();
+  const type = entryTypeFromSelectedCategory();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
   const date = String(selectedDateISO || "").slice(0, 10).trim();
   const description = String(entryDescriptionInput?.value || "").trim();
 
   if (!["in", "out"].includes(type)) {
-    showError("Selecione se é entrada ou saída.");
+    showError("Selecione uma categoria vÃ¡lida.");
     return;
   }
   if (!Number.isFinite(amount) || amount <= 0) {
-    showError("Informe um valor válido.");
+    showError("Informe um valor vÃ¡lido.");
     return;
   }
   if (!category) {
-    showError("Categoria é obrigatória.");
+    showError("Categoria Ã© obrigatÃ³ria.");
     return;
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    showError("Data inválida.");
+    showError("Data invÃ¡lida.");
     return;
   }
 
@@ -868,10 +1532,11 @@ async function createEntry() {
   try {
     const attachmentPath = selectedAttachmentFile
       ? await uploadAttachment(selectedAttachmentFile)
-      : null;
+      : (editingEntryId ? editingEntryAttachmentPath : null);
 
-    const response = await fetch("/api/entries", {
-      method: "POST",
+    const endpoint = editingEntryId ? `/api/entries/${editingEntryId}` : "/api/entries";
+    const response = await fetch(endpoint, {
+      method: editingEntryId ? "PUT" : "POST",
       credentials: "same-origin",
       headers: authHeaders({
         "Content-Type": "application/json",
@@ -900,12 +1565,12 @@ async function createEntry() {
     }
 
     if (!response.ok) {
-      showError(data?.error || "Não foi possível salvar a entrada.");
+      showError(data?.error || "NÃ£o foi possÃ­vel salvar a entrada.");
       return;
     }
 
     await closeEntryModal();
-    showInfo("Entrada adicionada com sucesso.");
+    showInfo(editingEntryId ? "LanÃ§amento atualizado com sucesso." : "Entrada adicionada com sucesso.");
     await loadDashboard();
     showTab("lancamentos");
   } catch {
@@ -916,8 +1581,63 @@ async function createEntry() {
   }
 }
 
+async function restoreEntry() {
+  if (!editingEntryId) return;
+  try {
+    const response = await fetch(`/api/entries/${editingEntryId}/restore`, {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    if (!response.ok) {
+      showError("NÃ£o foi possÃ­vel restaurar o lanÃ§amento.");
+      return;
+    }
+    await closeEntryModal();
+    showInfo("LanÃ§amento restaurado com sucesso.");
+    await loadDashboard();
+  } catch {
+    showError("Falha de rede ao restaurar o lanÃ§amento.");
+  }
+}
+
+async function deleteEntry() {
+  if (!editingEntryId || editingEntryDeleted) return;
+  const confirmed = window.confirm("Excluir este lanÃ§amento?");
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`/api/entries/${editingEntryId}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    if (!response.ok) {
+      showError("NÃ£o foi possÃ­vel excluir o lanÃ§amento.");
+      return;
+    }
+    await closeEntryModal();
+    showInfo("LanÃ§amento excluÃ­do com sucesso.");
+    await loadDashboard();
+  } catch {
+    showError("Falha de rede ao excluir o lanÃ§amento.");
+  }
+}
+
 function setupEntryModal() {
   openEntryBtn?.addEventListener("click", () => {
+    void openEntryModal();
+  });
+
+  openEntryInlineBtn?.addEventListener("click", () => {
     void openEntryModal();
   });
 
@@ -933,19 +1653,16 @@ function setupEntryModal() {
     void createEntry();
   });
 
-  entryTypeInput?.addEventListener("ionChange", (event) => {
-    const type = String(event?.detail?.value || "");
-    setEntryTheme(type);
-    void closeCategorySheet();
-    void closeDateSheet();
-    setPickerExpanded(openDateBtn, false);
-    if (categorySearchInput) categorySearchInput.value = "";
-    renderCategoryOptions(type);
-    selectedCategoryValue = "";
-    if (selectedCategoryEl) {
-      selectedCategoryEl.textContent = "Selecionar categoria";
-      selectedCategoryEl.classList.add("is-placeholder");
-    }
+  restoreEntryBtn?.addEventListener("click", () => {
+    void restoreEntry();
+  });
+
+  deleteEntryBtn?.addEventListener("click", () => {
+    void deleteEntry();
+  });
+
+  entryTypeInput?.addEventListener("ionChange", () => {
+    // Mantido por compatibilidade: tipo agora deriva da categoria.
     updateSaveState();
   });
 
@@ -971,7 +1688,7 @@ function setupEntryModal() {
   });
 
   openCategoryBtn?.addEventListener("click", () => {
-    renderCategoryOptions(entryTypeInput?.value || "");
+    renderCategoryOptions("");
     void openCategorySheet();
   });
 
@@ -985,7 +1702,7 @@ function setupEntryModal() {
       }
       updateSaveState();
     }
-    renderCategoryOptions(entryTypeInput?.value || "");
+    renderCategoryOptions("");
   });
 
   categoryListEl?.addEventListener("click", (event) => {
@@ -1002,6 +1719,8 @@ function setupEntryModal() {
       selectedCategoryEl.textContent = value;
       selectedCategoryEl.classList.remove("is-placeholder");
     }
+    setEntryDirectionHint(value);
+    setEntryTheme(entryTypeFromSelectedCategory() || "neutral");
     updateSaveState();
     void closeCategorySheet();
   });
@@ -1056,9 +1775,10 @@ function setupEntryModal() {
       showError("Anexe um arquivo de imagem ou PDF.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    const maxSize = isPdf ? 1 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
       clearAttachmentSelection();
-      showError("Arquivo muito grande. Limite de 10MB.");
+      showError(isPdf ? "Arquivo PDF muito grande. Limite de 1MB." : "Arquivo muito grande. Limite de 10MB.");
       return;
     }
 
@@ -1067,7 +1787,36 @@ function setupEntryModal() {
   });
 
   clearAttachmentBtn?.addEventListener("click", () => {
-    clearAttachmentSelection();
+    clearAttachmentSelection(true);
+  });
+
+  closeAttachmentViewerBtn?.addEventListener("click", () => {
+    void closeAttachmentViewer();
+  });
+
+  attachmentViewerModal?.addEventListener("ionModalDidDismiss", () => {
+    if (attachmentViewerImage) {
+      attachmentViewerImage.hidden = true;
+      attachmentViewerImage.removeAttribute("src");
+    }
+    if (attachmentViewerPdf) {
+      attachmentViewerPdf.hidden = true;
+      attachmentViewerPdf.removeAttribute("src");
+    }
+  });
+
+  attachmentPreviewImage?.addEventListener("click", () => {
+    if (attachmentPreviewImage.hidden) return;
+    const src = String(attachmentPreviewImage.getAttribute("src") || "");
+    if (!src) return;
+    void openAttachmentViewer(src, false);
+  });
+
+  attachmentPreviewPdf?.addEventListener("click", () => {
+    if (attachmentPreviewPdf.hidden) return;
+    const src = String(attachmentPreviewPdf.getAttribute("src") || "");
+    if (!src) return;
+    void openAttachmentViewer(src, true);
   });
 }
 async function authFetch(path) {
@@ -1091,33 +1840,39 @@ async function loadDashboard() {
   if (refreshBtn) refreshBtn.disabled = true;
 
   const month = monthRange();
-  if (periodEl) periodEl.textContent = `Período: ${periodLabel()}`;
+  const prevMonth = previousMonthRange(month);
+  const groupsQuery = buildEntriesGroupsQueryString(entryFilters, entriesSearchTerm);
+  if (periodEl) periodEl.textContent = `PerÃ­odo: ${periodLabel()}`;
 
   try {
-    const [profileRes, monthAggRes, summaryRes, entriesRes] = await Promise.all([
+    const [profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes] = await Promise.all([
       authFetch("/api/account/profile"),
       authFetch(`/api/reports/aggregate?start=${month}&end=${month}`),
+      authFetch(`/api/reports/aggregate?start=${prevMonth}&end=${prevMonth}`),
       authFetch("/api/reports/summary"),
       authFetch("/api/entries"),
+      authFetch(`/api/reports/entries-groups?${groupsQuery}`),
     ]);
 
-    if ([profileRes, monthAggRes, summaryRes, entriesRes].some((response) => response.status === 401)) {
+    if ([profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => response.status === 401)) {
       window.location.href = "/";
       return;
     }
-    if ([profileRes, monthAggRes, summaryRes, entriesRes].some((response) => !response.ok)) {
-      showError("Não foi possível carregar o dashboard.");
+    if ([profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => !response.ok)) {
+      showError("NÃ£o foi possÃ­vel carregar o dashboard.");
       return;
     }
 
-    const [profile, monthAgg, summary, entries] = await Promise.all([
+    const [profile, monthAgg, prevMonthAgg, summary, entries, groupedPayload] = await Promise.all([
       safeJson(profileRes, {}),
       safeJson(monthAggRes, {}),
+      safeJson(prevMonthAggRes, {}),
       safeJson(summaryRes, {}),
       safeJson(entriesRes, []),
+      safeJson(entryGroupsRes, {}),
     ]);
 
-    const displayName = profile?.name || profile?.email || "Usuário";
+    const displayName = profile?.name || profile?.email || "UsuÃ¡rio";
     if (userTitleEl) userTitleEl.textContent = displayName;
 
     const totals = monthAgg?.totals || {};
@@ -1130,18 +1885,18 @@ async function loadDashboard() {
       balanceHeadEl.textContent = money.format(balance);
       balanceHeadEl.className = `topbar-balance__value ${toAmountClass(balance)}`.trim();
     }
-    if (budgetLine) budgetLine.textContent = `${money.format(totalIn + totalOut)} orçado no mês`;
+    if (budgetLine) budgetLine.textContent = `${money.format(totalIn + totalOut)} orÃ§ado no mÃªs`;
 
     const trend = Number((summary?.last_12_months || []).slice(-1)[0]?.month_balance || 0);
     const trendPrefix = trend >= 0 ? "+" : "-";
-    if (trendLabel) trendLabel.textContent = `Resultado do mês ${trendPrefix} ${money.format(Math.abs(trend))}`;
+    if (trendLabel) trendLabel.textContent = `Resultado do mÃªs ${trendPrefix} ${money.format(Math.abs(trend))}`;
     if (trendLine) trendLine.setAttribute("points", polylinePoints(summary?.last_12_months || []));
 
-    const listEntries = Array.isArray(entries) ? sortEntriesByDateDesc(entries).slice(0, 20) : [];
-    renderRows(entriesList, listEntries, "entry", "Nenhum lançamento encontrado.");
+    const entryGroups = Array.isArray(groupedPayload?.groups) ? groupedPayload.groups : [];
+    renderEntriesGroupedFromServer(entriesList, entryGroups, "Nenhum lanÃ§amento encontrado.");
     if (entriesMetaEl) {
-      const count = listEntries.length;
-      entriesMetaEl.textContent = count === 1 ? "1 item recente" : `${count} itens recentes`;
+      const count = Number(groupedPayload?.count || 0);
+      entriesMetaEl.textContent = count === 1 ? "1 lanÃ§amento" : `${count} lanÃ§amentos`;
     }
 
     try {
@@ -1158,10 +1913,11 @@ async function loadDashboard() {
             .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
             .slice(0, 3)
         : [];
-      renderRows(nextList, nextEntries, "next", "Nenhum lançamento futuro.");
+      renderRows(nextList, nextEntries, "next", "Nenhum lanÃ§amento futuro.");
       renderCategories(monthAgg?.by_category || []);
+      renderCategoriesTab(monthAgg || {}, prevMonthAgg || {});
     } catch (sectionError) {
-      console.error("Erro ao renderizar seções secundárias do dashboard:", sectionError);
+      console.error("Erro ao renderizar seÃ§Ãµes secundÃ¡rias do dashboard:", sectionError);
     }
 
     await loadCategories();
@@ -1170,6 +1926,20 @@ async function loadDashboard() {
     console.error("Erro ao carregar dashboard:", error);
     showError("Falha ao processar os dados do dashboard.");
   } finally {
+    if (initialBootPending) {
+      initialBootPending = false;
+      if (window.__dashboardLoading && typeof window.__dashboardLoading.finishWithSlide === "function") {
+        window.__dashboardLoading.finishWithSlide(500, 420);
+      } else {
+        window.setTimeout(() => {
+          if (!rootApp) return;
+          rootApp.classList.add("is-boot-exiting");
+          window.setTimeout(() => {
+            setInitialLoading(false);
+          }, 420);
+        }, 500);
+      }
+    }
     if (refreshBtn) refreshBtn.disabled = false;
   }
 }
@@ -1206,7 +1976,14 @@ refreshBtn?.addEventListener("click", () => {
 
 setupTabNav();
 setupEntryModal();
+initEntryFilters();
+formatFilterPanel();
+setupEntriesInteractions();
+setInitialLoading(true);
 void loadDashboard();
+
+
+
 
 
 

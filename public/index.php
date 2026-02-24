@@ -211,6 +211,7 @@ $router->add('DELETE', '/api/entries/{id}/purge', [EntryController::class, 'purg
 $router->add('GET', '/api/categories', [CategoryController::class, 'list']);
 $router->add('GET', '/api/reports/summary', [ReportController::class, 'summary']);
 $router->add('GET', '/api/reports/aggregate', [ReportController::class, 'aggregate']);
+$router->add('GET', '/api/reports/entries-groups', [ReportController::class, 'entriesGroups']);
 $router->add('GET', '/api/reports/closure', [ReportController::class, 'closure']);
 $router->add('GET', '/api/export/pdf', [ExportController::class, 'pdf']);
 $router->add('POST', '/api/upload', [UploadController::class, 'upload']);

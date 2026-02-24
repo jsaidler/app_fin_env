@@ -1,5 +1,16 @@
+@font-face {
+  font-family: "Kamerik 105";
+  src:
+    local("Kamerik 105"),
+    local("Kamerik105"),
+    url("/assets/fonts/kamerik-105-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --font-sans: "Avenir Next", "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-sans: "Kamerik 105", "Avenir Next", "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
 
   --color-bg: #f2f5f9;
   --color-surface: #ffffff;
@@ -73,6 +84,10 @@
   --font-size-lg: 16px;
   --font-size-xl: 20px;
   --font-size-2xl: 28px;
+  --font-size-display: 34px;
+
+  --line-height-tight: 1.05;
+  --line-height-body: 1.35;
 
   --shadow-card: 0 10px 24px rgba(12, 22, 34, 0.1);
   --shadow-soft: 0 10px 24px rgba(12, 22, 34, 0.08);
@@ -83,7 +98,7 @@
   --success-gradient: linear-gradient(135deg, #2e8b5a 0%, #34a063 60%, #1f7a4f 100%);
   --danger-gradient: linear-gradient(135deg, #c65757 0%, #d66a6a 60%, #b54949 100%);
 
-  --app-max-width: 560px;
+  --app-max-width: 620px;
   --admin-max-width: 1200px;
   --content-gutter: 16px;
 

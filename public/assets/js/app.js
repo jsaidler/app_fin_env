@@ -121,15 +121,17 @@ async function tryLoadSession() {
       headers: authHeaders({ Accept: "application/json" }),
     });
     if (!response.ok) {
-      return;
+      return false;
     }
     const data = await response.json();
     if (!data || !data.email) {
-      return;
+      return false;
     }
     window.location.href = "/dashboard";
+    return true;
   } catch {
     // Ignora falhas de rede nessa verificacao inicial.
+    return false;
   }
 }
 
@@ -331,16 +333,44 @@ function resolveInitialMode() {
   return MODE_LOGIN;
 }
 
-bindUiEvents();
-const initialMode = resolveInitialMode();
-if (initialMode === MODE_LOGIN) {
-  void tryLoadSession();
+function warmDashboardRoute() {
+  fetch("/dashboard", {
+    method: "GET",
+    credentials: "same-origin",
+    headers: { Accept: "text/html" },
+  }).catch(() => {
+    // warmup nao pode bloquear o fluxo do login
+  });
 }
+
+function revealLoginUi() {
+  document.body.classList.remove("auth-checking");
+}
+
+async function initLoginApp() {
+  bindUiEvents();
+  const initialMode = resolveInitialMode();
+  if (initialMode !== MODE_LOGIN) {
+    revealLoginUi();
+    return;
+  }
+  const redirected = await tryLoadSession();
+  if (!redirected) {
+    revealLoginUi();
+  }
+}
+
+void initLoginApp();
 
 if ("serviceWorker" in navigator && window.isSecureContext) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/service-worker.js").catch(() => {
       // Falha de registro nao bloqueia o app.
     });
+    warmDashboardRoute();
+  });
+} else {
+  window.addEventListener("load", () => {
+    warmDashboardRoute();
   });
 }

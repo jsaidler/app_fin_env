@@ -11,13 +11,20 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/assets/img/icons/icon_x192.png" />
   <title>Caixa Simples | Dashboard</title>
+  <script src="/assets/js/dashboard-loading.js"></script>
   <link rel="stylesheet" href="/assets/vendor/ionic/css/ionic.bundle.css" />
   <link rel="stylesheet" href="/assets/css/tokens.css" />
   <link rel="stylesheet" href="/assets/css/components.css" />
   <link rel="stylesheet" href="/assets/css/dashboard.css" />
 </head>
 <body>
-  <ion-app mode="md">
+  <ion-app mode="md" class="is-booting">
+    <div id="page-loading-overlay" class="page-loading-overlay" role="status" aria-live="polite" aria-label="Carregando página">
+      <div class="page-loading-overlay__center">
+        <img class="page-loading-overlay__logo" src="/assets/img/logo-mono-white-app.webp" alt="" aria-hidden="true" />
+      </div>
+      <div class="page-loading-overlay__footer">Carregando...</div>
+    </div>
     <ion-header class="dash-header">
       <ion-toolbar class="dash-topbar">
         <div class="brand-shell">
@@ -25,11 +32,11 @@
             <ion-button fill="clear" class="brand-top-btn" aria-label="Mensagens">
               <span class="material-symbols-rounded">chat_bubble</span>
             </ion-button>
+            <img class="brand-logo" src="/assets/img/logo-mono-white-app.webp" alt="Envisione Assessoria Contábil" />
             <ion-button id="dash-menu-btn" fill="clear" class="brand-top-btn" aria-label="Opções">
               <span class="material-symbols-rounded">settings</span>
             </ion-button>
           </div>
-          <img class="brand-logo" src="/assets/img/logo-mono-white-app.webp" alt="Envisione Assessoria Contábil" />
           <div class="sr-only-data" aria-hidden="true">
             <span id="dash-user-title">Carregando...</span>
             <span id="dash-period">--</span>
@@ -54,17 +61,38 @@
           </button>
         </nav>
       </div>
+
+      <div id="tx-search-overlay" class="tx-search-overlay" aria-label="Buscar e filtrar lançamentos">
+        <div class="tx-search">
+          <input id="entries-search-input" type="search" placeholder="Buscar lançamentos" aria-label="Buscar lançamentos" autocomplete="off" />
+          <button id="open-entry-filters-summary" type="button" class="tx-search__filter-btn" aria-label="Abrir filtros">
+            <span class="material-symbols-rounded">tune</span>
+          </button>
+        </div>
+      </div>
     </ion-header>
 
     <ion-content>
       <main class="dash-shell">
-        <section id="sec-lancamentos" class="dash-section dash-section--primary" data-tab-content="lancamentos" aria-label="Lançamentos recentes">
-          <header class="section-head">
-            <p class="section-kicker">Conta</p>
-            <h2 class="section-title-main">Lançamentos</h2>
-            <p id="dash-entries-meta" class="entries-meta">--</p>
+        <section id="sec-lancamentos" class="dash-section dash-section--primary dash-section--minimal" data-tab-content="lancamentos" aria-label="Lançamentos recentes">
+          <header class="tx-head">
+            <h2 class="tx-head__title">Lançamentos</h2>
           </header>
-          <div id="entries-list" class="feed-list"></div>
+
+          <section class="tx-explore" aria-label="Explorar lançamentos">
+            <div class="tx-filter-panel" aria-label="Resumo dos filtros atuais">
+              <span class="tx-filter-panel__row">
+                <span class="tx-filter-panel__label">Período</span>
+                <span id="entries-filter-panel-period" class="tx-filter-panel__value">--</span>
+              </span>
+            </div>
+
+            <button id="open-entry-inline" type="button" class="tx-add-cta">Adicionar lançamento</button>
+          </section>
+
+          <p id="dash-entries-meta" class="tx-head__meta">--</p>
+
+          <div id="entries-list" class="tx-list feed-list"></div>
         </section>
 
         <section id="sec-painel" class="dash-section" data-tab-content="painel" aria-label="Resumo financeiro" hidden>
@@ -112,6 +140,32 @@
           <div id="next-list" class="upcoming-list feed-list"></div>
         </section>
 
+        <section id="sec-categorias" class="dash-section dash-categories" data-tab-content="categorias" aria-label="Resumo por categorias" hidden>
+          <div class="cat-summary">
+            <div class="cat-summary__metric">
+              <div id="cat-so-far" class="cat-summary__value">R$ 0,00</div>
+              <div class="cat-summary__label">gasto no mês</div>
+            </div>
+            <div class="cat-summary__donut-wrap">
+              <div id="cat-donut" class="cat-summary__donut" aria-hidden="true">
+                <span class="cat-summary__donut-hole"></span>
+              </div>
+            </div>
+            <div class="cat-summary__metric cat-summary__metric--right">
+              <div id="cat-last-month" class="cat-summary__value">R$ 0,00</div>
+              <div class="cat-summary__label">mês anterior</div>
+            </div>
+          </div>
+
+          <div class="cat-list-head" aria-hidden="true">
+            <span class="cat-list-head__name"></span>
+            <span class="cat-list-head__curr">Gasto</span>
+            <span class="cat-list-head__prev">Anterior</span>
+          </div>
+
+          <div id="categories-list-screen" class="cat-list"></div>
+        </section>
+
       </main>
 
       <div class="fab-scrim" aria-hidden="true"></div>
@@ -142,7 +196,7 @@
     <ion-modal id="entry-modal" class="sheet-modal entry-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Nova entrada</ion-title>
+          <ion-title id="entry-modal-title" class="entry-title">Nova entrada</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
             <ion-button id="close-entry" aria-label="Fechar nova entrada">
               <span class="material-symbols-rounded">close</span>
@@ -151,19 +205,7 @@
         </ion-toolbar>
       </ion-header>
 
-      <ion-content id="entry-content" class="ion-padding">
-        <div class="entry-type-switch">
-          <p class="entry-type-switch__label">Tipo do lançamento</p>
-          <ion-segment id="entry-type" value="" mode="md">
-            <ion-segment-button value="in">
-              <ion-label>Entrada</ion-label>
-            </ion-segment-button>
-            <ion-segment-button value="out">
-              <ion-label>Saída</ion-label>
-            </ion-segment-button>
-          </ion-segment>
-        </div>
-
+      <div id="entry-content" class="entry-content ion-padding">
         <div class="entry-amount">
           <div class="amount-label">Valor</div>
           <div class="amount-row">
@@ -188,7 +230,10 @@
             <div class="entry-field-set">
               <button id="open-category" type="button" class="entry-picker-row" aria-expanded="false">
                 <span class="entry-picker-row__label">Categoria</span>
-                <span id="selected-category" class="entry-picker-row__value is-placeholder">Selecionar categoria</span>
+                <span class="entry-picker-row__value-wrap">
+                  <span id="selected-category-direction" class="entry-picker-row__direction material-symbols-rounded" aria-hidden="true" hidden>arrow_downward</span>
+                  <span id="selected-category" class="entry-picker-row__value is-placeholder">Selecionar categoria</span>
+                </span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
             </div>
@@ -226,12 +271,14 @@
             <ion-button id="clear-attachment" fill="clear" size="small">Remover</ion-button>
           </div>
         </div>
-      </ion-content>
+      </div>
 
       <ion-footer class="entry-actions">
         <ion-toolbar>
           <div class="modal-actions">
             <ion-button fill="clear" id="cancel-entry">Cancelar</ion-button>
+            <ion-button fill="outline" color="danger" id="delete-entry" hidden>Excluir</ion-button>
+            <ion-button fill="outline" id="restore-entry" hidden>Restaurar</ion-button>
             <ion-button color="primary" id="save-entry" disabled>Salvar</ion-button>
           </div>
         </ion-toolbar>
@@ -249,10 +296,10 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      <ion-content class="ion-padding">
+      <div class="entry-content ion-padding">
         <ion-searchbar id="category-search" mode="md" placeholder="Buscar categoria"></ion-searchbar>
         <div id="category-list" class="category-list"></div>
-      </ion-content>
+      </div>
     </ion-modal>
 
     <ion-modal id="entry-date-modal" class="sheet-modal entry-picker-sheet">
@@ -266,14 +313,138 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      <ion-content class="ion-padding">
+      <div class="entry-content ion-padding">
         <ion-datetime
           id="entry-date-picker"
           presentation="date"
           locale="pt-BR"
           show-default-buttons="false"
         ></ion-datetime>
-      </ion-content>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="attachment-viewer-modal" class="sheet-modal attachment-viewer-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Comprovante</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-attachment-viewer" aria-label="Fechar comprovante">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="attachment-viewer-content ion-padding">
+        <img id="attachment-viewer-image" class="attachment-viewer__image" alt="Comprovante completo" hidden />
+        <iframe id="attachment-viewer-pdf" class="attachment-viewer__pdf" title="Comprovante completo em PDF" hidden></iframe>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="entries-filter-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Filtrar lançamentos</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-entry-filters" aria-label="Fechar filtros">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="filters-grid">
+          <div class="filters-range">
+            <div class="entry-field-set filters-date-set">
+              <button id="open-entries-filter-start-date" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Data início</span>
+                <span id="selected-entries-filter-start-date" class="entry-picker-row__value is-placeholder">Selecionar data</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+            <div class="entry-field-set filters-date-set">
+              <button id="open-entries-filter-end-date" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Data fim</span>
+                <span id="selected-entries-filter-end-date" class="entry-picker-row__value is-placeholder">Selecionar data</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+          </div>
+
+          <section class="filters-block" aria-label="Tipo de lançamento">
+            <p class="entry-stage__title">Tipo</p>
+            <ion-segment id="entries-filter-type" value="all" mode="md">
+              <ion-segment-button value="all">
+                <ion-label>Todos</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="in">
+                <ion-label>Entrada</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="out">
+                <ion-label>Saída</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="deleted">
+                <ion-label>Excluídos</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+          </section>
+
+          <section class="filters-block" aria-label="Categorias">
+            <p class="entry-stage__title">Categorias</p>
+            <div id="entries-filter-categories" class="filters-categories-list" role="group" aria-label="Categorias para filtrar"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="clear-entry-filters">Limpar</ion-button>
+            <ion-button fill="outline" id="cancel-entry-filters">Cancelar</ion-button>
+            <ion-button color="primary" id="apply-entry-filters">Aplicar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="entries-filter-start-date-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar data início</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-entries-filter-start-date-modal" aria-label="Fechar data início">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-datetime
+          id="entries-filter-start-date-picker"
+          presentation="date"
+          locale="pt-BR"
+          show-default-buttons="false"
+        ></ion-datetime>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="entries-filter-end-date-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar data fim</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-entries-filter-end-date-modal" aria-label="Fechar data fim">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-datetime
+          id="entries-filter-end-date-picker"
+          presentation="date"
+          locale="pt-BR"
+          show-default-buttons="false"
+        ></ion-datetime>
+      </div>
     </ion-modal>
 
   </ion-app>
