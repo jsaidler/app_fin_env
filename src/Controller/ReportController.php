@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Service\MonthLockService;
 use App\Service\ReportService;
 use App\Util\Response;
@@ -13,7 +14,7 @@ class ReportController extends BaseController
     public function summary(): void
     {
         $uid = $this->requireAuth();
-        $service = new ReportService($this->entryRepo());
+        $service = new ReportService($this->entryRepo(), $this->accountRepo());
         $summary = $service->summary($uid);
         Response::json($summary);
     }
@@ -27,7 +28,7 @@ class ReportController extends BaseController
             'type' => $_GET['type'] ?? null,
             'category' => $_GET['category'] ?? null,
         ];
-        $service = new ReportService($this->entryRepo());
+        $service = new ReportService($this->entryRepo(), $this->accountRepo());
         $data = $service->aggregateReport($uid, $filters);
         Response::json($data);
     }
@@ -39,7 +40,7 @@ class ReportController extends BaseController
         if (!preg_match('/^\\d{4}-\\d{2}$/', $month)) {
             Response::json(['error' => 'Mes invalido'], 422);
         }
-        $service = new ReportService($this->entryRepo());
+        $service = new ReportService($this->entryRepo(), $this->accountRepo());
         $report = $service->monthClosure($uid, $month);
         $lock = $this->lockService()->getLockForUser($month, $uid);
         $closed = $lock ? (bool)$lock['closed'] : false;
@@ -67,7 +68,7 @@ class ReportController extends BaseController
             'categories' => $categories,
         ];
 
-        $service = new ReportService($this->entryRepo());
+        $service = new ReportService($this->entryRepo(), $this->accountRepo());
         $data = $service->entriesGroupsReport($uid, $filters);
         Response::json($data);
     }
@@ -75,6 +76,11 @@ class ReportController extends BaseController
     private function entryRepo()
     {
         return new SqliteEntryRepository($this->db());
+    }
+
+    private function accountRepo()
+    {
+        return new SqliteUserAccountRepository($this->db());
     }
 
     private function lockService(): MonthLockService

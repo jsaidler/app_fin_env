@@ -4,14 +4,17 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\EntryRepositoryInterface;
+use App\Repository\UserAccountRepositoryInterface;
 
 class ReportService
 {
     private EntryRepositoryInterface $entries;
+    private ?UserAccountRepositoryInterface $accounts;
 
-    public function __construct(EntryRepositoryInterface $entries)
+    public function __construct(EntryRepositoryInterface $entries, ?UserAccountRepositoryInterface $accounts = null)
     {
         $this->entries = $entries;
+        $this->accounts = $accounts;
     }
 
     public function summary(int $userId): array
@@ -119,7 +122,7 @@ class ReportService
             'pending' => $this->pendingTotals($filtered),
             'by_day' => $this->dailySeries($approved),
             'by_category' => $this->categorySummary($approved),
-            'by_account' => $this->accountSummary($approved),
+            'by_account' => $this->accountSummary($approved, $userId),
             'last_12_months' => $this->last12Months($entries),
         ];
     }
@@ -612,9 +615,32 @@ class ReportService
     }
 
     /** @param array<int, object> $entries */
-    private function accountSummary(array $entries): array
+    private function accountSummary(array $entries, int $userId = 0): array
     {
         $map = [];
+
+        if ($userId > 0 && $this->accounts) {
+            foreach ($this->accounts->listByUser($userId, false) as $account) {
+                $accountId = (int)($account->id ?? 0);
+                if ($accountId <= 0) {
+                    continue;
+                }
+                $name = trim((string)($account->name ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+                $key = $accountId . ':' . strtolower($name);
+                $map[$key] = [
+                    'id' => $accountId,
+                    'name' => $name,
+                    'type' => (string)($account->type ?? 'bank'),
+                    'in' => 0.0,
+                    'out' => 0.0,
+                    'initial_balance' => (float)($account->initialBalance ?? 0.0),
+                ];
+            }
+        }
+
         foreach ($entries as $entry) {
             $name = trim((string)($entry->accountName ?? ''));
             if ($name === '') {
@@ -627,8 +653,9 @@ class ReportService
                     'id' => $accountId,
                     'name' => $name,
                     'type' => (string)($entry->accountType ?? 'bank'),
-                    'in' => 0,
-                    'out' => 0,
+                    'in' => 0.0,
+                    'out' => 0.0,
+                    'initial_balance' => 0.0,
                 ];
             }
             if ($entry->type === 'in') {
@@ -638,15 +665,15 @@ class ReportService
             }
         }
         $items = array_values($map);
-        $totalAll = 0;
+        $totalAll = 0.0;
         foreach ($items as $item) {
-            $totalAll += $item['in'] + $item['out'];
+            $totalAll += (float)$item['in'] + (float)$item['out'];
         }
         usort($items, fn($a, $b) => ($b['in'] + $b['out']) <=> ($a['in'] + $a['out']));
         foreach ($items as &$item) {
-            $share = $totalAll ? (($item['in'] + $item['out']) / $totalAll) * 100 : 0;
+            $share = $totalAll ? ((((float)$item['in'] + (float)$item['out']) / $totalAll) * 100) : 0;
             $item['share'] = (int)round($share);
-            $item['balance'] = $item['in'] - $item['out'];
+            $item['balance'] = (float)($item['initial_balance'] ?? 0.0) + (float)$item['in'] - (float)$item['out'];
         }
         unset($item);
         return $items;
