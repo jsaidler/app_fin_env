@@ -17,9 +17,6 @@ class EntryController extends BaseController
     public function list(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
-        }
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $service->purgeOlderThanDays(7);
@@ -53,9 +50,6 @@ class EntryController extends BaseController
     public function summary(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
-        }
         $filters = [
             'start' => $_GET['start'] ?? null,
             'end' => $_GET['end'] ?? null,
@@ -83,12 +77,11 @@ class EntryController extends BaseController
     public function create(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
-        }
+        $modifierUserId = $this->actorModifierId($uid);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $input = $this->jsonInput();
+        $input['last_modified_by_user_id'] = $modifierUserId;
         $data = $service->create($uid, $input);
 
         $frequency = trim((string)($input['recurrence_frequency'] ?? ''));
@@ -110,6 +103,7 @@ class EntryController extends BaseController
 
             $entryUpdated = $service->update($uid, (int)($data['id'] ?? 0), [
                 'recurrence_id' => (int)($recurrence['id'] ?? 0),
+                'last_modified_by_user_id' => $modifierUserId,
             ]);
             $data = $entryUpdated;
             $data['recurrence'] = [
@@ -123,35 +117,30 @@ class EntryController extends BaseController
     public function update(array $params): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
-        }
+        $modifierUserId = $this->actorModifierId($uid);
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
-        $data = $service->update($uid, $id, $this->jsonInput());
+        $input = $this->jsonInput();
+        $input['last_modified_by_user_id'] = $modifierUserId;
+        $data = $service->update($uid, $id, $input);
         Response::json($data);
     }
 
     public function delete(array $params): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
-        }
+        $modifierUserId = $this->actorModifierId($uid);
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
-        $deleted = $service->delete($uid, $id);
+        $deleted = $service->delete($uid, $id, $modifierUserId);
         Response::json(['deleted' => $deleted]);
     }
 
     public function trash(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao usam este recurso'], 403);
-        }
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $entries = array_filter($service->listDeleted($uid), fn($e) => $e->deletedAt !== null);
@@ -166,22 +155,17 @@ class EntryController extends BaseController
     public function restore(array $params): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
-        }
+        $modifierUserId = $this->actorModifierId($uid);
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
-        $data = $service->restore($uid, $id);
+        $data = $service->restore($uid, $id, $modifierUserId);
         Response::json($data);
     }
 
     public function purge(array $params): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao lancam entradas'], 403);
-        }
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
@@ -233,5 +217,11 @@ class EntryController extends BaseController
             'annual', 'anual', 'yearly' => $date->modify('+1 year')->format('Y-m-d'),
             default => $date->modify('+1 month')->format('Y-m-d'),
         };
+    }
+
+    private function actorModifierId(int $defaultUserId): int
+    {
+        $impBy = isset($this->authPayload['imp_by']) ? (int)$this->authPayload['imp_by'] : 0;
+        return $impBy > 0 ? $impBy : $defaultUserId;
     }
 }

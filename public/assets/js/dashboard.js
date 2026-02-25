@@ -9,6 +9,91 @@ const refreshBtn = document.getElementById("dash-refresh-menu");
 const notificationsMenuBtn = document.getElementById("dash-notifications-menu");
 const profileMenuBtn = document.getElementById("dash-profile-menu");
 const passwordMenuBtn = document.getElementById("dash-password-menu");
+const adminMenuBtn = document.getElementById("dash-admin-menu");
+const adminTabBtn = document.getElementById("dash-admin-tab");
+const adminInfoEl = document.getElementById("admin-area-info");
+const adminActionButtons = Array.from(document.querySelectorAll("[data-admin-action]"));
+const adminCategoriesModal = document.getElementById("admin-categories-modal");
+const closeAdminCategoriesModalBtn = document.getElementById("close-admin-categories-modal");
+const cancelAdminCategoriesModalBtn = document.getElementById("cancel-admin-categories-modal");
+const openAdminCategoryEditorNewBtn = document.getElementById("open-admin-category-editor-new");
+const adminCategoryEditorModal = document.getElementById("admin-category-editor-modal");
+const closeAdminCategoryEditorModalBtn = document.getElementById("close-admin-category-editor-modal");
+const cancelAdminCategoryEditorModalBtn = document.getElementById("cancel-admin-category-editor-modal");
+const saveAdminCategoryModalBtn = document.getElementById("save-admin-category-modal");
+const deleteAdminCategoryModalBtn = document.getElementById("delete-admin-category-modal");
+const adminCategoryNameInput = document.getElementById("admin-category-name");
+const openAdminCategoryTypeBtn = document.getElementById("open-admin-category-type");
+const selectedAdminCategoryTypeEl = document.getElementById("selected-admin-category-type");
+const adminCategoryAlterdataInput = document.getElementById("admin-category-alterdata");
+const adminCategoryStatsEl = document.getElementById("admin-category-stats");
+const adminCategoriesListEl = document.getElementById("admin-categories-list");
+const adminCategoryTypeModal = document.getElementById("admin-category-type-modal");
+const closeAdminCategoryTypeModalBtn = document.getElementById("close-admin-category-type-modal");
+const adminCategoryTypeListEl = document.getElementById("admin-category-type-list");
+const adminUsersModal = document.getElementById("admin-users-modal");
+const closeAdminUsersModalBtn = document.getElementById("close-admin-users-modal");
+const cancelAdminUsersModalBtn = document.getElementById("cancel-admin-users-modal");
+const openAdminUserEditorNewBtn = document.getElementById("open-admin-user-editor-new");
+const adminImpersonateModal = document.getElementById("admin-impersonate-modal");
+const closeAdminImpersonateModalBtn = document.getElementById("close-admin-impersonate-modal");
+const cancelAdminImpersonateModalBtn = document.getElementById("cancel-admin-impersonate-modal");
+const saveAdminImpersonateModalBtn = document.getElementById("save-admin-impersonate-modal");
+const adminImpersonateListEl = document.getElementById("admin-impersonate-list");
+const adminUserEditorModal = document.getElementById("admin-user-editor-modal");
+const closeAdminUserEditorModalBtn = document.getElementById("close-admin-user-editor-modal");
+const cancelAdminUserEditorModalBtn = document.getElementById("cancel-admin-user-editor-modal");
+const saveAdminUserModalBtn = document.getElementById("save-admin-user-modal");
+const deleteAdminUserModalBtn = document.getElementById("delete-admin-user-modal");
+const adminUserNameInput = document.getElementById("admin-user-name");
+const adminUserEmailInput = document.getElementById("admin-user-email");
+const adminUserPasswordInput = document.getElementById("admin-user-password");
+const openAdminUserRoleBtn = document.getElementById("open-admin-user-role");
+const selectedAdminUserRoleEl = document.getElementById("selected-admin-user-role");
+const adminUserAlterdataInput = document.getElementById("admin-user-alterdata");
+const adminUserStatsEl = document.getElementById("admin-user-stats");
+const adminUsersListEl = document.getElementById("admin-users-list");
+const adminUserRoleModal = document.getElementById("admin-user-role-modal");
+const closeAdminUserRoleModalBtn = document.getElementById("close-admin-user-role-modal");
+const adminUserRoleListEl = document.getElementById("admin-user-role-list");
+const adminCloseMonthModal = document.getElementById("admin-close-month-modal");
+const closeAdminCloseMonthModalBtn = document.getElementById("close-admin-close-month-modal");
+const cancelAdminCloseMonthModalBtn = document.getElementById("cancel-admin-close-month-modal");
+const saveAdminCloseMonthModalBtn = document.getElementById("save-admin-close-month-modal");
+const openAdminCloseMonthDateBtn = document.getElementById("open-admin-close-month-date");
+const selectedAdminCloseMonthDateEl = document.getElementById("selected-admin-close-month-date");
+const openAdminCloseMonthUsersBtn = document.getElementById("open-admin-close-month-users");
+const selectedAdminCloseMonthUsersEl = document.getElementById("selected-admin-close-month-users");
+const adminCloseMonthUsersEl = document.getElementById("admin-close-month-users");
+const adminCloseMonthHistoryEl = document.getElementById("admin-close-month-history");
+const adminCloseMonthDateModal = document.getElementById("admin-close-month-date-modal");
+const closeAdminCloseMonthDateModalBtn = document.getElementById("close-admin-close-month-date-modal");
+const adminCloseMonthDatePicker = document.getElementById("admin-close-month-date-picker");
+const adminCloseMonthUserModal = document.getElementById("admin-close-month-user-modal");
+const closeAdminCloseMonthUserModalBtn = document.getElementById("close-admin-close-month-user-modal");
+const adminExportModal = document.getElementById("admin-export-modal");
+const closeAdminExportModalBtn = document.getElementById("close-admin-export-modal");
+const cancelAdminExportModalBtn = document.getElementById("cancel-admin-export-modal");
+const saveAdminExportModalBtn = document.getElementById("save-admin-export-modal");
+const openAdminExportMonthBtn = document.getElementById("open-admin-export-month");
+const selectedAdminExportMonthEl = document.getElementById("selected-admin-export-month");
+const openAdminExportTypeBtn = document.getElementById("open-admin-export-type");
+const selectedAdminExportTypeEl = document.getElementById("selected-admin-export-type");
+const openAdminExportUserBtn = document.getElementById("open-admin-export-user");
+const selectedAdminExportUserEl = document.getElementById("selected-admin-export-user");
+const adminExportMonthModal = document.getElementById("admin-export-month-modal");
+const closeAdminExportMonthModalBtn = document.getElementById("close-admin-export-month-modal");
+const adminExportMonthPicker = document.getElementById("admin-export-month-picker");
+const adminExportTypeModal = document.getElementById("admin-export-type-modal");
+const closeAdminExportTypeModalBtn = document.getElementById("close-admin-export-type-modal");
+const adminExportTypeListEl = document.getElementById("admin-export-type-list");
+const adminExportUserModal = document.getElementById("admin-export-user-modal");
+const closeAdminExportUserModalBtn = document.getElementById("close-admin-export-user-modal");
+const adminExportUserListEl = document.getElementById("admin-export-user-list");
+const adminExportHistoryEl = document.getElementById("admin-export-history");
+const dashMenuUserNameEl = document.getElementById("dash-menu-user-name");
+const dashMenuUserEmailEl = document.getElementById("dash-menu-user-email");
+const dashMenuUserMetaEl = document.getElementById("dash-menu-user-meta");
 
 const kpiBalance = document.getElementById("kpi-balance");
 const trendLabel = document.getElementById("kpi-trend-label");
@@ -87,6 +172,9 @@ const savePasswordModalBtn = document.getElementById("save-password-modal");
 const passwordCurrentInput = document.getElementById("password-current");
 const passwordNextInput = document.getElementById("password-next");
 const passwordConfirmInput = document.getElementById("password-confirm");
+const impersonationBannerEl = document.getElementById("impersonation-banner");
+const impersonationBannerTextEl = document.getElementById("impersonation-banner-text");
+const stopImpersonationBtn = document.getElementById("stop-impersonation-btn");
 
 const entryModal = document.getElementById("entry-modal");
 const openEntryBtn = document.getElementById("open-entry");
@@ -276,9 +364,22 @@ let confirmActionResolver = null;
 let confirmActionConfirmRole = "destructive";
 let editingRecurrenceId = 0;
 let recurrenceEditorHistoryToken = 0;
-let currentProfile = { name: "", email: "" };
+let currentProfile = { name: "", email: "", role: "", alterdataCode: "", impersonation: { active: false, admin: null } };
+let editingAdminCategoryId = 0;
+let editingAdminUserId = 0;
+let adminUsersCache = [];
+let adminCategoriesCache = [];
+let selectedAdminCategoryType = "out";
+let selectedAdminUserRole = "user";
+let selectedAdminImpersonateUserId = 0;
+let selectedAdminCloseMonth = "";
+let selectedAdminCloseMonthUserKeys = ["all"];
+let selectedAdminExportMonth = "";
+let selectedAdminExportType = "all";
+let selectedAdminExportUserIds = ["all"];
 const USER_NOTIFICATIONS_KEY = "caixa_user_notifications";
 const AUTH_TOKEN_KEY = "caixa_auth_token";
+const IMPERSONATION_ADMIN_TOKEN_KEY = "caixa_impersonation_admin_token";
 const ENTRY_RECURRENCE_OPTIONS = [
   { value: "", label: "Nenhuma", icon: "block" },
   { value: "daily", label: "Diária", icon: "today" },
@@ -334,6 +435,22 @@ function getStoredAuthToken() {
     return localStorage.getItem(AUTH_TOKEN_KEY) || "";
   } catch {
     return "";
+  }
+}
+
+function setStoredAuthToken(token) {
+  const safeToken = String(token || "").trim();
+  try {
+    if (safeToken) localStorage.setItem(AUTH_TOKEN_KEY, safeToken);
+    else localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    // ignore storage errors
+  }
+  try {
+    if (safeToken) document.cookie = `auth_token=${safeToken}; Path=/; SameSite=Lax`;
+    else document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax";
+  } catch {
+    // ignore cookie errors
   }
 }
 
@@ -428,6 +545,7 @@ function showTab(tabName) {
   const isCategorias = tabName === "categorias";
   const isContas = tabName === "contas";
   const isRecorrencias = tabName === "recorrentes";
+  const isAdministracao = tabName === "administracao";
   tabSections.forEach((section) => {
     section.hidden = section.dataset.tabContent !== tabName;
   });
@@ -448,7 +566,9 @@ function showTab(tabName) {
 
   const active = tabButtons.find((button) => button.classList.contains("is-active"));
   triggerTabLiquidFill(previousActive, active, transitionToken);
-  renderTopSummaryForTab(tabName);
+  if (!isAdministracao) {
+    renderTopSummaryForTab(tabName);
+  }
 
   requestAnimationFrame(() => {
     void scrollActiveTabIntoView(transitionToken);
@@ -915,6 +1035,41 @@ function updateEntryFlowUi() {
   if (openAttachmentBtn) openAttachmentBtn.disabled = locked;
   if (entryDescriptionInput) entryDescriptionInput.disabled = locked;
   if (entryAmountInput) entryAmountInput.disabled = locked;
+}
+
+function syncAdminAreaAccess() {
+  const isAdmin = String(currentProfile?.role || "") === "admin";
+  if (adminMenuBtn) adminMenuBtn.hidden = !isAdmin;
+  if (adminTabBtn) adminTabBtn.hidden = !isAdmin;
+  if (!isAdmin && activeTabName() === "administracao") {
+    showTab("lancamentos");
+  }
+}
+
+function syncImpersonationBanner() {
+  const active = Boolean(currentProfile?.impersonation?.active);
+  if (!impersonationBannerEl) return;
+  if (!active) {
+    impersonationBannerEl.hidden = true;
+    return;
+  }
+  const targetName = String(currentProfile?.name || currentProfile?.email || "Usuário");
+  const alterdataCode = String(currentProfile?.alterdataCode || "").trim();
+  if (impersonationBannerTextEl) {
+    impersonationBannerTextEl.textContent = alterdataCode ? `${targetName} · ${alterdataCode}` : targetName;
+  }
+  impersonationBannerEl.hidden = false;
+}
+
+function syncDashMenuUserSummary() {
+  const name = String(currentProfile?.name || currentProfile?.email || "Usuário");
+  const email = String(currentProfile?.email || "-");
+  const role = adminUserRoleLabel(String(currentProfile?.role || "user"));
+  const alterdata = String(currentProfile?.alterdataCode || "").trim();
+  const meta = alterdata ? `${role} · Alterdata ${alterdata}` : role;
+  if (dashMenuUserNameEl) dashMenuUserNameEl.textContent = name;
+  if (dashMenuUserEmailEl) dashMenuUserEmailEl.textContent = email;
+  if (dashMenuUserMetaEl) dashMenuUserMetaEl.textContent = meta;
 }
 
 function setAttachmentPreview(file) {
@@ -4858,6 +5013,7 @@ async function saveProfilePreferences() {
     }
     currentProfile.name = String(payload?.name || name);
     if (userTitleEl) userTitleEl.textContent = currentProfile.name || currentProfile.email || "Usuário";
+    syncDashMenuUserSummary();
     await closeProfileModal();
     showInfo("Dados pessoais atualizados com sucesso.");
   } catch {
@@ -4928,6 +5084,975 @@ async function saveAccountPassword() {
   }
 }
 
+function resetAdminCategoryForm() {
+  editingAdminCategoryId = 0;
+  if (adminCategoryNameInput) adminCategoryNameInput.value = "";
+  selectedAdminCategoryType = "out";
+  if (adminCategoryAlterdataInput) adminCategoryAlterdataInput.value = "";
+  if (deleteAdminCategoryModalBtn) deleteAdminCategoryModalBtn.hidden = true;
+  syncAdminCategoryTypeLabel();
+  if (adminCategoryStatsEl) adminCategoryStatsEl.innerHTML = '<p class="category-empty">Selecione uma categoria para ver o resumo.</p>';
+}
+
+function resetAdminUserForm() {
+  editingAdminUserId = 0;
+  if (adminUserNameInput) adminUserNameInput.value = "";
+  if (adminUserEmailInput) adminUserEmailInput.value = "";
+  if (adminUserPasswordInput) adminUserPasswordInput.value = "";
+  selectedAdminUserRole = "user";
+  if (adminUserAlterdataInput) adminUserAlterdataInput.value = "";
+  syncAdminUserRoleLabel();
+  if (adminUserStatsEl) adminUserStatsEl.innerHTML = '<p class="category-empty">Selecione um usuário para ver o resumo.</p>';
+}
+
+function normalizeMonthValue(rawValue) {
+  const value = String(rawValue || "").trim();
+  if (/^\d{4}-\d{2}$/.test(value)) return value;
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 7);
+  return "";
+}
+
+function monthLabelFromIso(monthIso) {
+  const normalized = normalizeMonthValue(monthIso);
+  if (!normalized) return "--";
+  const [year, month] = normalized.split("-").map((item) => Number(item));
+  if (!year || !month) return "--";
+  const date = new Date(year, month - 1, 1);
+  return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+}
+
+function dateTimeLabel(isoDateTime) {
+  const value = String(isoDateTime || "").trim();
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function adminCategoryTypeLabel(value) {
+  return value === "in" ? "Entrada" : "Saída";
+}
+
+function adminUserRoleLabel(value) {
+  return value === "admin" ? "Administrador" : "Usuário";
+}
+
+function adminExportTypeLabel(value) {
+  if (value === "in") return "Entradas";
+  if (value === "out") return "Saídas";
+  return "Todos";
+}
+
+function syncAdminCategoryTypeLabel() {
+  if (selectedAdminCategoryTypeEl) selectedAdminCategoryTypeEl.textContent = adminCategoryTypeLabel(selectedAdminCategoryType);
+}
+
+function syncAdminUserRoleLabel() {
+  if (selectedAdminUserRoleEl) selectedAdminUserRoleEl.textContent = adminUserRoleLabel(selectedAdminUserRole);
+}
+
+function syncAdminCloseMonthLabel() {
+  if (selectedAdminCloseMonthDateEl) selectedAdminCloseMonthDateEl.textContent = monthLabelFromIso(selectedAdminCloseMonth);
+  if (selectedAdminCloseMonthUsersEl) {
+    const selectedKeys = Array.isArray(selectedAdminCloseMonthUserKeys) ? selectedAdminCloseMonthUserKeys.map((value) => String(value || "")) : ["all"];
+    const isAll = selectedKeys.includes("all");
+    if (isAll) {
+      selectedAdminCloseMonthUsersEl.textContent = "Todos os usuários";
+      return;
+    }
+    const users = adminUsersCache.filter((item) => selectedKeys.includes(String(item?.id || "")));
+    if (users.length === 1) {
+      selectedAdminCloseMonthUsersEl.textContent = String(users[0]?.name || users[0]?.email || "Usuário");
+      return;
+    }
+    selectedAdminCloseMonthUsersEl.textContent = `${users.length} selecionados`;
+  }
+}
+
+function syncAdminExportLabels() {
+  if (selectedAdminExportMonthEl) selectedAdminExportMonthEl.textContent = monthLabelFromIso(selectedAdminExportMonth);
+  if (selectedAdminExportTypeEl) selectedAdminExportTypeEl.textContent = adminExportTypeLabel(selectedAdminExportType);
+  if (selectedAdminExportUserEl) {
+    const selectedIds = Array.isArray(selectedAdminExportUserIds) ? selectedAdminExportUserIds.map((value) => String(value || "")) : ["all"];
+    const isAll = selectedIds.includes("all");
+    if (isAll) {
+      selectedAdminExportUserEl.textContent = "Todos os usuários";
+      return;
+    }
+    const users = adminUsersCache.filter((item) => selectedIds.includes(String(item?.id || "")));
+    if (users.length === 1) {
+      selectedAdminExportUserEl.textContent = String(users[0]?.name || users[0]?.email || "Usuário");
+      return;
+    }
+    selectedAdminExportUserEl.textContent = `${users.length} selecionados`;
+  }
+}
+
+function renderAdminCategoriesList(items) {
+  if (!adminCategoriesListEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    adminCategoriesListEl.innerHTML = '<p class="category-empty">Nenhuma categoria global.</p>';
+    return;
+  }
+  adminCategoriesListEl.innerHTML = rows.map((row) => {
+    const id = Number(row?.id || 0);
+    const name = escapeHtml(String(row?.name || ""));
+    const type = adminCategoryTypeLabel(String(row?.type || ""));
+    const alter = escapeHtml(String(row?.alterdata_auto || ""));
+    const detail = `${type} · ${alter ? `Alterdata ${alter}` : "Sem código Alterdata"}`;
+    return `
+      <button type="button" class="category-option category-option--admin-row is-neutral" data-admin-category-select="${id}">
+        <span class="category-option__lead"><span class="material-symbols-rounded">category</span></span>
+        <span class="category-option__text">${name} · ${escapeHtml(detail)}</span>
+        <span class="material-symbols-rounded category-option__trail">chevron_right</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderAdminUsersList(items) {
+  if (!adminUsersListEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    adminUsersListEl.innerHTML = '<p class="category-empty">Nenhum usuário cadastrado.</p>';
+    return;
+  }
+  adminUsersListEl.innerHTML = rows.map((row) => {
+    const id = Number(row?.id || 0);
+    const name = escapeHtml(String(row?.name || ""));
+    const role = adminUserRoleLabel(String(row?.role || ""));
+    const alter = escapeHtml(String(row?.alterdata_code || ""));
+    const email = escapeHtml(String(row?.email || ""));
+    const detail = `${email} · ${role} · ${alter ? `Alterdata ${alter}` : "Sem código Alterdata"}`;
+    return `
+      <button type="button" class="category-option category-option--admin-row is-neutral" data-admin-user-select="${id}">
+        <span class="category-option__lead"><span class="material-symbols-rounded">person</span></span>
+        <span class="category-option__text">${name} · ${escapeHtml(detail)}</span>
+        <span class="material-symbols-rounded category-option__trail">chevron_right</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderAdminImpersonateUsersList(items) {
+  if (!adminImpersonateListEl) return;
+  const rows = (Array.isArray(items) ? items : []).filter((row) => String(row?.role || "") !== "admin");
+  if (!rows.length) {
+    adminImpersonateListEl.innerHTML = '<p class="category-empty">Nenhum usuário disponível para personificação.</p>';
+    return;
+  }
+  adminImpersonateListEl.innerHTML = rows.map((row) => {
+    const id = Number(row?.id || 0);
+    const name = escapeHtml(String(row?.name || row?.email || ""));
+    const email = escapeHtml(String(row?.email || ""));
+    const selected = Number(selectedAdminImpersonateUserId || 0) === id;
+    return `
+      <button type="button" class="category-option is-neutral" data-admin-impersonate-user-id="${id}"${selected ? ' aria-current="true"' : ""}>
+        <span class="category-option__lead"><span class="material-symbols-rounded">person</span></span>
+        <span class="category-option__text">${name} · ${email}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderAdminUsersCheckboxes(items) {
+  if (!adminCloseMonthUsersEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    adminCloseMonthUsersEl.innerHTML = '<p class="category-empty">Nenhum usuário disponível.</p>';
+    return;
+  }
+  const selectedKeys = Array.isArray(selectedAdminCloseMonthUserKeys) ? selectedAdminCloseMonthUserKeys.map((value) => String(value || "")) : ["all"];
+  const allSelected = selectedKeys.includes("all");
+  const userOptions = rows.map((row) => {
+    const id = Number(row?.id || 0);
+    const name = escapeHtml(String(row?.name || row?.email || ""));
+    const role = String(row?.role || "user");
+    const roleLabel = adminUserRoleLabel(role);
+    const icon = role === "admin" ? "admin_panel_settings" : "person";
+    const selected = !allSelected && selectedKeys.includes(String(id));
+    return `
+      <button type="button" class="category-option is-neutral" data-admin-close-user-id="${id}"${selected ? ' aria-current="true"' : ""}>
+        <span class="category-option__lead"><span class="material-symbols-rounded">${icon}</span></span>
+        <span class="category-option__text">${name} · ${escapeHtml(roleLabel)}</span>
+      </button>
+    `;
+  }).join("");
+  adminCloseMonthUsersEl.innerHTML = `
+    <button type="button" class="category-option is-neutral" data-admin-close-user-id="all"${allSelected ? ' aria-current="true"' : ""}>
+      <span class="category-option__lead"><span class="material-symbols-rounded">groups</span></span>
+      <span class="category-option__text">Todos os usuários</span>
+    </button>
+  ` + userOptions;
+}
+
+function renderAdminExportUsersList(items) {
+  if (!adminExportUserListEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  const selectedIds = Array.isArray(selectedAdminExportUserIds) ? selectedAdminExportUserIds.map((value) => String(value || "")) : ["all"];
+  const allSelected = selectedIds.includes("all");
+  const options = [
+    `<button type="button" class="category-option is-neutral" data-admin-export-user-id="all"${allSelected ? ' aria-current="true"' : ""}>
+      <span class="category-option__lead"><span class="material-symbols-rounded">group</span></span>
+      <span class="category-option__text">Todos os usuários</span>
+    </button>`,
+  ];
+  rows.forEach((row) => {
+    const id = Number(row?.id || 0);
+    const name = escapeHtml(String(row?.name || row?.email || ""));
+    const role = String(row?.role || "user");
+    const roleLabel = adminUserRoleLabel(role);
+    const icon = role === "admin" ? "admin_panel_settings" : "person";
+    const selected = !allSelected && selectedIds.includes(String(id));
+    options.push(`
+      <button type="button" class="category-option is-neutral" data-admin-export-user-id="${id}"${selected ? ' aria-current="true"' : ""}>
+        <span class="category-option__lead"><span class="material-symbols-rounded">${icon}</span></span>
+        <span class="category-option__text">${name} · ${escapeHtml(roleLabel)}</span>
+      </button>
+    `);
+  });
+  adminExportUserListEl.innerHTML = options.join("");
+}
+
+function renderAdminCloseMonthHistory(items) {
+  if (!adminCloseMonthHistoryEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    adminCloseMonthHistoryEl.innerHTML = '<p class="category-empty">Nenhum fechamento registrado.</p>';
+    return;
+  }
+  adminCloseMonthHistoryEl.innerHTML = rows.map((row) => {
+    const month = monthLabelFromIso(String(row?.month || ""));
+    const users = Number(row?.users_affected || 0);
+    const records = Number(row?.records_affected || 0);
+    const actor = escapeHtml(String(row?.actor?.name || row?.actor?.email || "Administrador"));
+    const when = dateTimeLabel(String(row?.created_at || ""));
+    const closed = Boolean(row?.payload?.closed ?? true);
+    const actionLabel = closed ? "Fechamento aplicado" : "Fechamento removido";
+    const title = `${actionLabel} · ${month}`;
+    const meta = `${users} usuários · ${records} registros · ${actor} · ${when}`;
+    return `
+      <div class="category-option category-option--history is-neutral">
+        <span class="category-option__lead"><span class="material-symbols-rounded">event_available</span></span>
+        <span class="category-option__text">
+          <span class="admin-history__title">${escapeHtml(title)}</span>
+          <span class="admin-history__meta">${escapeHtml(meta)}</span>
+        </span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAdminExportHistory(items) {
+  if (!adminExportHistoryEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    adminExportHistoryEl.innerHTML = '<p class="category-empty">Nenhuma exportação registrada.</p>';
+    return;
+  }
+  adminExportHistoryEl.innerHTML = rows.map((row) => {
+    const month = monthLabelFromIso(String(row?.month || ""));
+    const users = Number(row?.users_affected || 0);
+    const records = Number(row?.records_affected || 0);
+    const actor = escapeHtml(String(row?.actor?.name || row?.actor?.email || "Administrador"));
+    const when = dateTimeLabel(String(row?.created_at || ""));
+    const type = adminExportTypeLabel(String(row?.payload?.type || "all"));
+    const title = `${month} · ${type}`;
+    const meta = `${users} usuários · ${records} lançamentos · ${actor} · ${when}`;
+    return `
+      <div class="category-option category-option--history is-neutral">
+        <span class="category-option__lead"><span class="material-symbols-rounded">download</span></span>
+        <span class="category-option__text">
+          <span class="admin-history__title">${escapeHtml(title)}</span>
+          <span class="admin-history__meta">${escapeHtml(meta)}</span>
+        </span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAdminCategoryTypeList() {
+  if (!adminCategoryTypeListEl) return;
+  const options = [
+    { value: "out", label: "Saída", icon: "arrow_upward", tone: "out" },
+    { value: "in", label: "Entrada", icon: "arrow_downward", tone: "in" },
+  ];
+  adminCategoryTypeListEl.innerHTML = options.map((item) => `
+    <button type="button" class="category-option is-${item.tone}" data-admin-category-type="${item.value}"${selectedAdminCategoryType === item.value ? ' aria-current="true"' : ""}>
+      <span class="category-option__lead"><span class="material-symbols-rounded">${item.icon}</span></span>
+      <span class="category-option__text">${item.label}</span>
+    </button>
+  `).join("");
+}
+
+function renderAdminUserRoleList() {
+  if (!adminUserRoleListEl) return;
+  const options = [
+    { value: "user", label: "Usuário", icon: "person" },
+    { value: "admin", label: "Administrador", icon: "admin_panel_settings" },
+  ];
+  adminUserRoleListEl.innerHTML = options.map((item) => `
+    <button type="button" class="category-option is-neutral" data-admin-user-role="${item.value}"${selectedAdminUserRole === item.value ? ' aria-current="true"' : ""}>
+      <span class="category-option__lead"><span class="material-symbols-rounded">${item.icon}</span></span>
+      <span class="category-option__text">${item.label}</span>
+    </button>
+  `).join("");
+}
+
+function renderAdminExportTypeList() {
+  if (!adminExportTypeListEl) return;
+  const options = [
+    { value: "all", label: "Todos", icon: "apps" },
+    { value: "in", label: "Entradas", icon: "arrow_downward" },
+    { value: "out", label: "Saídas", icon: "arrow_upward" },
+  ];
+  adminExportTypeListEl.innerHTML = options.map((item) => `
+    <button type="button" class="category-option is-neutral" data-admin-export-type="${item.value}"${selectedAdminExportType === item.value ? ' aria-current="true"' : ""}>
+      <span class="category-option__lead"><span class="material-symbols-rounded">${item.icon}</span></span>
+      <span class="category-option__text">${item.label}</span>
+    </button>
+  `).join("");
+}
+
+async function fetchAdminUsers() {
+  const response = await authFetch("/api/admin/users");
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  const payload = await safeJson(response, []);
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar usuários."));
+    return [];
+  }
+  adminUsersCache = Array.isArray(payload) ? payload : [];
+  return adminUsersCache;
+}
+
+async function fetchAdminCategories() {
+  const response = await authFetch("/api/admin/categories");
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  const payload = await safeJson(response, []);
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar categorias globais."));
+    return [];
+  }
+  adminCategoriesCache = Array.isArray(payload) ? payload : [];
+  return adminCategoriesCache;
+}
+
+async function fetchAdminCloseMonthHistory() {
+  const response = await authFetch("/api/admin/close-month/history");
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar histórico de fechamento."));
+    return [];
+  }
+  return Array.isArray(payload?.items) ? payload.items : [];
+}
+
+async function fetchAdminExportHistory() {
+  const response = await authFetch("/api/admin/export/alterdata/history");
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar histórico de exportação."));
+    return [];
+  }
+  return Array.isArray(payload?.items) ? payload.items : [];
+}
+
+async function fetchAdminCategoryStats(categoryId) {
+  const response = await authFetch(`/api/admin/categories/${Number(categoryId || 0)}/stats`);
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar o resumo da categoria."));
+    return null;
+  }
+  return payload;
+}
+
+async function fetchAdminUserStats(userId) {
+  const response = await authFetch(`/api/admin/users/${Number(userId || 0)}/stats`);
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar o resumo do usuário."));
+    return null;
+  }
+  return payload;
+}
+
+function renderAdminCategoryStats(stats) {
+  if (!adminCategoryStatsEl) return;
+  if (!stats) {
+    adminCategoryStatsEl.innerHTML = '<p class="category-empty">Resumo indisponível.</p>';
+    return;
+  }
+  adminCategoryStatsEl.innerHTML = `
+    <article class="settings-item"><p class="settings-item__text">Categorias filhas: <strong>${Number(stats?.child_categories || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Lançamentos vinculados: <strong>${Number(stats?.entries || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Recorrências ativas: <strong>${Number(stats?.recurrences || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Usuários com vínculo: <strong>${Number(stats?.users || 0)}</strong></p></article>
+  `;
+}
+
+function renderAdminUserStats(stats) {
+  if (!adminUserStatsEl) return;
+  if (!stats) {
+    adminUserStatsEl.innerHTML = '<p class="category-empty">Resumo indisponível.</p>';
+    return;
+  }
+  adminUserStatsEl.innerHTML = `
+    <article class="settings-item"><p class="settings-item__text">Lançamentos: <strong>${Number(stats?.entries || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Recorrências ativas: <strong>${Number(stats?.recurrences || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Contas/cartões ativos: <strong>${Number(stats?.accounts || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Categorias filhas: <strong>${Number(stats?.categories || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Pendentes de revisão: <strong>${Number(stats?.pending_review || 0)}</strong></p></article>
+  `;
+}
+
+async function openAdminCategoriesModal() {
+  const items = await fetchAdminCategories();
+  renderAdminCategoriesList(items);
+  await adminCategoriesModal?.present();
+}
+
+async function closeAdminCategoriesModal() {
+  try {
+    await adminCategoriesModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminCategoryEditorModal() {
+  await adminCategoryEditorModal?.present();
+}
+
+async function closeAdminCategoryEditorModal() {
+  try {
+    await adminCategoryEditorModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function saveAdminCategory() {
+  const name = String(adminCategoryNameInput?.value || "").trim();
+  const type = String(selectedAdminCategoryType || "out");
+  const alterdataAuto = String(adminCategoryAlterdataInput?.value || "").trim();
+  if (!name) {
+    showError("Informe o nome da categoria global.");
+    return;
+  }
+  if (saveAdminCategoryModalBtn) saveAdminCategoryModalBtn.disabled = true;
+  try {
+    const endpoint = editingAdminCategoryId > 0 ? `/api/admin/categories/${editingAdminCategoryId}` : "/api/admin/categories";
+    const method = editingAdminCategoryId > 0 ? "PUT" : "POST";
+    const response = await fetch(endpoint, {
+      method,
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({
+        name,
+        type,
+        alterdata_auto: alterdataAuto,
+      }),
+    });
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível salvar a categoria global."));
+      return;
+    }
+    showInfo(editingAdminCategoryId > 0 ? "Categoria global atualizada." : "Categoria global criada.");
+    const savedId = editingAdminCategoryId;
+    resetAdminCategoryForm();
+    const items = await fetchAdminCategories();
+    renderAdminCategoriesList(items);
+    if (savedId > 0) {
+      editingAdminCategoryId = savedId;
+      const stats = await fetchAdminCategoryStats(savedId);
+      renderAdminCategoryStats(stats);
+      if (deleteAdminCategoryModalBtn) deleteAdminCategoryModalBtn.hidden = false;
+    } else {
+      await closeAdminCategoryEditorModal();
+    }
+  } catch {
+    showError("Falha de rede ao salvar categoria global.");
+  } finally {
+    if (saveAdminCategoryModalBtn) saveAdminCategoryModalBtn.disabled = false;
+  }
+}
+
+async function deleteAdminCategory(id) {
+  const confirmed = await confirmActionModal({
+    header: "Excluir categoria global",
+    message: "Esta ação não pode ser desfeita.",
+    confirmText: "Excluir",
+    cancelText: "Cancelar",
+    confirmRole: "destructive",
+  });
+  if (!confirmed) return;
+  const response = await fetch(`/api/admin/categories/${id}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+    headers: authHeaders({ Accept: "application/json" }),
+  });
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível excluir a categoria global."));
+    return;
+  }
+  showInfo("Categoria global excluída.");
+  const items = await fetchAdminCategories();
+  renderAdminCategoriesList(items);
+  resetAdminCategoryForm();
+  await closeAdminCategoryEditorModal();
+}
+
+async function openAdminUsersModal() {
+  const items = await fetchAdminUsers();
+  renderAdminUsersList(items);
+  await adminUsersModal?.present();
+}
+
+async function closeAdminUsersModal() {
+  try {
+    await adminUsersModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminImpersonateModal() {
+  const items = adminUsersCache.length ? adminUsersCache : await fetchAdminUsers();
+  selectedAdminImpersonateUserId = 0;
+  renderAdminImpersonateUsersList(items);
+  if (saveAdminImpersonateModalBtn) saveAdminImpersonateModalBtn.disabled = true;
+  await adminImpersonateModal?.present();
+}
+
+async function closeAdminImpersonateModal() {
+  try {
+    await adminImpersonateModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminUserEditorModal() {
+  await adminUserEditorModal?.present();
+}
+
+async function closeAdminUserEditorModal() {
+  try {
+    await adminUserEditorModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function saveAdminUser() {
+  const name = String(adminUserNameInput?.value || "").trim();
+  const email = String(adminUserEmailInput?.value || "").trim();
+  const password = String(adminUserPasswordInput?.value || "");
+  const role = String(selectedAdminUserRole || "user").trim() || "user";
+  const alterdataCode = String(adminUserAlterdataInput?.value || "").trim();
+  if (!name || !email) {
+    showError("Informe nome e e-mail do usuário.");
+    return;
+  }
+  if (editingAdminUserId <= 0 && password.length < 8) {
+    showError("No cadastro, a senha precisa ter ao menos 8 caracteres.");
+    return;
+  }
+  if (saveAdminUserModalBtn) saveAdminUserModalBtn.disabled = true;
+  try {
+    const endpoint = editingAdminUserId > 0 ? `/api/admin/users/${editingAdminUserId}` : "/api/admin/users";
+    const method = editingAdminUserId > 0 ? "PUT" : "POST";
+    const body = {
+      name,
+      email,
+      role,
+      alterdata_code: alterdataCode,
+    };
+    if (password) {
+      body.password = password;
+    }
+    const response = await fetch(endpoint, {
+      method,
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify(body),
+    });
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível salvar o usuário."));
+      return;
+    }
+    showInfo(editingAdminUserId > 0 ? "Usuário atualizado." : "Usuário criado.");
+    const savedId = editingAdminUserId;
+    resetAdminUserForm();
+    const users = await fetchAdminUsers();
+    renderAdminUsersList(users);
+    renderAdminUsersCheckboxes(users);
+    renderAdminExportUsersList(users);
+    syncAdminExportLabels();
+    if (savedId > 0) {
+      editingAdminUserId = savedId;
+      const stats = await fetchAdminUserStats(savedId);
+      renderAdminUserStats(stats);
+    } else {
+      await closeAdminUserEditorModal();
+    }
+  } catch {
+    showError("Falha de rede ao salvar usuário.");
+  } finally {
+    if (saveAdminUserModalBtn) saveAdminUserModalBtn.disabled = false;
+  }
+}
+
+async function impersonateAdminUser(userId) {
+  const id = Number(userId || 0);
+  if (id <= 0) return;
+  const currentToken = getStoredAuthToken();
+  if (!currentToken) {
+    showError("Sessão inválida para personificação.");
+    return;
+  }
+  if (saveAdminImpersonateModalBtn) saveAdminImpersonateModalBtn.disabled = true;
+  try {
+    const response = await fetch(`/api/admin/users/${id}/impersonate`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível iniciar personificação."));
+      return;
+    }
+    const nextToken = String(payload?.token || "");
+    if (!nextToken) {
+      showError("Token de personificação inválido.");
+      return;
+    }
+    try {
+      localStorage.setItem(IMPERSONATION_ADMIN_TOKEN_KEY, currentToken);
+    } catch {
+      // ignore storage errors
+    }
+    setStoredAuthToken(nextToken);
+    const userName = String(payload?.user?.name || payload?.user?.email || "usuário");
+    showInfo(`Personificação iniciada: ${userName}.`);
+    await closeAdminImpersonateModal();
+    await closeAdminUserEditorModal();
+    await closeAdminUsersModal();
+    await loadDashboard();
+  } catch {
+    showError("Falha de rede ao iniciar personificação.");
+  } finally {
+    if (saveAdminImpersonateModalBtn) saveAdminImpersonateModalBtn.disabled = false;
+  }
+}
+
+async function deleteAdminUser(id) {
+  const confirmed = await confirmActionModal({
+    header: "Excluir usuário",
+    message: "Esta ação não pode ser desfeita.",
+    confirmText: "Excluir",
+    cancelText: "Cancelar",
+    confirmRole: "destructive",
+  });
+  if (!confirmed) return;
+  const response = await fetch(`/api/admin/users/${id}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+    headers: authHeaders({ Accept: "application/json" }),
+  });
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível excluir o usuário."));
+    return;
+  }
+  showInfo("Usuário excluído.");
+  const users = await fetchAdminUsers();
+  renderAdminUsersList(users);
+  renderAdminUsersCheckboxes(users);
+  renderAdminExportUsersList(users);
+  syncAdminExportLabels();
+  resetAdminUserForm();
+  await closeAdminUserEditorModal();
+}
+
+async function stopImpersonation() {
+  let adminToken = "";
+  try {
+    adminToken = String(localStorage.getItem(IMPERSONATION_ADMIN_TOKEN_KEY) || "");
+  } catch {
+    adminToken = "";
+  }
+  if (!adminToken) {
+    showError("Token do administrador não encontrado para encerrar personificação.");
+    return;
+  }
+  setStoredAuthToken(adminToken);
+  try {
+    localStorage.removeItem(IMPERSONATION_ADMIN_TOKEN_KEY);
+  } catch {
+    // ignore storage errors
+  }
+  showInfo("Personificação encerrada.");
+  await loadDashboard();
+}
+
+async function openAdminCloseMonthModal() {
+  const users = adminUsersCache.length ? adminUsersCache : await fetchAdminUsers();
+  const history = await fetchAdminCloseMonthHistory();
+  selectedAdminCloseMonth = normalizeMonthValue(selectedAdminCloseMonth || monthRange()) || monthRange();
+  selectedAdminCloseMonthUserKeys = ["all"];
+  renderAdminUsersCheckboxes(users);
+  renderAdminCloseMonthHistory(history);
+  syncAdminCloseMonthLabel();
+  await adminCloseMonthModal?.present();
+}
+
+async function closeAdminCloseMonthModal() {
+  try {
+    await adminCloseMonthModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function submitAdminCloseMonth() {
+  const month = String(selectedAdminCloseMonth || "").trim();
+  const selectedKeys = Array.isArray(selectedAdminCloseMonthUserKeys) ? selectedAdminCloseMonthUserKeys.map((value) => String(value || "")) : ["all"];
+  const allUsers = selectedKeys.includes("all");
+  const userIds = allUsers
+    ? []
+    : Array.from(new Set(selectedKeys.map((value) => Number(value)).filter((id) => id > 0)));
+  if (!month) {
+    showError("Informe o mês para fechamento.");
+    return;
+  }
+  if (!allUsers && !userIds.length) {
+    showError("Selecione ao menos um usuário.");
+    return;
+  }
+  if (saveAdminCloseMonthModalBtn) saveAdminCloseMonthModalBtn.disabled = true;
+  try {
+    const response = await fetch("/api/admin/close-month", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({
+        month,
+        closed: true,
+        all_users: allUsers,
+        user_ids: userIds,
+      }),
+    });
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível fechar o mês."));
+      return;
+    }
+    showInfo(`Fechamento de ${month} aplicado.`);
+    await closeAdminCloseMonthModal();
+  } catch {
+    showError("Falha de rede ao fechar mês.");
+  } finally {
+    if (saveAdminCloseMonthModalBtn) saveAdminCloseMonthModalBtn.disabled = false;
+  }
+}
+
+async function openAdminExportModal() {
+  const users = adminUsersCache.length ? adminUsersCache : await fetchAdminUsers();
+  const history = await fetchAdminExportHistory();
+  selectedAdminExportMonth = normalizeMonthValue(monthRange()) || monthRange();
+  selectedAdminExportType = "all";
+  selectedAdminExportUserIds = ["all"];
+  renderAdminExportUsersList(users);
+  renderAdminExportHistory(history);
+  syncAdminExportLabels();
+  await adminExportModal?.present();
+}
+
+async function closeAdminExportModal() {
+  try {
+    await adminExportModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function submitAdminExport() {
+  const month = String(selectedAdminExportMonth || "").trim();
+  const type = String(selectedAdminExportType || "all").trim() || "all";
+  const selectedIds = Array.isArray(selectedAdminExportUserIds) ? selectedAdminExportUserIds.map((value) => String(value || "")) : ["all"];
+  const allUsers = selectedIds.includes("all");
+  const userIds = allUsers
+    ? []
+    : Array.from(new Set(selectedIds.map((value) => Number(value)).filter((id) => id > 0)));
+  const query = new URLSearchParams();
+  if (month) query.set("month", month);
+  if (type) query.set("type", type);
+  userIds.forEach((id) => query.append("user_ids[]", String(id)));
+  if (saveAdminExportModalBtn) saveAdminExportModalBtn.disabled = true;
+  try {
+    const response = await fetch(`/api/admin/export/alterdata?${query.toString()}`, {
+      method: "GET",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "text/plain" }),
+    });
+    if (!response.ok) {
+      const payload = await safeJson(response, {});
+      showError(String(payload?.error || "Não foi possível exportar o arquivo Alterdata."));
+      return;
+    }
+    const blob = await response.blob();
+    const header = String(response.headers.get("content-disposition") || "");
+    const match = header.match(/filename=\"?([^\";]+)\"?/i);
+    const fileName = match ? match[1] : `alterdata-${month || "geral"}.txt`;
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    showInfo("Arquivo Alterdata exportado.");
+    await closeAdminExportModal();
+  } catch {
+    showError("Falha de rede ao exportar arquivo Alterdata.");
+  } finally {
+    if (saveAdminExportModalBtn) saveAdminExportModalBtn.disabled = false;
+  }
+}
+
+async function openAdminCategoryTypeModal() {
+  renderAdminCategoryTypeList();
+  await adminCategoryTypeModal?.present();
+}
+
+async function closeAdminCategoryTypeModal() {
+  try {
+    await adminCategoryTypeModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminUserRoleModal() {
+  renderAdminUserRoleList();
+  await adminUserRoleModal?.present();
+}
+
+async function closeAdminUserRoleModal() {
+  try {
+    await adminUserRoleModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminCloseMonthDateModal() {
+  const value = normalizeMonthValue(selectedAdminCloseMonth || monthRange()) || monthRange();
+  if (adminCloseMonthDatePicker) adminCloseMonthDatePicker.value = `${value}-01`;
+  await adminCloseMonthDateModal?.present();
+}
+
+async function closeAdminCloseMonthDateModal() {
+  try {
+    await adminCloseMonthDateModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminCloseMonthUserModal() {
+  const users = adminUsersCache.length ? adminUsersCache : await fetchAdminUsers();
+  renderAdminUsersCheckboxes(users);
+  await adminCloseMonthUserModal?.present();
+}
+
+async function closeAdminCloseMonthUserModal() {
+  try {
+    await adminCloseMonthUserModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminExportMonthModal() {
+  const value = normalizeMonthValue(selectedAdminExportMonth || monthRange()) || monthRange();
+  if (adminExportMonthPicker) adminExportMonthPicker.value = `${value}-01`;
+  await adminExportMonthModal?.present();
+}
+
+async function closeAdminExportMonthModal() {
+  try {
+    await adminExportMonthModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminExportTypeModal() {
+  renderAdminExportTypeList();
+  await adminExportTypeModal?.present();
+}
+
+async function closeAdminExportTypeModal() {
+  try {
+    await adminExportTypeModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminExportUserModal() {
+  const users = adminUsersCache.length ? adminUsersCache : await fetchAdminUsers();
+  renderAdminExportUsersList(users);
+  await adminExportUserModal?.present();
+}
+
+async function closeAdminExportUserModal() {
+  try {
+    await adminExportUserModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
 async function loadDashboard() {
   hideMessages();
   if (refreshBtn) refreshBtn.disabled = true;
@@ -4938,8 +6063,43 @@ async function loadDashboard() {
   if (periodEl) periodEl.textContent = `Per\u00edodo: ${periodLabel()}`;
 
   try {
-    const [profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes] = await Promise.all([
-      authFetch("/api/account/profile"),
+    const profileRes = await authFetch("/api/account/profile");
+    if (profileRes.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    if (!profileRes.ok) {
+      showError("N\u00e3o foi poss\u00edvel carregar o perfil da sess\u00e3o.");
+      return;
+    }
+    const profile = await safeJson(profileRes, {});
+    const displayName = profile?.name || profile?.email || "Usu\u00e1rio";
+    const impersonationPayload = profile?.impersonation && typeof profile.impersonation === "object"
+      ? profile.impersonation
+      : { active: false };
+    currentProfile = {
+      name: String(profile?.name || ""),
+      email: String(profile?.email || ""),
+      role: String(profile?.role || ""),
+      alterdataCode: String(profile?.alterdata_code || ""),
+      impersonation: {
+        active: Boolean(impersonationPayload?.active),
+        admin: impersonationPayload?.admin || null,
+      },
+    };
+    if (!currentProfile.impersonation.active) {
+      try {
+        localStorage.removeItem(IMPERSONATION_ADMIN_TOKEN_KEY);
+      } catch {
+        // ignore storage errors
+      }
+    }
+    if (userTitleEl) userTitleEl.textContent = displayName;
+    syncAdminAreaAccess();
+    syncImpersonationBanner();
+    syncDashMenuUserSummary();
+
+    const [monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes] = await Promise.all([
       authFetch(`/api/reports/aggregate?start=${month}&end=${month}`),
       authFetch(`/api/reports/aggregate?start=${prevMonth}&end=${prevMonth}`),
       authFetch("/api/reports/summary"),
@@ -4947,17 +6107,16 @@ async function loadDashboard() {
       authFetch(`/api/reports/entries-groups?${groupsQuery}`),
     ]);
 
-    if ([profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => response.status === 401)) {
+    if ([monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => response.status === 401)) {
       window.location.href = "/";
       return;
     }
-    if ([profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => !response.ok)) {
+    if ([monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => !response.ok)) {
       showError("N\u00e3o foi poss\u00edvel carregar o dashboard.");
       return;
     }
 
-    const [profile, monthAgg, prevMonthAgg, summary, entries, groupedPayload] = await Promise.all([
-      safeJson(profileRes, {}),
+    const [monthAgg, prevMonthAgg, summary, entries, groupedPayload] = await Promise.all([
       safeJson(monthAggRes, {}),
       safeJson(prevMonthAggRes, {}),
       safeJson(summaryRes, {}),
@@ -4966,13 +6125,6 @@ async function loadDashboard() {
     ]);
 
     dashboardEntriesCache = Array.isArray(entries) ? entries : [];
-
-    const displayName = profile?.name || profile?.email || "Usu\u00e1rio";
-    currentProfile = {
-      name: String(profile?.name || ""),
-      email: String(profile?.email || ""),
-    };
-    if (userTitleEl) userTitleEl.textContent = displayName;
 
     const totals = monthAgg?.totals || {};
     const balance = Number(totals.balance || 0);
@@ -5056,15 +6208,11 @@ async function logout() {
       headers: authHeaders({ Accept: "application/json" }),
     });
   } finally {
+    setStoredAuthToken("");
     try {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(IMPERSONATION_ADMIN_TOKEN_KEY);
     } catch {
       // ignore storage errors
-    }
-    try {
-      document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax";
-    } catch {
-      // ignore cookie errors
     }
     window.location.href = "/";
   }
@@ -5084,6 +6232,39 @@ profileMenuBtn?.addEventListener("click", () => {
 
 passwordMenuBtn?.addEventListener("click", () => {
   void openPasswordModal();
+});
+
+adminMenuBtn?.addEventListener("click", () => {
+  showTab("administracao");
+});
+
+adminActionButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const action = String(button.getAttribute("data-admin-action") || "");
+    if (action === "global-categories") {
+      void openAdminCategoriesModal();
+      return;
+    }
+    if (action === "users") {
+      void openAdminUsersModal();
+      return;
+    }
+    if (action === "impersonate-user") {
+      void openAdminImpersonateModal();
+      return;
+    }
+    if (action === "close-month") {
+      void openAdminCloseMonthModal();
+      return;
+    }
+    if (action === "export-alterdata") {
+      void openAdminExportModal();
+      return;
+    }
+    if (adminInfoEl) {
+      adminInfoEl.textContent = "Selecione uma ação para continuar.";
+    }
+  });
 });
 
 closeNotificationsModalBtn?.addEventListener("click", () => {
@@ -5114,6 +6295,265 @@ savePasswordModalBtn?.addEventListener("click", () => {
   void saveAccountPassword();
 });
 
+closeAdminCategoriesModalBtn?.addEventListener("click", () => {
+  void closeAdminCategoriesModal();
+});
+cancelAdminCategoriesModalBtn?.addEventListener("click", () => {
+  void closeAdminCategoriesModal();
+});
+saveAdminCategoryModalBtn?.addEventListener("click", () => {
+  void saveAdminCategory();
+});
+openAdminCategoryEditorNewBtn?.addEventListener("click", () => {
+  resetAdminCategoryForm();
+  void openAdminCategoryEditorModal();
+});
+closeAdminCategoryEditorModalBtn?.addEventListener("click", () => {
+  void closeAdminCategoryEditorModal();
+});
+cancelAdminCategoryEditorModalBtn?.addEventListener("click", () => {
+  void closeAdminCategoryEditorModal();
+});
+deleteAdminCategoryModalBtn?.addEventListener("click", () => {
+  if (editingAdminCategoryId > 0) {
+    void deleteAdminCategory(editingAdminCategoryId);
+  }
+});
+openAdminCategoryTypeBtn?.addEventListener("click", () => {
+  void openAdminCategoryTypeModal();
+});
+closeAdminCategoryTypeModalBtn?.addEventListener("click", () => {
+  void closeAdminCategoryTypeModal();
+});
+
+adminCategoriesListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const selectBtn = target.closest("[data-admin-category-select]");
+  const selectedIdRaw = selectBtn ? selectBtn.getAttribute("data-admin-category-select") : "";
+  if (!selectedIdRaw) return;
+  const id = Number(selectedIdRaw);
+  const item = adminCategoriesCache.find((row) => Number(row?.id || 0) === id);
+  if (!item) return;
+  editingAdminCategoryId = id;
+  if (adminCategoryNameInput) adminCategoryNameInput.value = String(item?.name || "");
+  selectedAdminCategoryType = String(item?.type || "out");
+  syncAdminCategoryTypeLabel();
+  if (adminCategoryAlterdataInput) adminCategoryAlterdataInput.value = String(item?.alterdata_auto || "");
+  if (deleteAdminCategoryModalBtn) deleteAdminCategoryModalBtn.hidden = false;
+  void openAdminCategoryEditorModal();
+  void fetchAdminCategoryStats(id).then(renderAdminCategoryStats);
+});
+
+adminCategoryTypeListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-category-type]");
+  const value = btn ? String(btn.getAttribute("data-admin-category-type") || "") : "";
+  if (!value) return;
+  selectedAdminCategoryType = value;
+  syncAdminCategoryTypeLabel();
+  void closeAdminCategoryTypeModal();
+});
+
+closeAdminUsersModalBtn?.addEventListener("click", () => {
+  void closeAdminUsersModal();
+});
+cancelAdminUsersModalBtn?.addEventListener("click", () => {
+  void closeAdminUsersModal();
+});
+closeAdminImpersonateModalBtn?.addEventListener("click", () => {
+  void closeAdminImpersonateModal();
+});
+cancelAdminImpersonateModalBtn?.addEventListener("click", () => {
+  void closeAdminImpersonateModal();
+});
+saveAdminImpersonateModalBtn?.addEventListener("click", () => {
+  if (selectedAdminImpersonateUserId > 0) {
+    void impersonateAdminUser(selectedAdminImpersonateUserId);
+  }
+});
+saveAdminUserModalBtn?.addEventListener("click", () => {
+  void saveAdminUser();
+});
+openAdminUserEditorNewBtn?.addEventListener("click", () => {
+  resetAdminUserForm();
+  void openAdminUserEditorModal();
+});
+closeAdminUserEditorModalBtn?.addEventListener("click", () => {
+  void closeAdminUserEditorModal();
+});
+cancelAdminUserEditorModalBtn?.addEventListener("click", () => {
+  void closeAdminUserEditorModal();
+});
+openAdminUserRoleBtn?.addEventListener("click", () => {
+  void openAdminUserRoleModal();
+});
+closeAdminUserRoleModalBtn?.addEventListener("click", () => {
+  void closeAdminUserRoleModal();
+});
+
+adminUsersListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const selectBtn = target.closest("[data-admin-user-select]");
+  const selectedIdRaw = selectBtn ? selectBtn.getAttribute("data-admin-user-select") : "";
+  if (!selectedIdRaw) return;
+  const id = Number(selectedIdRaw);
+  const item = adminUsersCache.find((row) => Number(row?.id || 0) === id);
+  if (!item) return;
+  editingAdminUserId = id;
+  if (adminUserNameInput) adminUserNameInput.value = String(item?.name || "");
+  if (adminUserEmailInput) adminUserEmailInput.value = String(item?.email || "");
+  if (adminUserPasswordInput) adminUserPasswordInput.value = "";
+  selectedAdminUserRole = String(item?.role || "user");
+  syncAdminUserRoleLabel();
+  if (adminUserAlterdataInput) adminUserAlterdataInput.value = String(item?.alterdata_code || "");
+  if (deleteAdminUserModalBtn) deleteAdminUserModalBtn.hidden = false;
+  void openAdminUserEditorModal();
+  void fetchAdminUserStats(id).then(renderAdminUserStats);
+});
+
+adminImpersonateListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-impersonate-user-id]");
+  if (!btn) return;
+  const id = Number(btn.getAttribute("data-admin-impersonate-user-id") || 0);
+  if (id <= 0) return;
+  selectedAdminImpersonateUserId = id;
+  renderAdminImpersonateUsersList(adminUsersCache);
+  if (saveAdminImpersonateModalBtn) saveAdminImpersonateModalBtn.disabled = false;
+});
+
+adminUserRoleListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-user-role]");
+  const value = btn ? String(btn.getAttribute("data-admin-user-role") || "") : "";
+  if (!value) return;
+  selectedAdminUserRole = value;
+  syncAdminUserRoleLabel();
+  void closeAdminUserRoleModal();
+});
+
+closeAdminCloseMonthModalBtn?.addEventListener("click", () => {
+  void closeAdminCloseMonthModal();
+});
+cancelAdminCloseMonthModalBtn?.addEventListener("click", () => {
+  void closeAdminCloseMonthModal();
+});
+saveAdminCloseMonthModalBtn?.addEventListener("click", () => {
+  void submitAdminCloseMonth();
+});
+openAdminCloseMonthDateBtn?.addEventListener("click", () => {
+  void openAdminCloseMonthDateModal();
+});
+closeAdminCloseMonthDateModalBtn?.addEventListener("click", () => {
+  void closeAdminCloseMonthDateModal();
+});
+openAdminCloseMonthUsersBtn?.addEventListener("click", () => {
+  void openAdminCloseMonthUserModal();
+});
+closeAdminCloseMonthUserModalBtn?.addEventListener("click", () => {
+  void closeAdminCloseMonthUserModal();
+});
+adminCloseMonthDatePicker?.addEventListener("ionChange", (event) => {
+  const value = normalizeMonthValue(event?.detail?.value || "");
+  if (!value) return;
+  selectedAdminCloseMonth = value;
+  syncAdminCloseMonthLabel();
+});
+adminCloseMonthUsersEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-close-user-id]");
+  const rawValue = String(btn ? btn.getAttribute("data-admin-close-user-id") : "");
+  if (!rawValue) return;
+  if (rawValue === "all") {
+    selectedAdminCloseMonthUserKeys = ["all"];
+    renderAdminUsersCheckboxes(adminUsersCache);
+    syncAdminCloseMonthLabel();
+    return;
+  }
+  const id = String(Number(rawValue) || 0);
+  if (id === "0") return;
+  const next = new Set((Array.isArray(selectedAdminCloseMonthUserKeys) ? selectedAdminCloseMonthUserKeys : ["all"]).map((value) => String(value || "")));
+  next.delete("all");
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  selectedAdminCloseMonthUserKeys = next.size ? Array.from(next) : ["all"];
+  renderAdminUsersCheckboxes(adminUsersCache);
+  syncAdminCloseMonthLabel();
+});
+
+closeAdminExportModalBtn?.addEventListener("click", () => {
+  void closeAdminExportModal();
+});
+cancelAdminExportModalBtn?.addEventListener("click", () => {
+  void closeAdminExportModal();
+});
+saveAdminExportModalBtn?.addEventListener("click", () => {
+  void submitAdminExport();
+});
+openAdminExportMonthBtn?.addEventListener("click", () => {
+  void openAdminExportMonthModal();
+});
+closeAdminExportMonthModalBtn?.addEventListener("click", () => {
+  void closeAdminExportMonthModal();
+});
+adminExportMonthPicker?.addEventListener("ionChange", (event) => {
+  const value = normalizeMonthValue(event?.detail?.value || "");
+  if (!value) return;
+  selectedAdminExportMonth = value;
+  syncAdminExportLabels();
+});
+openAdminExportTypeBtn?.addEventListener("click", () => {
+  void openAdminExportTypeModal();
+});
+closeAdminExportTypeModalBtn?.addEventListener("click", () => {
+  void closeAdminExportTypeModal();
+});
+adminExportTypeListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-export-type]");
+  const value = btn ? String(btn.getAttribute("data-admin-export-type") || "") : "";
+  if (!value) return;
+  selectedAdminExportType = value;
+  syncAdminExportLabels();
+  void closeAdminExportTypeModal();
+});
+openAdminExportUserBtn?.addEventListener("click", () => {
+  void openAdminExportUserModal();
+});
+closeAdminExportUserModalBtn?.addEventListener("click", () => {
+  void closeAdminExportUserModal();
+});
+adminExportUserListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-export-user-id]");
+  if (!btn) return;
+  const rawValue = String(btn.getAttribute("data-admin-export-user-id") || "");
+  if (!rawValue) return;
+  if (rawValue === "all") {
+    selectedAdminExportUserIds = ["all"];
+    renderAdminExportUsersList(adminUsersCache);
+    syncAdminExportLabels();
+    return;
+  }
+  const id = String(Number(rawValue) || 0);
+  if (id === "0") return;
+  const next = new Set((Array.isArray(selectedAdminExportUserIds) ? selectedAdminExportUserIds : ["all"]).map((value) => String(value || "")));
+  next.delete("all");
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  selectedAdminExportUserIds = next.size ? Array.from(next) : ["all"];
+  renderAdminExportUsersList(adminUsersCache);
+  syncAdminExportLabels();
+});
+
 notificationsModal?.addEventListener("ionModalDidDismiss", () => {
   refreshPickerLayerState();
 });
@@ -5135,9 +6575,118 @@ passwordModal?.addEventListener("ionModalDidPresent", () => {
   refreshPickerLayerState();
 });
 
+adminCategoriesModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminCategoriesModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminCategoryEditorModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminCategoryEditorModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminUsersModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminUsersModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminImpersonateModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminImpersonateModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminUserEditorModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminUserEditorModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminCloseMonthModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminCloseMonthModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminExportModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminExportModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminCategoryTypeModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminCategoryTypeModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminUserRoleModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminUserRoleModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminCloseMonthDateModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminCloseMonthDateModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminCloseMonthUserModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminCloseMonthUserModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminExportMonthModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminExportMonthModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminExportTypeModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminExportTypeModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminExportUserModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminExportUserModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
 refreshBtn?.addEventListener("click", () => {
   void loadDashboard();
 });
+
+stopImpersonationBtn?.addEventListener("click", () => {
+  void stopImpersonation();
+});
+
+selectedAdminCloseMonth = monthRange();
+selectedAdminExportMonth = monthRange();
+syncAdminCategoryTypeLabel();
+syncAdminUserRoleLabel();
+syncAdminCloseMonthLabel();
+syncAdminExportLabels();
 
 setupTabNav();
 setupEntryModal();
@@ -5157,3 +6706,10 @@ void loadDashboard();
 
 
 
+  if (deleteAdminUserModalBtn) deleteAdminUserModalBtn.hidden = true;
+      if (deleteAdminUserModalBtn) deleteAdminUserModalBtn.hidden = false;
+deleteAdminUserModalBtn?.addEventListener("click", () => {
+  if (editingAdminUserId > 0) {
+    void deleteAdminUser(editingAdminUserId);
+  }
+});

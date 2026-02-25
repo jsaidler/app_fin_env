@@ -15,6 +15,8 @@ class UserCategory
     public string $globalAlterdataAuto = '';
     public string $createdAt;
     public string $updatedAt;
+    public ?int $lastModifiedByUserId = null;
+    public ?string $lastModifiedAt = null;
 
     public static function fromArray(array $data): self
     {
@@ -29,6 +31,10 @@ class UserCategory
         $item->globalAlterdataAuto = (string)($data['global_alterdata_auto'] ?? '');
         $item->createdAt = (string)($data['created_at'] ?? date('c'));
         $item->updatedAt = (string)($data['updated_at'] ?? date('c'));
+        $item->lastModifiedByUserId = array_key_exists('last_modified_by_user_id', $data) && $data['last_modified_by_user_id'] !== null
+            ? (int)$data['last_modified_by_user_id']
+            : null;
+        $item->lastModifiedAt = (string)($data['last_modified_at'] ?? '') ?: null;
         return $item;
     }
 
@@ -45,7 +51,8 @@ class UserCategory
             'global_alterdata_auto' => $this->globalAlterdataAuto,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
+            'last_modified_by_user_id' => $this->lastModifiedByUserId,
+            'last_modified_at' => $this->lastModifiedAt,
         ];
     }
 }
-

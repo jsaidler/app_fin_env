@@ -21,7 +21,7 @@ class CategoryService
         return array_map(fn($c) => $c->toArray(), $this->categories->listAll());
     }
 
-    public function create(array $input): array
+    public function create(array $input, ?int $modifiedByUserId = null): array
     {
         $name = trim($input['name'] ?? '');
         $type = $input['type'] ?? '';
@@ -30,10 +30,15 @@ class CategoryService
             Response::json(['error' => 'Dados de categoria invalidos'], 422);
         }
         $cat = $this->categories->create($name, $type, $alterdataAuto);
+        if ($modifiedByUserId && $modifiedByUserId > 0) {
+            $cat = $this->categories->update((int)$cat->id, [
+                'last_modified_by_user_id' => (int)$modifiedByUserId,
+            ]) ?? $cat;
+        }
         return $cat->toArray();
     }
 
-    public function update(int $id, array $input): array
+    public function update(int $id, array $input, ?int $modifiedByUserId = null): array
     {
         $data = [];
         if (isset($input['name'])) {
@@ -50,6 +55,9 @@ class CategoryService
         }
         if (array_key_exists('alterdata_auto', $input)) {
             $data['alterdata_auto'] = trim((string)$input['alterdata_auto']);
+        }
+        if ($modifiedByUserId && $modifiedByUserId > 0) {
+            $data['last_modified_by_user_id'] = (int)$modifiedByUserId;
         }
         $cat = $this->categories->update($id, $data);
         if (!$cat) {

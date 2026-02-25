@@ -29,17 +29,19 @@ class CategoryController extends BaseController
     public function createUserCategory(): void
     {
         $uid = $this->requireAuth();
+        $modifierUserId = $this->actorModifierId($uid);
         $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
-        $item = $service->createForUser($uid, $this->jsonInput());
+        $item = $service->createForUser($uid, $this->jsonInput(), $modifierUserId);
         Response::json($item, 201);
     }
 
     public function updateUserCategory(array $params): void
     {
         $uid = $this->requireAuth();
+        $modifierUserId = $this->actorModifierId($uid);
         $id = (int)($params['id'] ?? 0);
         $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
-        $item = $service->updateForUser($id, $uid, $this->jsonInput());
+        $item = $service->updateForUser($id, $uid, $this->jsonInput(), $modifierUserId);
         Response::json($item);
     }
 
@@ -65,5 +67,11 @@ class CategoryController extends BaseController
     private function entryRepo()
     {
         return new SqliteEntryRepository($this->db());
+    }
+
+    private function actorModifierId(int $defaultUserId): int
+    {
+        $impBy = isset($this->authPayload['imp_by']) ? (int)$this->authPayload['imp_by'] : 0;
+        return $impBy > 0 ? $impBy : $defaultUserId;
     }
 }

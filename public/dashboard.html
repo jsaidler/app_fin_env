@@ -59,6 +59,9 @@
           <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
             <span>Recorrências</span>
           </button>
+          <button id="dash-admin-tab" type="button" class="dash-tab" data-tab="administracao" aria-selected="false" hidden>
+            <span>Administração</span>
+          </button>
         </nav>
       </div>
 
@@ -189,12 +192,60 @@
           <div id="recurrences-list" class="tx-list"></div>
         </section>
 
+        <section id="sec-administracao" class="dash-section dash-categories" data-tab-content="administracao" aria-label="Administração" hidden>
+          <header class="tx-head">
+            <h2 class="tx-head__title">Administração</h2>
+          </header>
+          <div class="settings-list">
+            <button type="button" class="entry-picker-row" data-admin-action="global-categories">
+              <span class="entry-picker-row__label">Categorias globais</span>
+              <span class="entry-picker-row__value-wrap">
+                <span class="entry-picker-row__value">Gerenciar cadastro</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </span>
+            </button>
+            <button type="button" class="entry-picker-row" data-admin-action="users">
+              <span class="entry-picker-row__label">Usuários</span>
+              <span class="entry-picker-row__value-wrap">
+                <span class="entry-picker-row__value">Criar e editar usuários</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </span>
+            </button>
+            <button type="button" class="entry-picker-row" data-admin-action="impersonate-user">
+              <span class="entry-picker-row__label">Personificar usuário</span>
+              <span class="entry-picker-row__value-wrap">
+                <span class="entry-picker-row__value">Acessar como usuário</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </span>
+            </button>
+            <button type="button" class="entry-picker-row" data-admin-action="close-month">
+              <span class="entry-picker-row__label">Fechamento mensal</span>
+              <span class="entry-picker-row__value-wrap">
+                <span class="entry-picker-row__value">Consolidar competência</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </span>
+            </button>
+            <button type="button" class="entry-picker-row" data-admin-action="export-alterdata">
+              <span class="entry-picker-row__label">Exportar Alterdata</span>
+              <span class="entry-picker-row__value-wrap">
+                <span class="entry-picker-row__value">Gerar arquivo TXT</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </span>
+            </button>
+          </div>
+          <p id="admin-area-info" class="tx-head__meta">Selecione uma ação para continuar.</p>
+        </section>
+
         <p id="dash-error" class="dash-feedback dash-feedback--error" hidden role="alert" aria-live="polite"></p>
         <p id="dash-info" class="dash-feedback dash-feedback--ok" hidden role="status" aria-live="polite"></p>
 
       </main>
 
       <div class="fab-scrim" aria-hidden="true"></div>
+      <div id="impersonation-banner" class="impersonation-banner" hidden>
+        <div id="impersonation-banner-text" class="impersonation-banner__text"></div>
+        <button id="stop-impersonation-btn" type="button" class="impersonation-banner__action">Encerrar</button>
+      </div>
 
       <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="fab-safe">
         <div class="fab-row">
@@ -206,23 +257,46 @@
       </ion-fab>
     </ion-content>
 
-    <ion-popover trigger="dash-menu-btn" side="bottom" alignment="end">
+    <ion-popover id="dash-menu-popover" trigger="dash-menu-btn" side="bottom" alignment="end">
       <ion-content class="dash-menu" scroll-y="false">
-        <ion-list lines="none">
+        <section class="dash-menu-user" aria-label="Resumo do usuário">
+          <span class="dash-menu-user__avatar material-symbols-rounded" aria-hidden="true">account_circle</span>
+          <div class="dash-menu-user__text">
+            <p id="dash-menu-user-name" class="dash-menu-user__name">Usuário</p>
+            <p id="dash-menu-user-email" class="dash-menu-user__email">-</p>
+            <p id="dash-menu-user-meta" class="dash-menu-user__meta">Usuário</p>
+          </div>
+        </section>
+        <ion-list class="dash-menu-list" lines="none">
           <ion-item button id="dash-notifications-menu">
+            <span class="dash-menu-list__icon material-symbols-rounded" slot="start">notifications</span>
             <ion-label>Notificações</ion-label>
+            <span class="dash-menu-list__trail material-symbols-rounded" slot="end">chevron_right</span>
           </ion-item>
           <ion-item button id="dash-profile-menu">
+            <span class="dash-menu-list__icon material-symbols-rounded" slot="start">badge</span>
             <ion-label>Dados pessoais</ion-label>
+            <span class="dash-menu-list__trail material-symbols-rounded" slot="end">chevron_right</span>
           </ion-item>
           <ion-item button id="dash-password-menu">
+            <span class="dash-menu-list__icon material-symbols-rounded" slot="start">key</span>
             <ion-label>Trocar senha</ion-label>
+            <span class="dash-menu-list__trail material-symbols-rounded" slot="end">chevron_right</span>
+          </ion-item>
+          <ion-item button id="dash-admin-menu" hidden>
+            <span class="dash-menu-list__icon material-symbols-rounded" slot="start">admin_panel_settings</span>
+            <ion-label>Administração</ion-label>
+            <span class="dash-menu-list__trail material-symbols-rounded" slot="end">chevron_right</span>
           </ion-item>
           <ion-item button id="dash-refresh-menu">
+            <span class="dash-menu-list__icon material-symbols-rounded" slot="start">refresh</span>
             <ion-label>Atualizar</ion-label>
+            <span class="dash-menu-list__trail material-symbols-rounded" slot="end">chevron_right</span>
           </ion-item>
           <ion-item button id="dash-logout-menu">
+            <span class="dash-menu-list__icon material-symbols-rounded" slot="start">logout</span>
             <ion-label>Sair</ion-label>
+            <span class="dash-menu-list__trail material-symbols-rounded" slot="end">chevron_right</span>
           </ion-item>
         </ion-list>
       </ion-content>
@@ -316,6 +390,383 @@
           </div>
         </ion-toolbar>
       </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-categories-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Categorias globais</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-categories-modal" aria-label="Fechar categorias globais">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Lista de categorias globais">
+            <div id="admin-categories-list" class="category-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-categories-modal">Fechar</ion-button>
+            <ion-button color="primary" id="open-admin-category-editor-new">Novo</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-category-editor-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Editar categoria global</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-category-editor-modal" aria-label="Fechar editor de categoria global">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Formulário de categoria global">
+            <p class="entry-stage__title">Nome</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="admin-category-name" type="text" placeholder="Ex.: Honorários"></ion-input>
+            </ion-item>
+            <button id="open-admin-category-type" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Tipo</span>
+              <span id="selected-admin-category-type" class="entry-picker-row__value">Saída</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <p class="entry-stage__title">Código Alterdata (opcional)</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="admin-category-alterdata" type="text" placeholder="Ex.: 1.01.001"></ion-input>
+            </ion-item>
+          </section>
+          <section class="entry-stage" aria-label="Resumo da categoria global">
+            <p class="entry-stage__title">Resumo</p>
+            <div id="admin-category-stats" class="settings-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" color="danger" id="delete-admin-category-modal" hidden>Excluir</ion-button>
+            <ion-button fill="clear" id="cancel-admin-category-editor-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-admin-category-modal">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-users-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Usuários</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-users-modal" aria-label="Fechar usuários">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Lista de usuários">
+            <div id="admin-users-list" class="category-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-users-modal">Fechar</ion-button>
+            <ion-button color="primary" id="open-admin-user-editor-new">Novo</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-user-editor-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Editar usuário</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-user-editor-modal" aria-label="Fechar editor de usuário">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Formulário de usuário">
+            <p class="entry-stage__title">Nome</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="admin-user-name" type="text" placeholder="Nome do usuário"></ion-input>
+            </ion-item>
+            <p class="entry-stage__title">E-mail</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="admin-user-email" type="email" placeholder="email@dominio.com"></ion-input>
+            </ion-item>
+            <p class="entry-stage__title">Senha (obrigatória no cadastro)</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="admin-user-password" type="password" placeholder="Mínimo 8 caracteres"></ion-input>
+            </ion-item>
+            <button id="open-admin-user-role" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Perfil</span>
+              <span id="selected-admin-user-role" class="entry-picker-row__value">Usuário</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <p class="entry-stage__title">Código Alterdata (opcional)</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="admin-user-alterdata" type="text" placeholder="Código no Alterdata"></ion-input>
+            </ion-item>
+          </section>
+          <section class="entry-stage" aria-label="Resumo do usuário">
+            <p class="entry-stage__title">Resumo</p>
+            <div id="admin-user-stats" class="settings-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" color="danger" id="delete-admin-user-modal" hidden>Excluir</ion-button>
+            <ion-button fill="clear" id="cancel-admin-user-editor-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-admin-user-modal">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-impersonate-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Personificar usuário</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-impersonate-modal" aria-label="Fechar personificação de usuário">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Seleção de usuário para personificação">
+            <div id="admin-impersonate-list" class="category-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-impersonate-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-admin-impersonate-modal" disabled>Personificar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-close-month-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Fechamento mensal</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-close-month-modal" aria-label="Fechar fechamento mensal">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Fechamento mensal">
+            <button id="open-admin-close-month-date" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Mês</span>
+              <span id="selected-admin-close-month-date" class="entry-picker-row__value">--</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <button id="open-admin-close-month-users" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Usuários</span>
+              <span id="selected-admin-close-month-users" class="entry-picker-row__value">Todos os usuários</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <p class="entry-stage__title">Histórico</p>
+            <div id="admin-close-month-history" class="category-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-close-month-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-admin-close-month-modal">Fechar mês</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-export-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Exportar Alterdata</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-export-modal" aria-label="Fechar exportação Alterdata">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Exportação Alterdata">
+            <button id="open-admin-export-month" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Mês</span>
+              <span id="selected-admin-export-month" class="entry-picker-row__value">--</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <button id="open-admin-export-type" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Tipo</span>
+              <span id="selected-admin-export-type" class="entry-picker-row__value">Todos</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <button id="open-admin-export-user" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Usuário (opcional)</span>
+              <span id="selected-admin-export-user" class="entry-picker-row__value">Todos os usuários</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <p class="entry-stage__title">Histórico</p>
+            <div id="admin-export-history" class="category-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-export-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-admin-export-modal">Exportar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-category-type-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Tipo da categoria</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-category-type-modal" aria-label="Fechar tipo da categoria">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-category-type-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-user-role-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Perfil do usuário</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-user-role-modal" aria-label="Fechar perfil do usuário">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-user-role-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-close-month-date-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Mês do fechamento</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-close-month-date-modal" aria-label="Fechar mês do fechamento">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-datetime id="admin-close-month-date-picker" locale="pt-BR" presentation="month-year"></ion-datetime>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-close-month-user-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Usuários do fechamento</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-close-month-user-modal" aria-label="Fechar usuários do fechamento">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-close-month-users" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-export-month-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Mês da exportação</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-export-month-modal" aria-label="Fechar mês da exportação">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-datetime id="admin-export-month-picker" locale="pt-BR" presentation="month-year"></ion-datetime>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-export-type-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Tipo da exportação</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-export-type-modal" aria-label="Fechar tipo da exportação">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-export-type-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-export-user-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Usuário da exportação</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-export-user-modal" aria-label="Fechar usuário da exportação">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-export-user-list" class="category-list"></div>
+      </div>
     </ion-modal>
 
     <ion-modal id="entry-modal" class="sheet-modal entry-sheet">

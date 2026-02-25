@@ -151,6 +151,22 @@ class SqliteConnection
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_admin_notifications_read ON admin_notifications(read_at)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_admin_notifications_month ON admin_notifications(month)');
 
+        $pdo->exec('CREATE TABLE IF NOT EXISTS admin_activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            action TEXT NOT NULL,
+            month TEXT,
+            actor_user_id INTEGER,
+            actor_name TEXT,
+            actor_email TEXT,
+            users_affected INTEGER NOT NULL DEFAULT 0,
+            records_affected INTEGER NOT NULL DEFAULT 0,
+            payload TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+        )');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_admin_activity_action_created ON admin_activity_logs(action, created_at DESC)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_admin_activity_month ON admin_activity_logs(month)');
+
         $pdo->exec('CREATE TABLE IF NOT EXISTS support_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -204,8 +220,17 @@ class SqliteConnection
         self::ensureColumn($pdo, 'entries', 'needs_review', 'INTEGER NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'entries', 'reviewed_at', 'TEXT');
         self::ensureColumn($pdo, 'entries', 'recurrence_id', 'INTEGER');
+        self::ensureColumn($pdo, 'entries', 'last_modified_by_user_id', 'INTEGER');
+        self::ensureColumn($pdo, 'entries', 'last_modified_at', 'TEXT');
+        self::ensureColumn($pdo, 'categories', 'last_modified_by_user_id', 'INTEGER');
+        self::ensureColumn($pdo, 'categories', 'last_modified_at', 'TEXT');
+        self::ensureColumn($pdo, 'user_categories', 'last_modified_by_user_id', 'INTEGER');
+        self::ensureColumn($pdo, 'user_categories', 'last_modified_at', 'TEXT');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_account_id ON entries(account_id)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_recurrence_id ON entries(recurrence_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_last_modified_by ON entries(last_modified_by_user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_categories_last_modified_by ON categories(last_modified_by_user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_categories_last_modified_by ON user_categories(last_modified_by_user_id)');
         self::backfillSupportThreads($pdo);
     }
 

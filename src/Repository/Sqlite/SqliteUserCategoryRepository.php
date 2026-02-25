@@ -73,8 +73,8 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
     {
         $now = date('c');
         $stmt = $this->pdo->prepare(
-            'INSERT INTO user_categories (user_id, name, icon, global_category_id, created_at, updated_at)
-             VALUES (:uid, :name, :icon, :global_id, :created_at, :updated_at)'
+            'INSERT INTO user_categories (user_id, name, icon, global_category_id, created_at, updated_at, last_modified_by_user_id, last_modified_at)
+             VALUES (:uid, :name, :icon, :global_id, :created_at, :updated_at, :last_modified_by, :last_modified_at)'
         );
         $stmt->execute([
             'uid' => $userId,
@@ -83,6 +83,8 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
             'global_id' => $globalCategoryId,
             'created_at' => $now,
             'updated_at' => $now,
+            'last_modified_by' => null,
+            'last_modified_at' => null,
         ]);
         $id = (int)$this->pdo->lastInsertId();
         return $this->findForUser($id, $userId) ?? UserCategory::fromArray([
@@ -104,13 +106,17 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
         }
         $merged = array_merge($existing->toArray(), $data);
         $merged['updated_at'] = date('c');
+        $modifierId = isset($data['last_modified_by_user_id']) ? (int)$data['last_modified_by_user_id'] : null;
+        $modifiedAt = isset($data['last_modified_by_user_id']) ? date('c') : null;
 
         $stmt = $this->pdo->prepare(
             'UPDATE user_categories
              SET name = :name,
                  icon = :icon,
                  global_category_id = :global_id,
-                 updated_at = :updated_at
+                 updated_at = :updated_at,
+                 last_modified_by_user_id = COALESCE(:last_modified_by,last_modified_by_user_id),
+                 last_modified_at = COALESCE(:last_modified_at,last_modified_at)
              WHERE id = :id AND user_id = :uid'
         );
         $stmt->execute([
@@ -118,6 +124,8 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
             'icon' => $merged['icon'],
             'global_id' => (int)$merged['global_category_id'],
             'updated_at' => $merged['updated_at'],
+            'last_modified_by' => $modifierId && $modifierId > 0 ? $modifierId : null,
+            'last_modified_at' => $modifiedAt,
             'id' => $id,
             'uid' => $userId,
         ]);
@@ -132,4 +140,3 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
         return $stmt->rowCount() > 0;
     }
 }
-

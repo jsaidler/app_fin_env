@@ -242,6 +242,7 @@ $router->add('GET', '/api/admin/categories', [AdminController::class, 'categorie
 $router->add('POST', '/api/admin/categories', [AdminController::class, 'createCategory']);
 $router->add('PUT', '/api/admin/categories/{id}', [AdminController::class, 'updateCategory']);
 $router->add('DELETE', '/api/admin/categories/{id}', [AdminController::class, 'deleteCategory']);
+$router->add('GET', '/api/admin/categories/{id}/stats', [AdminController::class, 'categoryStats']);
 $router->add('GET', '/api/admin/entries', [AdminController::class, 'adminEntries']);
 $router->add('POST', '/api/admin/entries', [AdminController::class, 'createAdminEntry']);
 $router->add('PUT', '/api/admin/entries/{id}', [AdminController::class, 'updateAdminEntry']);
@@ -249,6 +250,7 @@ $router->add('DELETE', '/api/admin/entries/{id}', [AdminController::class, 'dele
 $router->add('PUT', '/api/admin/entries/{id}/approve', [AdminController::class, 'approveAdminEntry']);
 $router->add('PUT', '/api/admin/entries/{id}/reject', [AdminController::class, 'rejectAdminEntry']);
 $router->add('POST', '/api/admin/close-month', [AdminController::class, 'closeMonth']);
+$router->add('GET', '/api/admin/close-month/history', [AdminController::class, 'closeMonthHistory']);
 $router->add('GET', '/api/admin/closed-months', [AdminController::class, 'closedMonths']);
 $router->add('GET', '/api/admin/notifications', [AdminController::class, 'notifications']);
 $router->add('PUT', '/api/admin/notifications/{id}/read', [AdminController::class, 'markNotificationRead']);
@@ -257,7 +259,10 @@ $router->add('GET', '/api/admin/support/threads', [AdminController::class, 'supp
 $router->add('POST', '/api/admin/support/threads', [AdminController::class, 'createSupportThread']);
 $router->add('GET', '/api/admin/support/messages', [AdminController::class, 'supportMessages']);
 $router->add('POST', '/api/admin/support/messages', [AdminController::class, 'sendSupportMessage']);
+$router->add('GET', '/api/admin/users/{id}/stats', [AdminController::class, 'userStats']);
+$router->add('POST', '/api/admin/users/{id}/impersonate', [AdminController::class, 'impersonate']);
 $router->add('GET', '/api/admin/export/alterdata', [ExportController::class, 'alterdata']);
+$router->add('GET', '/api/admin/export/alterdata/history', [AdminController::class, 'exportAlterdataHistory']);
 $router->add('GET', '/', function () {
     header('Content-Type: text/html; charset=utf-8');
     readfile(__DIR__ . '/index.html');
@@ -266,11 +271,6 @@ $router->add('GET', '/', function () {
 $router->add('GET', '/dashboard', function () {
     header('Content-Type: text/html; charset=utf-8');
     readfile(__DIR__ . '/dashboard.html');
-    exit;
-});
-$router->add('GET', '/admin', function () {
-    header('Content-Type: text/html; charset=utf-8');
-    readfile(__DIR__ . '/index.html');
     exit;
 });
 $router->add('GET', '/ui-kit', function () {

@@ -125,15 +125,26 @@ class AdminService
             Response::json(['error' => 'Usuarios invalidos'], 422);
         }
         $this->locks->setClosedForUsers($month, $validIds, $closed);
+        $purgedCount = 0;
         if ($closed) {
-            $this->purgeDeletedForMonth($month, $validIds);
+            $purgedCount = $this->purgeDeletedForMonth($month, $validIds);
         }
-        return ['closed_months' => $this->locks->listClosed()];
+        $locksUpdated = count($validIds);
+        return [
+            'closed_months' => $this->locks->listClosed(),
+            'summary' => [
+                'users_affected' => $locksUpdated,
+                'locks_updated' => $locksUpdated,
+                'purged_entries' => $purgedCount,
+                'records_affected' => $locksUpdated + $purgedCount,
+            ],
+        ];
     }
 
-    private function purgeDeletedForMonth(string $month, array $userIds): void
+    private function purgeDeletedForMonth(string $month, array $userIds): int
     {
         $entries = $this->entries->listAll(['include_deleted' => true, 'month' => $month]);
+        $purged = 0;
         foreach ($entries as $entry) {
             if (!in_array($entry->userId, $userIds, true)) continue;
             if (!$entry->deletedAt) continue;
@@ -141,7 +152,9 @@ class AdminService
                 $this->deleteAttachment($entry->attachmentPath);
             }
             $this->entries->purge($entry->id, $entry->userId);
+            $purged++;
         }
+        return $purged;
     }
 
     private function deleteAttachment(?string $file): void

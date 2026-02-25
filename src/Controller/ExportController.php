@@ -8,6 +8,7 @@ use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteUserCategoryRepository;
 use App\Repository\Sqlite\SqliteUserRepository;
 use App\Service\AlterdataExportService;
+use App\Service\AdminActivityLogService;
 use App\Service\ExportService;
 use App\Util\Response;
 
@@ -32,15 +33,49 @@ class ExportController extends BaseController
 
     public function alterdata(): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $month = $_GET['month'] ?? '';
         $type = $_GET['type'] ?? 'all';
-        $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
+        $userIds = [];
+        if (isset($_GET['user_ids'])) {
+            $raw = $_GET['user_ids'];
+            if (is_array($raw)) {
+                foreach ($raw as $value) {
+                    $id = (int)$value;
+                    if ($id > 0) $userIds[] = $id;
+                }
+            } elseif (is_string($raw)) {
+                foreach (explode(',', $raw) as $value) {
+                    $id = (int)trim($value);
+                    if ($id > 0) $userIds[] = $id;
+                }
+            }
+        } elseif (isset($_GET['user_id'])) {
+            $id = (int)$_GET['user_id'];
+            if ($id > 0) $userIds[] = $id;
+        }
+        $userIds = array_values(array_unique($userIds));
         $service = new AlterdataExportService($this->entryRepo(), $this->userRepo(), $this->categoryRepo(), $this->userCategoryRepo());
-        $txt = $service->exportText([
+        $result = $service->exportResult([
             'month' => $month,
             'type' => $type,
-            'user_id' => $userId,
+            'user_ids' => $userIds,
+        ]);
+        $txt = (string)($result['text'] ?? '');
+        $admin = $this->userRepo()->findById($adminId);
+        (new AdminActivityLogService($this->db()))->record([
+            'action' => 'export_alterdata',
+            'month' => $month,
+            'actor_user_id' => $adminId,
+            'actor_name' => $admin ? $admin->name : '',
+            'actor_email' => $admin ? $admin->email : '',
+            'users_affected' => (int)($result['users_affected'] ?? 0),
+            'records_affected' => (int)($result['records_exported'] ?? 0),
+            'payload' => [
+                'type' => $type,
+                'all_users' => count($userIds) === 0,
+                'user_ids' => $userIds,
+            ],
         ]);
         $suffix = $month ? ('-' . $month) : '';
         Response::text($txt, 'alterdata' . $suffix . '.txt');

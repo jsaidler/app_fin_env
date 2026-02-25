@@ -31,21 +31,31 @@ class AlterdataExportService
 
     public function exportText(array $filters = []): string
     {
+        return $this->exportResult($filters)['text'];
+    }
+
+    public function exportResult(array $filters = []): array
+    {
         $query = ['include_deleted' => true];
         $month = $filters['month'] ?? '';
         $type = $filters['type'] ?? 'all';
-        $userId = $filters['user_id'] ?? null;
+        $userIds = array_values(array_unique(array_map('intval', (array)($filters['user_ids'] ?? []))));
+        $userIds = array_values(array_filter($userIds, fn(int $id): bool => $id > 0));
         if ($month) {
             $query['month'] = $month;
         }
         if ($type !== 'all') {
             $query['type'] = $type;
         }
-        if ($userId) {
-            $query['user_id'] = (int)$userId;
+        if (count($userIds) === 1) {
+            $query['user_id'] = $userIds[0];
         }
 
         $entries = array_values(array_filter($this->entries->listAll($query), fn($e) => !$e->deletedAt && !$e->needsReview));
+        if (count($userIds) > 1) {
+            $allowed = array_flip($userIds);
+            $entries = array_values(array_filter($entries, fn($entry) => isset($allowed[(int)$entry->userId])));
+        }
         if (!$entries) {
             Response::json(['error' => 'Nenhuma movimentacao encontrada'], 404);
         }
@@ -74,9 +84,10 @@ class AlterdataExportService
         $missingUsers = [];
         $missingCats = [];
         $lines = [];
+        $exportedUserIds = [];
         foreach ($entries as $entry) {
             $user = $users[$entry->userId] ?? null;
-            if (!$user || $user->role === 'admin') {
+            if (!$user) {
                 continue;
             }
             if ($user->alterdataCode === '') {
@@ -105,6 +116,7 @@ class AlterdataExportService
                 $this->formatAmount($entry->amount),
                 $this->sanitize($entry->description),
             ]);
+            $exportedUserIds[(int)$entry->userId] = true;
         }
 
         if ($missingUsers || $missingCats) {
@@ -122,7 +134,11 @@ class AlterdataExportService
             Response::json(['error' => 'Nenhuma movimentacao valida para exportar'], 404);
         }
 
-        return implode("\n", $lines);
+        return [
+            'text' => implode("\n", $lines),
+            'records_exported' => count($lines),
+            'users_affected' => count($exportedUserIds),
+        ];
     }
 
     private function sanitize(string $value): string

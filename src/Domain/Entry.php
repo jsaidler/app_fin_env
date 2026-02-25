@@ -23,6 +23,8 @@ class Entry
     public bool $needsReview = false;
     public ?string $reviewedAt = null;
     public ?int $recurrenceId = null;
+    public ?int $lastModifiedByUserId = null;
+    public ?string $lastModifiedAt = null;
 
     public static function fromArray(array $data): self
     {
@@ -45,6 +47,10 @@ class Entry
         $e->needsReview = !empty($data['needs_review']);
         $e->reviewedAt = $data['reviewed_at'] ?? null;
         $e->recurrenceId = array_key_exists('recurrence_id', $data) && $data['recurrence_id'] !== null ? (int)$data['recurrence_id'] : null;
+        $e->lastModifiedByUserId = array_key_exists('last_modified_by_user_id', $data) && $data['last_modified_by_user_id'] !== null
+            ? (int)$data['last_modified_by_user_id']
+            : null;
+        $e->lastModifiedAt = $data['last_modified_at'] ?? null;
         return $e;
     }
 
@@ -69,6 +75,8 @@ class Entry
             'needs_review' => $this->needsReview ? 1 : 0,
             'reviewed_at' => $this->reviewedAt,
             'recurrence_id' => $this->recurrenceId,
+            'last_modified_by_user_id' => $this->lastModifiedByUserId,
+            'last_modified_at' => $this->lastModifiedAt,
         ];
     }
 }

@@ -125,3 +125,10 @@ Qualquer implementação nova ou ajuste visual deve seguir estes princípios.
 - Nunca criar variação de componente quando já existe padrão para a mesma função.
 - Caminho mais simples e direto deve ser a primeira escolha.
 - Em caso de dúvida, priorizar consistência sistêmica.
+
+## 21. Heranca de Padrao (Paginas e Gavetas)
+- Toda pagina nova deve seguir os mesmos padroes estruturais das paginas existentes.
+- Toda gaveta nova deve seguir o mesmo modelo de drawer/sheet ja consolidado no app.
+- Antes de criar qualquer bloco novo, reutilizar classes, componentes e comportamentos ja existentes.
+- Se houver conflito entre "inovar visualmente" e "manter consistencia", manter consistencia.
+- A variacao de conteudo e permitida; a variacao de padrao de componente nao e permitida para a mesma funcao.

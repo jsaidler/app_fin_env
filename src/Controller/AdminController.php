@@ -8,6 +8,7 @@ use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Repository\Sqlite\SqliteUserRepository;
 use App\Service\AdminEntryService;
+use App\Service\AdminActivityLogService;
 use App\Service\AdminService;
 use App\Service\AdminNotificationService;
 use App\Service\CategoryService;
@@ -15,6 +16,7 @@ use App\Service\MonthLockService;
 use App\Service\ReportService;
 use App\Service\SupportService;
 use App\Util\Response;
+use App\Util\Token;
 
 class AdminController extends BaseController
 {
@@ -60,18 +62,18 @@ class AdminController extends BaseController
 
     public function createCategory(): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $service = new CategoryService($this->categoryRepo());
-        $cat = $service->create($this->jsonInput());
+        $cat = $service->create($this->jsonInput(), $adminId);
         Response::json($cat, 201);
     }
 
     public function updateCategory(array $params): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
         $service = new CategoryService($this->categoryRepo());
-        $cat = $service->update($id, $this->jsonInput());
+        $cat = $service->update($id, $this->jsonInput(), $adminId);
         Response::json($cat);
     }
 
@@ -82,6 +84,58 @@ class AdminController extends BaseController
         $service = new CategoryService($this->categoryRepo());
         $cat = $service->delete($id);
         Response::json($cat);
+    }
+
+    public function categoryStats(array $params): void
+    {
+        $this->requireAdmin();
+        $id = (int)($params['id'] ?? 0);
+        if ($id <= 0) {
+            Response::json(['error' => 'Categoria invalida'], 422);
+        }
+        $category = $this->categoryRepo()->findById($id);
+        if (!$category) {
+            Response::json(['error' => 'Categoria nao encontrada'], 404);
+        }
+        $pdo = $this->db();
+
+        $childStmt = $pdo->prepare('SELECT COUNT(*) FROM user_categories WHERE global_category_id = :id');
+        $childStmt->execute(['id' => $id]);
+        $childCount = (int)($childStmt->fetchColumn() ?: 0);
+
+        $entryStmt = $pdo->prepare(
+            'SELECT COUNT(*)
+               FROM entries e
+               JOIN user_categories uc ON uc.user_id = e.user_id AND uc.name = e.category
+              WHERE uc.global_category_id = :id
+                AND e.deleted_at IS NULL'
+        );
+        $entryStmt->execute(['id' => $id]);
+        $entriesCount = (int)($entryStmt->fetchColumn() ?: 0);
+
+        $recStmt = $pdo->prepare(
+            'SELECT COUNT(*)
+               FROM recurrences r
+               JOIN user_categories uc ON uc.user_id = r.user_id AND uc.name = r.category
+              WHERE uc.global_category_id = :id
+                AND r.active = 1'
+        );
+        $recStmt->execute(['id' => $id]);
+        $recurrencesCount = (int)($recStmt->fetchColumn() ?: 0);
+
+        $userStmt = $pdo->prepare('SELECT COUNT(DISTINCT user_id) FROM user_categories WHERE global_category_id = :id');
+        $userStmt->execute(['id' => $id]);
+        $usersCount = (int)($userStmt->fetchColumn() ?: 0);
+
+        Response::json([
+            'id' => $id,
+            'name' => $category->name,
+            'type' => $category->type,
+            'child_categories' => $childCount,
+            'entries' => $entriesCount,
+            'recurrences' => $recurrencesCount,
+            'users' => $usersCount,
+        ]);
     }
 
     public function adminEntries(): void
@@ -104,66 +158,109 @@ class AdminController extends BaseController
 
     public function createAdminEntry(): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
-        $entry = $service->create($this->jsonInput());
+        $input = $this->jsonInput();
+        $input['admin_user_id'] = $adminId;
+        $entry = $service->create($input);
         Response::json($entry, 201);
     }
 
     public function updateAdminEntry(array $params): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
         $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
-        $entry = $service->update($id, $this->jsonInput());
+        $input = $this->jsonInput();
+        $input['admin_user_id'] = $adminId;
+        $entry = $service->update($id, $input);
         Response::json($entry);
     }
 
     public function deleteAdminEntry(array $params): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
         $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
-        $res = $service->delete($id);
+        $res = $service->delete($id, $adminId);
         Response::json($res);
     }
 
     public function approveAdminEntry(array $params): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
         if ($id <= 0) {
             Response::json(['error' => 'Lancamento invalido'], 422);
         }
         $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
-        $ok = $service->approve($id);
+        $ok = $service->approve($id, $adminId);
         (new AdminNotificationService($this->db()))->markReadByEntry($id);
         Response::json(['approved' => $ok]);
     }
 
     public function rejectAdminEntry(array $params): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
         if ($id <= 0) {
             Response::json(['error' => 'Lancamento invalido'], 422);
         }
         $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
-        $entry = $service->reject($id);
+        $entry = $service->reject($id, $adminId);
         (new AdminNotificationService($this->db()))->markReadByEntry($id);
         Response::json(['rejected' => true, 'entry' => $entry]);
     }
 
     public function closeMonth(): void
     {
-        $this->requireAdmin();
+        $adminId = $this->requireAdmin();
         $input = $this->jsonInput();
         $month = $input['month'] ?? '';
         $closed = (bool)($input['closed'] ?? true);
         $userIds = $input['user_ids'] ?? [];
+        $allUsers = (bool)($input['all_users'] ?? false);
+        if ($allUsers) {
+            $userIds = array_values(array_map(
+                fn($u) => (int)$u->id,
+                $this->userRepo()->listAll()
+            ));
+        }
         $service = new AdminService($this->userRepo(), $this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $result = $service->closeMonth($month, $userIds, $closed);
+        $admin = $this->userRepo()->findById($adminId);
+        $summary = $result['summary'] ?? [];
+        (new AdminActivityLogService($this->db()))->record([
+            'action' => 'close_month',
+            'month' => $month,
+            'actor_user_id' => $adminId,
+            'actor_name' => $admin ? $admin->name : '',
+            'actor_email' => $admin ? $admin->email : '',
+            'users_affected' => (int)($summary['users_affected'] ?? 0),
+            'records_affected' => (int)($summary['records_affected'] ?? 0),
+            'payload' => [
+                'closed' => $closed,
+                'all_users' => $allUsers,
+                'user_ids' => array_values(array_map('intval', (array)$userIds)),
+                'locks_updated' => (int)($summary['locks_updated'] ?? 0),
+                'purged_entries' => (int)($summary['purged_entries'] ?? 0),
+            ],
+        ]);
         Response::json($result);
+    }
+
+    public function closeMonthHistory(): void
+    {
+        $this->requireAdmin();
+        $list = (new AdminActivityLogService($this->db()))->listByAction('close_month', 30);
+        Response::json(['items' => $list]);
+    }
+
+    public function exportAlterdataHistory(): void
+    {
+        $this->requireAdmin();
+        $list = (new AdminActivityLogService($this->db()))->listByAction('export_alterdata', 30);
+        Response::json(['items' => $list]);
     }
 
     public function closedMonths(): void
@@ -301,6 +398,80 @@ class AdminController extends BaseController
         }
         $created = $service->sendMessage($threadId, (int)$thread['user_id'], 'admin', $message, $attachment ?: null);
         Response::json($created, 201);
+    }
+
+    public function userStats(array $params): void
+    {
+        $this->requireAdmin();
+        $id = (int)($params['id'] ?? 0);
+        if ($id <= 0) {
+            Response::json(['error' => 'Usuario invalido'], 422);
+        }
+        $user = $this->userRepo()->findById($id);
+        if (!$user) {
+            Response::json(['error' => 'Usuario nao encontrado'], 404);
+        }
+
+        $pdo = $this->db();
+        $entriesStmt = $pdo->prepare('SELECT COUNT(*) FROM entries WHERE user_id = :uid AND deleted_at IS NULL');
+        $entriesStmt->execute(['uid' => $id]);
+        $entriesCount = (int)($entriesStmt->fetchColumn() ?: 0);
+
+        $recStmt = $pdo->prepare('SELECT COUNT(*) FROM recurrences WHERE user_id = :uid AND active = 1');
+        $recStmt->execute(['uid' => $id]);
+        $recurrencesCount = (int)($recStmt->fetchColumn() ?: 0);
+
+        $accStmt = $pdo->prepare('SELECT COUNT(*) FROM user_accounts WHERE user_id = :uid AND active = 1');
+        $accStmt->execute(['uid' => $id]);
+        $accountsCount = (int)($accStmt->fetchColumn() ?: 0);
+
+        $catStmt = $pdo->prepare('SELECT COUNT(*) FROM user_categories WHERE user_id = :uid');
+        $catStmt->execute(['uid' => $id]);
+        $categoriesCount = (int)($catStmt->fetchColumn() ?: 0);
+
+        $pendingStmt = $pdo->prepare('SELECT COUNT(*) FROM entries WHERE user_id = :uid AND needs_review = 1 AND deleted_at IS NULL');
+        $pendingStmt->execute(['uid' => $id]);
+        $pendingCount = (int)($pendingStmt->fetchColumn() ?: 0);
+
+        Response::json([
+            'id' => $id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'entries' => $entriesCount,
+            'recurrences' => $recurrencesCount,
+            'accounts' => $accountsCount,
+            'categories' => $categoriesCount,
+            'pending_review' => $pendingCount,
+        ]);
+    }
+
+    public function impersonate(array $params): void
+    {
+        $adminId = $this->requireAdmin();
+        $userId = (int)($params['id'] ?? 0);
+        if ($userId <= 0) {
+            Response::json(['error' => 'Usuario invalido'], 422);
+        }
+        $user = $this->userRepo()->findById($userId);
+        if (!$user || $user->role === 'admin') {
+            Response::json(['error' => 'Usuario invalido para personificacao'], 422);
+        }
+        $token = Token::issue([
+            'uid' => $user->id,
+            'role' => $user->role,
+            'imp_by' => $adminId,
+        ], (string)$this->config['secret'], (int)$this->config['token_ttl']);
+
+        Response::json([
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+        ]);
     }
 
     protected function userRepo()

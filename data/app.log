@@ -3264,3 +3264,85 @@
 {"time":"2026-02-25T14:55:24-03:00","level":"INFO","message":"Login efetuado","context":{"uid":4,"email":"renatocoelho@envisione.com.br"}}
 {"time":"2026-02-25T14:55:25-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
 {"time":"2026-02-25T15:05:15-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:18:40-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:18:45-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:25:15-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:25:19-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:25:20-03:00","level":"WARNING","message":"Auth ausente ou malformado","context":{"path":"\/api\/account\/profile"}}
+{"time":"2026-02-25T15:25:20-03:00","level":"WARNING","message":"Unauthorized","context":{"status":401,"path":"\/api\/account\/profile","payload":{"error":"Unauthorized"}}}
+{"time":"2026-02-25T15:25:22-03:00","level":"INFO","message":"Login efetuado","context":{"uid":1,"email":"admin@local"}}
+{"time":"2026-02-25T15:25:22-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:26:47-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:26:47-03:00","level":"WARNING","message":"Auth ausente ou malformado","context":{"path":"\/api\/account\/profile"}}
+{"time":"2026-02-25T15:26:47-03:00","level":"WARNING","message":"Unauthorized","context":{"status":401,"path":"\/api\/account\/profile","payload":{"error":"Unauthorized"}}}
+{"time":"2026-02-25T15:28:20-03:00","level":"INFO","message":"Login efetuado","context":{"uid":4,"email":"renatocoelho@envisione.com.br"}}
+{"time":"2026-02-25T15:28:21-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:28:21-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:28:31-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:28:31-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:28:35-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:28:36-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:28:41-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:28:41-03:00","level":"WARNING","message":"Auth ausente ou malformado","context":{"path":"\/api\/account\/profile"}}
+{"time":"2026-02-25T15:28:41-03:00","level":"WARNING","message":"Unauthorized","context":{"status":401,"path":"\/api\/account\/profile","payload":{"error":"Unauthorized"}}}
+{"time":"2026-02-25T15:28:44-03:00","level":"INFO","message":"Login efetuado","context":{"uid":4,"email":"renatocoelho@envisione.com.br"}}
+{"time":"2026-02-25T15:28:44-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:28:44-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:28:53-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:28:53-03:00","level":"WARNING","message":"Auth ausente ou malformado","context":{"path":"\/api\/account\/profile"}}
+{"time":"2026-02-25T15:28:53-03:00","level":"WARNING","message":"Unauthorized","context":{"status":401,"path":"\/api\/account\/profile","payload":{"error":"Unauthorized"}}}
+{"time":"2026-02-25T15:28:55-03:00","level":"INFO","message":"Login efetuado","context":{"uid":1,"email":"admin@local"}}
+{"time":"2026-02-25T15:28:55-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:28:55-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:32:40-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:32:41-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:33:15-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:33:16-03:00","level":"WARNING","message":"Auth ausente ou malformado","context":{"path":"\/api\/account\/profile"}}
+{"time":"2026-02-25T15:33:16-03:00","level":"WARNING","message":"Unauthorized","context":{"status":401,"path":"\/api\/account\/profile","payload":{"error":"Unauthorized"}}}
+{"time":"2026-02-25T15:33:22-03:00","level":"INFO","message":"Login efetuado","context":{"uid":4,"email":"renatocoelho@envisione.com.br"}}
+{"time":"2026-02-25T15:33:22-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:33:22-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:33:27-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:33:27-03:00","level":"WARNING","message":"Administradores nao lancam entradas","context":{"status":403,"path":"\/api\/entries","payload":{"error":"Administradores nao lancam entradas"}}}
+{"time":"2026-02-25T15:34:20-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:35:39-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:35:40-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:10-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/admin","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:10-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:14-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:14-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:21-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:26-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:27-03:00","level":"WARNING","message":"Auth ausente ou malformado","context":{"path":"\/api\/account\/profile"}}
+{"time":"2026-02-25T15:45:27-03:00","level":"WARNING","message":"Unauthorized","context":{"status":401,"path":"\/api\/account\/profile","payload":{"error":"Unauthorized"}}}
+{"time":"2026-02-25T15:45:29-03:00","level":"INFO","message":"Login efetuado","context":{"uid":1,"email":"admin@local"}}
+{"time":"2026-02-25T15:45:29-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:45:41-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:49:43-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:49:54-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T15:57:06-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:01:56-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:16:49-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:20:22-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:33:06-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:41:59-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:45:12-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:46:55-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:48:03-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:50:34-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T16:50:57-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:00:26-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:00:34-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:04:00-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:09:12-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:12:13-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:20:18-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:28:42-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:34:37-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:40:44-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:42:09-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:44:47-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:45:44-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:50:31-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:51:06-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-25T17:51:57-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}

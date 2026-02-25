@@ -11,9 +11,6 @@ class SupportController extends BaseController
     public function threads(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Acesso restrito a usuarios'], 403);
-        }
         $service = new SupportService($this->db());
         $threads = $service->listThreadsForUser($uid);
         Response::json(['threads' => $threads]);
@@ -22,9 +19,6 @@ class SupportController extends BaseController
     public function createThread(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Acesso restrito a usuarios'], 403);
-        }
         $input = $this->jsonInput();
         $subject = trim((string)($input['subject'] ?? ''));
         if ($subject === '') {
@@ -38,9 +32,6 @@ class SupportController extends BaseController
     public function messages(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Acesso restrito a usuarios'], 403);
-        }
         $threadId = isset($_GET['thread_id']) ? (int)$_GET['thread_id'] : 0;
         if ($threadId <= 0) {
             Response::json(['error' => 'Atendimento invalido'], 422);
@@ -57,9 +48,6 @@ class SupportController extends BaseController
     public function createMessage(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Acesso restrito a usuarios'], 403);
-        }
         $input = $this->jsonInput();
         $threadId = (int)($input['thread_id'] ?? 0);
         $message = trim((string)($input['message'] ?? ''));

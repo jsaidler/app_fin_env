@@ -91,7 +91,7 @@ class EntryService
         return $entry?->toArray() ?? [];
     }
 
-    public function delete(int $userId, int $id): bool
+    public function delete(int $userId, int $id, ?int $modifiedByUserId = null): bool
     {
         $entry = $this->entries->find($id, $userId);
         if (!$entry) {
@@ -106,10 +106,16 @@ class EntryService
                 'deleted_type' => 'soft',
                 'needs_review' => 1,
                 'reviewed_at' => null,
+                'last_modified_by_user_id' => $modifiedByUserId && $modifiedByUserId > 0 ? $modifiedByUserId : $userId,
             ]);
             $ok = (bool)$deleted;
         } else {
-            $ok = $this->entries->delete($id, $userId, $hard);
+            $deleted = $this->entries->update($id, $userId, [
+                'deleted_at' => date('c'),
+                'deleted_type' => $hard ? 'hard' : 'soft',
+                'last_modified_by_user_id' => $modifiedByUserId && $modifiedByUserId > 0 ? $modifiedByUserId : $userId,
+            ]);
+            $ok = (bool)$deleted;
         }
         if ($ok && $hard && $entry->attachmentPath) {
             $this->deleteAttachment($entry->attachmentPath);
@@ -120,7 +126,7 @@ class EntryService
         return $ok;
     }
 
-    public function restore(int $userId, int $id): array
+    public function restore(int $userId, int $id, ?int $modifiedByUserId = null): array
     {
         $entry = $this->entries->find($id, $userId);
         if (!$entry || !$entry->deletedAt) {
@@ -129,6 +135,7 @@ class EntryService
         $restored = $this->entries->update($id, $userId, [
             'deleted_at' => null,
             'deleted_type' => null,
+            'last_modified_by_user_id' => $modifiedByUserId && $modifiedByUserId > 0 ? $modifiedByUserId : $userId,
         ]);
         return $restored?->toArray() ?? [];
     }

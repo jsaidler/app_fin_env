@@ -15,12 +15,27 @@ class AccountController extends BaseController
         if (!$user) {
             Response::json(['error' => 'Usuário não encontrado'], 404);
         }
+        $impersonation = ['active' => false];
+        $impBy = isset($this->authPayload['imp_by']) ? (int)$this->authPayload['imp_by'] : 0;
+        if ($impBy > 0) {
+            $adminUser = $this->userRepo()->findById($impBy);
+            $impersonation = [
+                'active' => true,
+                'admin' => [
+                    'id' => $impBy,
+                    'name' => $adminUser ? $adminUser->name : '',
+                    'email' => $adminUser ? $adminUser->email : '',
+                ],
+            ];
+        }
         Response::json([
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role,
+            'alterdata_code' => $user->alterdataCode,
             'theme' => $user->theme,
+            'impersonation' => $impersonation,
         ]);
     }
 

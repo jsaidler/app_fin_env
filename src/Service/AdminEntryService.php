@@ -67,6 +67,9 @@ class AdminEntryService
         }
         $merged['needs_review'] = 0;
         $merged['reviewed_at'] = date('c');
+        if (!empty($input['admin_user_id'])) {
+            $merged['last_modified_by_user_id'] = (int)$input['admin_user_id'];
+        }
         $updated = $this->entries->updateAdmin($id, $merged);
         return $updated?->toArray() ?? [];
     }
@@ -87,11 +90,14 @@ class AdminEntryService
         }
         $input['needs_review'] = 0;
         $input['reviewed_at'] = date('c');
+        if (!empty($input['admin_user_id'])) {
+            $input['last_modified_by_user_id'] = (int)$input['admin_user_id'];
+        }
         $entry = $this->entries->create($userId, $input);
         return $entry->toArray();
     }
 
-    public function delete(int $id): array
+    public function delete(int $id, ?int $adminUserId = null): array
     {
         $entry = $this->entries->findById($id);
         if (!$entry) {
@@ -104,23 +110,37 @@ class AdminEntryService
             $this->deleteAttachment($entry->attachmentPath);
         }
         // Admin mantém lixeira compartilhada: registros fechados ficam como soft delete
-        $ok = $this->entries->deleteAdmin($id, $hard);
+        $payload = $entry->toArray();
+        $payload['deleted_at'] = date('c');
+        $payload['deleted_type'] = $hard ? 'hard' : 'soft';
+        if ($adminUserId && $adminUserId > 0) {
+            $payload['last_modified_by_user_id'] = $adminUserId;
+        }
+        $updated = $this->entries->updateAdmin($id, $payload);
+        $ok = (bool)$updated;
         if ($ok && !$hard) {
             $this->entries->setReviewStatus($id, false, date('c'));
         }
         return ['deleted' => true, 'soft' => $isClosed];
     }
 
-    public function approve(int $id): bool
+    public function approve(int $id, ?int $adminUserId = null): bool
     {
         $entry = $this->entries->findById($id);
         if (!$entry) {
             Response::json(['error' => 'Lancamento nao encontrado'], 404);
         }
+        if ($adminUserId && $adminUserId > 0) {
+            $payload = $entry->toArray();
+            $payload['needs_review'] = 0;
+            $payload['reviewed_at'] = date('c');
+            $payload['last_modified_by_user_id'] = $adminUserId;
+            return (bool)$this->entries->updateAdmin($id, $payload);
+        }
         return $this->entries->setReviewStatus($id, false, date('c'));
     }
 
-    public function reject(int $id): array
+    public function reject(int $id, ?int $adminUserId = null): array
     {
         $entry = $this->entries->findById($id);
         if (!$entry) {
@@ -135,6 +155,9 @@ class AdminEntryService
         } else {
             $payload['deleted_at'] = date('c');
             $payload['deleted_type'] = 'rejected';
+        }
+        if ($adminUserId && $adminUserId > 0) {
+            $payload['last_modified_by_user_id'] = $adminUserId;
         }
         $updated = $this->entries->update($id, $entry->userId, $payload);
         return $updated?->toArray() ?? [];

@@ -1875,17 +1875,98 @@ ion-content::part(scroll) {
 
 .dash-menu {
   --background: #ffffff;
-  --padding-top: 4px;
-  --padding-bottom: 4px;
-  min-width: 192px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  min-width: 254px;
+}
+
+#dash-menu-popover::part(content) {
+  border-radius: 18px;
+  border: 1px solid rgba(24, 51, 97, 0.1);
+  box-shadow: 0 18px 34px rgba(12, 32, 64, 0.16);
+}
+
+.dash-menu-user {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px 6px 10px;
+  margin: 0 2px 6px;
+  border-bottom: 1px solid #e4eaf4;
+}
+
+.dash-menu-user__avatar {
+  font-size: 28px;
+  color: #2b6aa7;
+}
+
+.dash-menu-user__text {
+  min-width: 0;
+}
+
+.dash-menu-user__name,
+.dash-menu-user__email,
+.dash-menu-user__meta {
+  margin: 0;
+}
+
+.dash-menu-user__name {
+  font-size: 14px;
+  line-height: 1.2;
+  color: #213865;
+  font-weight: 800;
+}
+
+.dash-menu-user__email {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: #6f81a0;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-menu-user__meta {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #7d8eaa;
+  font-weight: 800;
+}
+
+.dash-menu-list {
+  padding: 0;
+  margin: 0;
 }
 
 .dash-menu ion-item {
-  --min-height: 42px;
+  --min-height: 44px;
+  --border-radius: 10px;
   --padding-start: 12px;
   --inner-padding-end: 12px;
   --color: var(--cp-ink);
+  --background-hover: #f2f6fc;
+  --background-focused: #f2f6fc;
+  --background-activated: #eaf2ff;
   font-size: var(--cp-type-body);
+  font-weight: 700;
+}
+
+.dash-menu-list__icon {
+  font-size: 18px;
+  color: #6f81a0;
+}
+
+.dash-menu-list__trail {
+  font-size: 18px;
+  color: #8b9ab1;
 }
 
 .settings-list {
@@ -1996,6 +2077,45 @@ ion-fab.fab-safe {
   pointer-events: none;
   height: calc(var(--fab-size) + 86px + var(--safe-bottom));
   background: linear-gradient(180deg, rgba(238, 241, 245, 0) 0%, rgba(238, 241, 245, 0.9) 62%, #eef1f5 100%);
+}
+
+.impersonation-banner {
+  position: fixed;
+  left: calc(12px + var(--safe-left));
+  bottom: calc(18px + var(--safe-bottom));
+  z-index: 13;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(82vw, 440px);
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(15, 113, 176, 0.12);
+  border: 1px solid rgba(15, 113, 176, 0.22);
+  backdrop-filter: blur(4px);
+}
+
+.impersonation-banner__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #26416e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.impersonation-banner__action {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #0f71b0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 /* Sheets */
@@ -2630,6 +2750,41 @@ ion-input.amount-input {
   color: #7f8ea7;
 }
 
+.category-option--admin-row {
+  grid-template-columns: 20px minmax(0, 1fr) 20px;
+}
+
+.category-option--history {
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+}
+
+.category-option--history .category-option__text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: grid;
+  gap: 2px;
+}
+
+.admin-history__title {
+  display: block;
+  color: #2c406c;
+}
+
+.admin-history__meta {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #8a97af;
+}
+
+.category-option__trail {
+  justify-self: end;
+  color: #8f9cb2;
+  font-size: 18px;
+}
+
 .category-empty {
   padding: 14px 0;
   font-size: var(--cp-type-body);
@@ -2638,7 +2793,9 @@ ion-input.amount-input {
 
 #entry-date-modal ion-datetime,
 #entries-filter-start-date-modal ion-datetime,
-#entries-filter-end-date-modal ion-datetime {
+#entries-filter-end-date-modal ion-datetime,
+#admin-close-month-date-modal ion-datetime,
+#admin-export-month-modal ion-datetime {
   --background: transparent;
   --ion-color-primary: var(--cp-blue);
   --ion-color-primary-contrast: #ffffff;
@@ -2651,21 +2808,27 @@ ion-input.amount-input {
 
 #entry-date-modal ion-datetime::part(calendar-day),
 #entries-filter-start-date-modal ion-datetime::part(calendar-day),
-#entries-filter-end-date-modal ion-datetime::part(calendar-day) {
+#entries-filter-end-date-modal ion-datetime::part(calendar-day),
+#admin-close-month-date-modal ion-datetime::part(calendar-day),
+#admin-export-month-modal ion-datetime::part(calendar-day) {
   border-radius: 999px;
   font-weight: 700;
 }
 
 #entry-date-modal ion-datetime::part(calendar-day-active),
 #entries-filter-start-date-modal ion-datetime::part(calendar-day-active),
-#entries-filter-end-date-modal ion-datetime::part(calendar-day-active) {
+#entries-filter-end-date-modal ion-datetime::part(calendar-day-active),
+#admin-close-month-date-modal ion-datetime::part(calendar-day-active),
+#admin-export-month-modal ion-datetime::part(calendar-day-active) {
   background: var(--cp-blue);
   color: #ffffff;
 }
 
 #entry-date-modal ion-datetime::part(calendar-day-today),
 #entries-filter-start-date-modal ion-datetime::part(calendar-day-today),
-#entries-filter-end-date-modal ion-datetime::part(calendar-day-today) {
+#entries-filter-end-date-modal ion-datetime::part(calendar-day-today),
+#admin-close-month-date-modal ion-datetime::part(calendar-day-today),
+#admin-export-month-modal ion-datetime::part(calendar-day-today) {
   color: var(--cp-blue);
   border: 1px solid rgba(0, 93, 151, 0.4);
 }

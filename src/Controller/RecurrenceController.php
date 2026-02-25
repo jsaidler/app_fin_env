@@ -14,9 +14,6 @@ class RecurrenceController extends BaseController
     public function list(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao usam recorrencias de lancamentos'], 403);
-        }
         $service = $this->service();
         Response::json($service->listForUser($uid));
     }
@@ -24,9 +21,6 @@ class RecurrenceController extends BaseController
     public function detail(array $params): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao usam recorrencias de lancamentos'], 403);
-        }
         $id = (int)($params['id'] ?? 0);
         $service = $this->service();
         Response::json($service->detailForUser($id, $uid));
@@ -35,9 +29,6 @@ class RecurrenceController extends BaseController
     public function create(): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao usam recorrencias de lancamentos'], 403);
-        }
         $service = $this->service();
         $item = $service->createForUser($uid, $this->jsonInput());
         Response::json($item, 201);
@@ -46,9 +37,6 @@ class RecurrenceController extends BaseController
     public function update(array $params): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao usam recorrencias de lancamentos'], 403);
-        }
         $id = (int)($params['id'] ?? 0);
         $service = $this->service();
         $item = $service->updateForUser($id, $uid, $this->jsonInput());
@@ -58,9 +46,6 @@ class RecurrenceController extends BaseController
     public function delete(array $params): void
     {
         $uid = $this->requireAuth();
-        if (($this->authPayload['role'] ?? 'user') === 'admin') {
-            Response::json(['error' => 'Administradores nao usam recorrencias de lancamentos'], 403);
-        }
         $id = (int)($params['id'] ?? 0);
         $service = $this->service();
         Response::json(['deleted' => $service->deleteForUser($id, $uid)]);

@@ -49,9 +49,11 @@ class SqliteEntryRepository implements EntryRepositoryInterface
     public function create(int $userId, array $data): Entry
     {
         $now = date('c');
+        $modifierId = isset($data['last_modified_by_user_id']) ? (int)$data['last_modified_by_user_id'] : $userId;
+        $modifiedAt = $now;
         $needsReview = !empty($data['needs_review']) ? 1 : 0;
         $reviewedAt = $data['reviewed_at'] ?? null;
-        $stmt = $this->pdo->prepare('INSERT INTO entries (user_id,type,amount,category,account_id,description,date,attachment_path,created_at,updated_at,deleted_at,deleted_type,needs_review,reviewed_at,recurrence_id) VALUES (:uid,:type,:amount,:category,:account_id,:description,:date,:attachment,:created,:updated,NULL,NULL,:needs_review,:reviewed_at,:recurrence_id)');
+        $stmt = $this->pdo->prepare('INSERT INTO entries (user_id,type,amount,category,account_id,description,date,attachment_path,created_at,updated_at,deleted_at,deleted_type,needs_review,reviewed_at,recurrence_id,last_modified_by_user_id,last_modified_at) VALUES (:uid,:type,:amount,:category,:account_id,:description,:date,:attachment,:created,:updated,NULL,NULL,:needs_review,:reviewed_at,:recurrence_id,:last_modified_by,:last_modified_at)');
         $stmt->execute([
             'uid' => $userId,
             'type' => $data['type'],
@@ -66,6 +68,8 @@ class SqliteEntryRepository implements EntryRepositoryInterface
             'needs_review' => $needsReview,
             'reviewed_at' => $reviewedAt,
             'recurrence_id' => isset($data['recurrence_id']) ? (int)$data['recurrence_id'] : null,
+            'last_modified_by' => $modifierId > 0 ? $modifierId : null,
+            'last_modified_at' => $modifiedAt,
         ]);
         $id = (int)$this->pdo->lastInsertId();
         return Entry::fromArray([
@@ -96,7 +100,9 @@ class SqliteEntryRepository implements EntryRepositoryInterface
         }
         $merged = array_merge($existing->toArray(), $data);
         $merged['updated_at'] = date('c');
-        $stmt = $this->pdo->prepare('UPDATE entries SET type=:type, amount=:amount, category=:category, account_id=:account_id, description=:description, date=:date, attachment_path=:attachment, deleted_at=:deleted_at, deleted_type=:deleted_type, needs_review=:needs_review, reviewed_at=:reviewed_at, recurrence_id=:recurrence_id, updated_at=:updated_at WHERE id=:id AND user_id=:uid');
+        $modifierId = isset($data['last_modified_by_user_id']) ? (int)$data['last_modified_by_user_id'] : null;
+        $modifiedAt = isset($data['last_modified_by_user_id']) ? date('c') : null;
+        $stmt = $this->pdo->prepare('UPDATE entries SET type=:type, amount=:amount, category=:category, account_id=:account_id, description=:description, date=:date, attachment_path=:attachment, deleted_at=:deleted_at, deleted_type=:deleted_type, needs_review=:needs_review, reviewed_at=:reviewed_at, recurrence_id=:recurrence_id, updated_at=:updated_at, last_modified_by_user_id = COALESCE(:last_modified_by,last_modified_by_user_id), last_modified_at = COALESCE(:last_modified_at,last_modified_at) WHERE id=:id AND user_id=:uid');
         $stmt->execute([
             'type' => $merged['type'],
             'amount' => $merged['amount'],
@@ -111,6 +117,8 @@ class SqliteEntryRepository implements EntryRepositoryInterface
             'reviewed_at' => $merged['reviewed_at'],
             'recurrence_id' => isset($merged['recurrence_id']) ? (int)$merged['recurrence_id'] : null,
             'updated_at' => $merged['updated_at'],
+            'last_modified_by' => $modifierId && $modifierId > 0 ? $modifierId : null,
+            'last_modified_at' => $modifiedAt,
             'id' => $id,
             'uid' => $userId,
         ]);
@@ -120,11 +128,13 @@ class SqliteEntryRepository implements EntryRepositoryInterface
     public function delete(int $id, int $userId, bool $hard = false): bool
     {
         $now = date('c');
-        $stmt = $this->pdo->prepare('UPDATE entries SET deleted_at=:deleted_at, deleted_type=:deleted_type, updated_at=:updated_at WHERE id=:id AND user_id=:uid AND deleted_at IS NULL');
+        $stmt = $this->pdo->prepare('UPDATE entries SET deleted_at=:deleted_at, deleted_type=:deleted_type, updated_at=:updated_at, last_modified_by_user_id = COALESCE(:last_modified_by,last_modified_by_user_id), last_modified_at = COALESCE(:last_modified_at,last_modified_at) WHERE id=:id AND user_id=:uid AND deleted_at IS NULL');
         $stmt->execute([
             'deleted_at' => $now,
             'deleted_type' => $hard ? 'hard' : 'soft',
             'updated_at' => $now,
+            'last_modified_by' => $userId > 0 ? $userId : null,
+            'last_modified_at' => $now,
             'id' => $id,
             'uid' => $userId,
         ]);
@@ -166,13 +176,17 @@ class SqliteEntryRepository implements EntryRepositoryInterface
         $stmt = $this->pdo->prepare(
             'UPDATE entries
              SET category = :to_category,
-                 updated_at = :updated_at
+                 updated_at = :updated_at,
+                 last_modified_by_user_id = :last_modified_by,
+                 last_modified_at = :last_modified_at
              WHERE user_id = :uid
                AND lower(category) = lower(:from_category)'
         );
         $stmt->execute([
             'to_category' => $to,
             'updated_at' => date('c'),
+            'last_modified_by' => $userId > 0 ? $userId : null,
+            'last_modified_at' => date('c'),
             'uid' => $userId,
             'from_category' => $from,
         ]);
@@ -247,7 +261,9 @@ class SqliteEntryRepository implements EntryRepositoryInterface
         }
         $merged = array_merge($existing->toArray(), $data);
         $merged['updated_at'] = date('c');
-        $stmt = $this->pdo->prepare('UPDATE entries SET user_id=:uid, type=:type, amount=:amount, category=:category, account_id=:account_id, description=:description, date=:date, attachment_path=:attachment, needs_review=:needs_review, reviewed_at=:reviewed_at, updated_at=:updated_at WHERE id=:id AND deleted_at IS NULL');
+        $modifierId = isset($data['last_modified_by_user_id']) ? (int)$data['last_modified_by_user_id'] : null;
+        $modifiedAt = isset($data['last_modified_by_user_id']) ? date('c') : null;
+        $stmt = $this->pdo->prepare('UPDATE entries SET user_id=:uid, type=:type, amount=:amount, category=:category, account_id=:account_id, description=:description, date=:date, attachment_path=:attachment, needs_review=:needs_review, reviewed_at=:reviewed_at, updated_at=:updated_at, last_modified_by_user_id = COALESCE(:last_modified_by,last_modified_by_user_id), last_modified_at = COALESCE(:last_modified_at,last_modified_at) WHERE id=:id AND deleted_at IS NULL');
         $stmt->execute([
             'uid' => $merged['user_id'],
             'type' => $merged['type'],
@@ -260,6 +276,8 @@ class SqliteEntryRepository implements EntryRepositoryInterface
             'needs_review' => !empty($merged['needs_review']) ? 1 : 0,
             'reviewed_at' => $merged['reviewed_at'],
             'updated_at' => $merged['updated_at'],
+            'last_modified_by' => $modifierId && $modifierId > 0 ? $modifierId : null,
+            'last_modified_at' => $modifiedAt,
             'id' => $id,
         ]);
         return Entry::fromArray($merged);

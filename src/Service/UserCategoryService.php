@@ -59,7 +59,7 @@ class UserCategoryService
         return array_map(fn($item) => $item->toArray(), $this->userCategories->listByUser($userId));
     }
 
-    public function createForUser(int $userId, array $input): array
+    public function createForUser(int $userId, array $input, ?int $modifiedByUserId = null): array
     {
         $name = trim((string)($input['name'] ?? ''));
         $icon = $this->normalizeIcon($input['icon'] ?? '');
@@ -75,10 +75,15 @@ class UserCategoryService
         $this->assertNameAvailable($userId, $name);
 
         $created = $this->userCategories->create($userId, $name, $icon, $globalCategoryId);
+        if ($modifiedByUserId && $modifiedByUserId > 0) {
+            $created = $this->userCategories->updateForUser((int)$created->id, $userId, [
+                'last_modified_by_user_id' => (int)$modifiedByUserId,
+            ]) ?? $created;
+        }
         return $created->toArray();
     }
 
-    public function updateForUser(int $id, int $userId, array $input): array
+    public function updateForUser(int $id, int $userId, array $input, ?int $modifiedByUserId = null): array
     {
         $existing = $this->userCategories->findForUser($id, $userId);
         if (!$existing) {
@@ -105,6 +110,7 @@ class UserCategoryService
             'name' => $name,
             'icon' => $icon,
             'global_category_id' => $globalCategoryId,
+            'last_modified_by_user_id' => ($modifiedByUserId && $modifiedByUserId > 0) ? (int)$modifiedByUserId : null,
         ]);
         if (!$updated) {
             Response::json(['error' => 'Categoria do usuário não encontrada'], 404);
