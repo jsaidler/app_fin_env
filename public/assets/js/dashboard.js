@@ -6,6 +6,9 @@ const errorEl = document.getElementById("dash-error");
 const infoEl = document.getElementById("dash-info");
 const logoutBtn = document.getElementById("dash-logout-menu");
 const refreshBtn = document.getElementById("dash-refresh-menu");
+const notificationsMenuBtn = document.getElementById("dash-notifications-menu");
+const profileMenuBtn = document.getElementById("dash-profile-menu");
+const passwordMenuBtn = document.getElementById("dash-password-menu");
 
 const kpiBalance = document.getElementById("kpi-balance");
 const trendLabel = document.getElementById("kpi-trend-label");
@@ -68,6 +71,22 @@ const tabNavShell = document.querySelector(".dash-nav-shell");
 const tabNavWrap = document.querySelector(".dash-nav-wrap");
 const rootApp = document.querySelector("ion-app");
 const pageLoadingOverlay = document.getElementById("page-loading-overlay");
+const notificationsModal = document.getElementById("notifications-modal");
+const closeNotificationsModalBtn = document.getElementById("close-notifications-modal");
+const notificationsListEl = document.getElementById("notifications-list");
+const profileModal = document.getElementById("profile-modal");
+const closeProfileModalBtn = document.getElementById("close-profile-modal");
+const cancelProfileModalBtn = document.getElementById("cancel-profile-modal");
+const saveProfileModalBtn = document.getElementById("save-profile-modal");
+const profileNameInput = document.getElementById("profile-name");
+const profileEmailInput = document.getElementById("profile-email");
+const passwordModal = document.getElementById("password-modal");
+const closePasswordModalBtn = document.getElementById("close-password-modal");
+const cancelPasswordModalBtn = document.getElementById("cancel-password-modal");
+const savePasswordModalBtn = document.getElementById("save-password-modal");
+const passwordCurrentInput = document.getElementById("password-current");
+const passwordNextInput = document.getElementById("password-next");
+const passwordConfirmInput = document.getElementById("password-confirm");
 
 const entryModal = document.getElementById("entry-modal");
 const openEntryBtn = document.getElementById("open-entry");
@@ -257,6 +276,8 @@ let confirmActionResolver = null;
 let confirmActionConfirmRole = "destructive";
 let editingRecurrenceId = 0;
 let recurrenceEditorHistoryToken = 0;
+let currentProfile = { name: "", email: "" };
+const USER_NOTIFICATIONS_KEY = "caixa_user_notifications";
 const AUTH_TOKEN_KEY = "caixa_auth_token";
 const ENTRY_RECURRENCE_OPTIONS = [
   { value: "", label: "Nenhuma", icon: "block" },
@@ -3596,6 +3617,7 @@ async function closeRecurrenceModal() {
 }
 
 async function saveRecurrence() {
+  const isEditingRecurrence = editingRecurrenceId > 0;
   const amount = parseMoneyInput(recurrenceAmountInput?.value || "");
   const category = String(selectedRecurrenceCategoryValue || "").trim();
   const accountId = Number(selectedRecurrenceAccountId || 0);
@@ -3650,8 +3672,15 @@ async function saveRecurrence() {
       showError(String(payload?.error || "Não foi possível salvar a recorrência."));
       return;
     }
+    if (!isEditingRecurrence) {
+      pushUserNotification({
+        title: "Recorrência criada",
+        message: `${category} • ${recurrenceFrequencyLabel(frequency)} • ${money.format(categoryType === "out" ? -Math.abs(amount) : Math.abs(amount))}`,
+        source: "recurrence",
+      });
+    }
     await closeRecurrenceModal();
-    showInfo(editingRecurrenceId ? "Recorrência atualizada com sucesso." : "Recorrência criada com sucesso.");
+    showInfo(isEditingRecurrence ? "Recorrência atualizada com sucesso." : "Recorrência criada com sucesso.");
     await loadDashboard();
     showTab("recorrentes");
   } catch {
@@ -4659,6 +4688,246 @@ async function safeJson(response, fallback) {
   }
 }
 
+function readUserNotifications() {
+  try {
+    const raw = localStorage.getItem(USER_NOTIFICATIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => ({
+        id: String(item?.id || ""),
+        title: String(item?.title || ""),
+        message: String(item?.message || ""),
+        source: String(item?.source || "system"),
+        created_at: String(item?.created_at || ""),
+      }))
+      .filter((item) => item.id && item.title && item.created_at)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  } catch {
+    return [];
+  }
+}
+
+function writeUserNotifications(items) {
+  try {
+    const safeList = (Array.isArray(items) ? items : []).slice(0, 80);
+    localStorage.setItem(USER_NOTIFICATIONS_KEY, JSON.stringify(safeList));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function pushUserNotification({ title, message = "", source = "system" }) {
+  const now = new Date().toISOString();
+  const list = readUserNotifications();
+  list.unshift({
+    id: `${source}-${now}-${Math.round(Math.random() * 1000)}`,
+    title: String(title || "Notificação"),
+    message: String(message || ""),
+    source: String(source || "system"),
+    created_at: now,
+  });
+  writeUserNotifications(list);
+}
+
+function renderNotifications(items) {
+  if (!notificationsListEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    notificationsListEl.innerHTML = `
+      <div class="settings-empty">
+        <p class="settings-empty__title">Sem notificações</p>
+        <p class="settings-empty__text">Novidades de recorrências e mensagens aparecerão aqui.</p>
+      </div>
+    `;
+    return;
+  }
+  notificationsListEl.innerHTML = rows
+    .map((item) => {
+      const title = escapeHtml(String(item?.title || "Notificação"));
+      const message = escapeHtml(String(item?.message || ""));
+      const source = escapeHtml(String(item?.source || "sistema"));
+      const dateText = escapeHtml(formatIsoDate(String(item?.created_at || "").slice(0, 10)) || "--");
+      return `
+        <article class="settings-item">
+          <div class="settings-item__head">
+            <h4 class="settings-item__title">${title}</h4>
+            <span class="settings-item__date">${dateText}</span>
+          </div>
+          ${message ? `<p class="settings-item__text">${message}</p>` : ""}
+          <p class="settings-item__meta">${source}</p>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function loadNotifications() {
+  const localItems = readUserNotifications();
+  try {
+    const response = await authFetch("/api/support/threads");
+    if (response.status === 401) {
+      window.location.href = "/";
+      return [];
+    }
+    if (!response.ok) return localItems;
+    const payload = await safeJson(response, {});
+    const threads = Array.isArray(payload?.threads) ? payload.threads : [];
+    const supportItems = threads
+      .filter((thread) => Number(thread?.unread_count || 0) > 0 || String(thread?.last_sender_role || "") === "admin")
+      .map((thread) => {
+        const createdAt = String(thread?.last_at || thread?.updated_at || thread?.created_at || "");
+        return {
+          id: `support-${thread?.id || createdAt}`,
+          title: "Mensagem do contador",
+          message: String(thread?.last_message || thread?.subject || "Você recebeu uma nova mensagem."),
+          source: "suporte",
+          created_at: createdAt || new Date().toISOString(),
+        };
+      });
+    const merged = [...supportItems, ...localItems].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    return merged.slice(0, 80);
+  } catch {
+    return localItems;
+  }
+}
+
+function hydrateProfileForm() {
+  if (profileNameInput) profileNameInput.value = String(currentProfile?.name || "");
+  if (profileEmailInput) profileEmailInput.value = String(currentProfile?.email || "");
+}
+
+function resetPasswordForm() {
+  if (passwordCurrentInput) passwordCurrentInput.value = "";
+  if (passwordNextInput) passwordNextInput.value = "";
+  if (passwordConfirmInput) passwordConfirmInput.value = "";
+}
+
+async function openNotificationsModal() {
+  const items = await loadNotifications();
+  renderNotifications(items);
+  await notificationsModal?.present();
+}
+
+async function closeNotificationsModal() {
+  try {
+    await notificationsModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openProfileModal() {
+  hydrateProfileForm();
+  await profileModal?.present();
+}
+
+async function closeProfileModal() {
+  try {
+    await profileModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function saveProfilePreferences() {
+  const name = String(profileNameInput?.value || "").trim();
+  if (!name) {
+    showError("Informe um nome válido.");
+    return;
+  }
+  if (saveProfileModalBtn) saveProfileModalBtn.disabled = true;
+  try {
+    const response = await fetch("/api/account/preferences", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({ name }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível atualizar os dados pessoais."));
+      return;
+    }
+    currentProfile.name = String(payload?.name || name);
+    if (userTitleEl) userTitleEl.textContent = currentProfile.name || currentProfile.email || "Usuário";
+    await closeProfileModal();
+    showInfo("Dados pessoais atualizados com sucesso.");
+  } catch {
+    showError("Falha de rede ao atualizar os dados pessoais.");
+  } finally {
+    if (saveProfileModalBtn) saveProfileModalBtn.disabled = false;
+  }
+}
+
+async function openPasswordModal() {
+  resetPasswordForm();
+  await passwordModal?.present();
+}
+
+async function closePasswordModal() {
+  try {
+    await passwordModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function saveAccountPassword() {
+  const currentPassword = String(passwordCurrentInput?.value || "");
+  const nextPassword = String(passwordNextInput?.value || "");
+  const confirmPassword = String(passwordConfirmInput?.value || "");
+  if (!currentPassword || !nextPassword || !confirmPassword) {
+    showError("Preencha todos os campos de senha.");
+    return;
+  }
+  if (nextPassword.length < 8) {
+    showError("A nova senha deve ter pelo menos 8 caracteres.");
+    return;
+  }
+  if (nextPassword !== confirmPassword) {
+    showError("A confirmação da senha não confere.");
+    return;
+  }
+  if (savePasswordModalBtn) savePasswordModalBtn.disabled = true;
+  try {
+    const response = await fetch("/api/account/password", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({
+        current_password: currentPassword,
+        password: nextPassword,
+      }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível trocar a senha."));
+      return;
+    }
+    await closePasswordModal();
+    showInfo("Senha atualizada com sucesso.");
+  } catch {
+    showError("Falha de rede ao trocar a senha.");
+  } finally {
+    if (savePasswordModalBtn) savePasswordModalBtn.disabled = false;
+  }
+}
+
 async function loadDashboard() {
   hideMessages();
   if (refreshBtn) refreshBtn.disabled = true;
@@ -4699,6 +4968,10 @@ async function loadDashboard() {
     dashboardEntriesCache = Array.isArray(entries) ? entries : [];
 
     const displayName = profile?.name || profile?.email || "Usu\u00e1rio";
+    currentProfile = {
+      name: String(profile?.name || ""),
+      email: String(profile?.email || ""),
+    };
     if (userTitleEl) userTitleEl.textContent = displayName;
 
     const totals = monthAgg?.totals || {};
@@ -4799,6 +5072,67 @@ async function logout() {
 
 logoutBtn?.addEventListener("click", () => {
   void logout();
+});
+
+notificationsMenuBtn?.addEventListener("click", () => {
+  void openNotificationsModal();
+});
+
+profileMenuBtn?.addEventListener("click", () => {
+  void openProfileModal();
+});
+
+passwordMenuBtn?.addEventListener("click", () => {
+  void openPasswordModal();
+});
+
+closeNotificationsModalBtn?.addEventListener("click", () => {
+  void closeNotificationsModal();
+});
+
+closeProfileModalBtn?.addEventListener("click", () => {
+  void closeProfileModal();
+});
+
+cancelProfileModalBtn?.addEventListener("click", () => {
+  void closeProfileModal();
+});
+
+saveProfileModalBtn?.addEventListener("click", () => {
+  void saveProfilePreferences();
+});
+
+closePasswordModalBtn?.addEventListener("click", () => {
+  void closePasswordModal();
+});
+
+cancelPasswordModalBtn?.addEventListener("click", () => {
+  void closePasswordModal();
+});
+
+savePasswordModalBtn?.addEventListener("click", () => {
+  void saveAccountPassword();
+});
+
+notificationsModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+notificationsModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+profileModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+profileModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+passwordModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+passwordModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
 });
 
 refreshBtn?.addEventListener("click", () => {

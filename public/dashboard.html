@@ -209,6 +209,15 @@
     <ion-popover trigger="dash-menu-btn" side="bottom" alignment="end">
       <ion-content class="dash-menu" scroll-y="false">
         <ion-list lines="none">
+          <ion-item button id="dash-notifications-menu">
+            <ion-label>Notificações</ion-label>
+          </ion-item>
+          <ion-item button id="dash-profile-menu">
+            <ion-label>Dados pessoais</ion-label>
+          </ion-item>
+          <ion-item button id="dash-password-menu">
+            <ion-label>Trocar senha</ion-label>
+          </ion-item>
           <ion-item button id="dash-refresh-menu">
             <ion-label>Atualizar</ion-label>
           </ion-item>
@@ -218,6 +227,96 @@
         </ion-list>
       </ion-content>
     </ion-popover>
+
+    <ion-modal id="notifications-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Notificações</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-notifications-modal" aria-label="Fechar notificações">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="notifications-list" class="settings-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="profile-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Dados pessoais</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-profile-modal" aria-label="Fechar dados pessoais">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Dados pessoais">
+            <p class="entry-stage__title">Nome</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="profile-name" type="text" placeholder="Seu nome"></ion-input>
+            </ion-item>
+            <p class="entry-stage__title">E-mail</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="profile-email" type="email" readonly></ion-input>
+            </ion-item>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-profile-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-profile-modal">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="password-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Trocar senha</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-password-modal" aria-label="Fechar troca de senha">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Troca de senha">
+            <p class="entry-stage__title">Senha atual</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="password-current" type="password" placeholder="Digite sua senha atual"></ion-input>
+            </ion-item>
+            <p class="entry-stage__title">Nova senha</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="password-next" type="password" placeholder="Mínimo de 8 caracteres"></ion-input>
+            </ion-item>
+            <p class="entry-stage__title">Confirmar nova senha</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="password-confirm" type="password" placeholder="Repita a nova senha"></ion-input>
+            </ion-item>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-password-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-password-modal">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
 
     <ion-modal id="entry-modal" class="sheet-modal entry-sheet">
       <ion-header>
