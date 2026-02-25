@@ -55,6 +55,21 @@ class SqliteConnection
             updated_at TEXT NOT NULL
         )');
 
+        $pdo->exec('CREATE TABLE IF NOT EXISTS user_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            icon TEXT NOT NULL DEFAULT "label",
+            global_category_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(global_category_id) REFERENCES categories(id) ON DELETE CASCADE
+        )');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_categories_user ON user_categories(user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_categories_global ON user_categories(global_category_id)');
+        $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_categories_user_name_nocase ON user_categories(user_id, name COLLATE NOCASE)');
+
         $pdo->exec('CREATE TABLE IF NOT EXISTS entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,

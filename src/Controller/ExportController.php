@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteCategoryRepository;
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteUserCategoryRepository;
 use App\Repository\Sqlite\SqliteUserRepository;
 use App\Service\AlterdataExportService;
 use App\Service\ExportService;
@@ -35,7 +36,7 @@ class ExportController extends BaseController
         $month = $_GET['month'] ?? '';
         $type = $_GET['type'] ?? 'all';
         $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
-        $service = new AlterdataExportService($this->entryRepo(), $this->userRepo(), $this->categoryRepo());
+        $service = new AlterdataExportService($this->entryRepo(), $this->userRepo(), $this->categoryRepo(), $this->userCategoryRepo());
         $txt = $service->exportText([
             'month' => $month,
             'type' => $type,
@@ -58,6 +59,11 @@ class ExportController extends BaseController
     private function categoryRepo()
     {
         return new SqliteCategoryRepository($this->db());
+    }
+
+    private function userCategoryRepo()
+    {
+        return new SqliteUserCategoryRepository($this->db());
     }
 
     private function normalizeRange(?string $start, ?string $end): array

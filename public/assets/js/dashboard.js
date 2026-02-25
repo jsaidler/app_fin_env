@@ -1,4 +1,4 @@
-const periodEl = document.getElementById("dash-period");
+﻿const periodEl = document.getElementById("dash-period");
 const userTitleEl = document.getElementById("dash-user-title");
 const balanceHeadEl = document.getElementById("dash-balance-head");
 const entriesMetaEl = document.getElementById("dash-entries-meta");
@@ -23,6 +23,7 @@ const catDonutEl = document.getElementById("cat-donut");
 const entriesList = document.getElementById("entries-list");
 const entriesSearchInput = document.getElementById("entries-search-input");
 const txSearchOverlay = document.getElementById("tx-search-overlay");
+const catSummaryOverlay = document.getElementById("cat-summary-overlay");
 const filterPanel = document.querySelector(".tx-filter-panel");
 const filterPanelPeriod = document.getElementById("entries-filter-panel-period");
 const openEntryFiltersSummaryBtn = document.getElementById("open-entry-filters-summary");
@@ -48,6 +49,7 @@ const entriesFilterEndDatePicker = document.getElementById("entries-filter-end-d
 
 const tabButtons = Array.from(document.querySelectorAll(".dash-tab"));
 const tabSections = Array.from(document.querySelectorAll("[data-tab-content]"));
+const dashHeaderEl = document.querySelector(".dash-header");
 const tabNavShell = document.querySelector(".dash-nav-shell");
 const tabNavWrap = document.querySelector(".dash-nav-wrap");
 const rootApp = document.querySelector("ion-app");
@@ -70,6 +72,33 @@ const categoryModal = document.getElementById("entry-category-modal");
 const closeCategoryModalBtn = document.getElementById("close-category-modal");
 const categorySearchInput = document.getElementById("category-search");
 const categoryListEl = document.getElementById("category-list");
+const openUserCategoryModalBtn = document.getElementById("open-user-category-modal");
+const userCategoryModal = document.getElementById("user-category-modal");
+const closeUserCategoryModalBtn = document.getElementById("close-user-category-modal");
+const cancelUserCategoryBtn = document.getElementById("cancel-user-category");
+const saveUserCategoryBtn = document.getElementById("save-user-category");
+const userCategoryModalTitleEl = document.getElementById("user-category-modal-title");
+const userCategoryNameInput = document.getElementById("user-category-name");
+const openUserCategoryIconModalBtn = document.getElementById("open-user-category-icon-modal");
+const selectedUserCategoryIconGlyphEl = document.getElementById("selected-user-category-icon-glyph");
+const selectedUserCategoryIconTextEl = document.getElementById("selected-user-category-icon-text");
+const userCategoryIconModal = document.getElementById("user-category-icon-modal");
+const closeUserCategoryIconModalBtn = document.getElementById("close-user-category-icon-modal");
+const userCategoryIconListEl = document.getElementById("user-category-icon-list");
+const openUserCategoryGlobalModalBtn = document.getElementById("open-user-category-global-modal");
+const selectedUserCategoryGlobalEl = document.getElementById("selected-user-category-global");
+const userCategoryGlobalModal = document.getElementById("user-category-global-modal");
+const closeUserCategoryGlobalModalBtn = document.getElementById("close-user-category-global-modal");
+const userCategoryGlobalSearchInput = document.getElementById("user-category-global-search");
+const userCategoryGlobalListEl = document.getElementById("user-category-global-list");
+const categoryDetailModal = document.getElementById("category-detail-modal");
+const closeCategoryDetailModalBtn = document.getElementById("close-category-detail-modal");
+const editCategoryFromDetailBtn = document.getElementById("edit-category-from-detail");
+const categoryDetailFooterEl = categoryDetailModal?.querySelector("ion-footer");
+const categoryDetailTitleEl = document.getElementById("category-detail-title");
+const categoryDetailTotalEl = document.getElementById("category-detail-total");
+const categoryDetailBarsEl = document.getElementById("category-detail-bars");
+const categoryDetailListEl = document.getElementById("category-detail-list");
 const entryDescriptionInput = document.getElementById("entry-description");
 const openDateBtn = document.getElementById("open-date");
 const selectedDateEl = document.getElementById("selected-date");
@@ -104,6 +133,15 @@ let loadedEntriesIndex = new Map();
 let initialBootPending = true;
 let entryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
 let draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
+let selectedUserCategoryIcon = "";
+let selectedUserCategoryGlobalId = 0;
+let userCategoryIconCatalog = [];
+let userCategoryIconCatalogLoaded = false;
+let dashboardEntriesCache = [];
+let categoryRowsIndex = new Map();
+let currentDetailCategoryName = "";
+let currentDetailEditableCategoryId = 0;
+let editingUserCategoryId = 0;
 const AUTH_TOKEN_KEY = "caixa_auth_token";
 
 const money = new Intl.NumberFormat("pt-BR", {
@@ -143,7 +181,7 @@ function showError(message) {
   errorEl.hidden = false;
   infoEl.hidden = true;
   if (entriesMetaEl && String(entriesMetaEl.textContent || "").trim() === "--") {
-    entriesMetaEl.textContent = "Sem dados no perÃ­odo";
+    entriesMetaEl.textContent = "Sem dados no per\u00edodo";
   }
 }
 
@@ -190,12 +228,17 @@ function showTab(tabName) {
   const previousActive = tabButtons.find((button) => button.classList.contains("is-active"));
   const transitionToken = ++navTransitionToken;
   const isLancamentos = tabName === "lancamentos";
+  const isCategorias = tabName === "categorias";
   tabSections.forEach((section) => {
     section.hidden = section.dataset.tabContent !== tabName;
   });
   if (txSearchOverlay) {
     txSearchOverlay.classList.toggle("is-visible", isLancamentos);
     txSearchOverlay.setAttribute("aria-hidden", isLancamentos ? "false" : "true");
+  }
+  if (catSummaryOverlay) {
+    catSummaryOverlay.classList.toggle("is-visible", isCategorias);
+    catSummaryOverlay.setAttribute("aria-hidden", isCategorias ? "false" : "true");
   }
   tabButtons.forEach((button) => {
     const isActive = button.dataset.tab === tabName;
@@ -208,7 +251,48 @@ function showTab(tabName) {
 
   requestAnimationFrame(() => {
     void scrollActiveTabIntoView(transitionToken);
+    updateOverlayPositioning();
   });
+}
+
+function readCssPx(variableName, fallback = 0) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(variableName);
+  const parsed = Number.parseFloat(String(value || "").trim());
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function writeCssPx(variableName, value) {
+  const px = Math.max(0, Number(value) || 0);
+  document.documentElement.style.setProperty(variableName, `${Math.round(px)}px`);
+}
+
+function updateOverlayPositioning() {
+  if (!dashHeaderEl || !tabNavShell) return;
+
+  const headerRect = dashHeaderEl.getBoundingClientRect();
+  const navRect = tabNavShell.getBoundingClientRect();
+  if (!headerRect.height || !navRect.height) return;
+
+  const minGap = readCssPx("--overlay-menu-min-gap", 14);
+  const navBottomInsideHeader = navRect.bottom - headerRect.top;
+  const maxOverlapInsideHeader = Math.max(0, headerRect.height - navBottomInsideHeader - minGap);
+
+  const txSearchCard = txSearchOverlay?.querySelector(".tx-search");
+  const catSummaryCard = catSummaryOverlay?.querySelector(".cat-summary");
+  const txHeight = txSearchCard?.getBoundingClientRect().height || readCssPx("--tx-search-h", 64);
+  const catHeight = catSummaryCard?.getBoundingClientRect().height || readCssPx("--cat-summary-h", 132);
+
+  const txDesiredOverlap = txHeight * 0.4;
+  const catDesiredOverlap = catHeight * 0.4;
+  const txEffectiveOverlap = Math.min(txDesiredOverlap, maxOverlapInsideHeader);
+  const catEffectiveOverlap = Math.min(catDesiredOverlap, maxOverlapInsideHeader);
+
+  writeCssPx("--tx-search-h", txHeight);
+  writeCssPx("--cat-summary-h", catHeight);
+  writeCssPx("--tx-search-overlap", txDesiredOverlap);
+  writeCssPx("--cat-summary-overlap", catDesiredOverlap);
+  writeCssPx("--tx-search-overlap-effective", txEffectiveOverlap);
+  writeCssPx("--cat-summary-overlap-effective", catEffectiveOverlap);
 }
 
 function ensureTabFillLayers() {
@@ -403,6 +487,13 @@ function setupTabNav() {
 
   showTab("lancamentos");
   window.addEventListener("resize", syncTabPill, { passive: true });
+  window.addEventListener(
+    "resize",
+    () => {
+      requestAnimationFrame(updateOverlayPositioning);
+    },
+    { passive: true },
+  );
   setupTabDragScroll();
 }
 
@@ -415,6 +506,14 @@ function normalizeText(value) {
 }
 
 function categoryGlyph(name) {
+  const directName = String(name || "").trim();
+  if (directName) {
+    const categoryMatch = categories.find((item) => String(item?.name || "").trim() === directName);
+    const explicitIcon = String(categoryMatch?.icon || "").trim().toLowerCase();
+    if (/^[a-z0-9_]{2,64}$/.test(explicitIcon)) {
+      return explicitIcon;
+    }
+  }
   const key = normalizeText(name);
   for (const token of Object.keys(CATEGORY_GLYPH)) {
     if (token !== "default" && key.includes(token)) return CATEGORY_GLYPH[token];
@@ -589,7 +688,7 @@ function setEntryModalMode(mode = "create") {
   const isEdit = mode === "edit";
   const isDeleted = mode === "deleted";
   if (entryModalTitleEl) {
-    entryModalTitleEl.textContent = isDeleted ? "LanÃ§amento excluÃ­do" : (isEdit ? "Editar lanÃ§amento" : "Nova entrada");
+    entryModalTitleEl.textContent = isDeleted ? "Lan\u00e7amento exclu\u00eddo" : (isEdit ? "Editar lan\u00e7amento" : "Nova entrada");
   }
   if (deleteEntryBtn) {
     const showDelete = isEdit && !isDeleted;
@@ -643,7 +742,7 @@ function setAttachmentPreview(file) {
     attachmentNameEl.textContent = formatAttachmentLabel(fileName);
     attachmentNameEl.classList.remove("is-placeholder");
   }
-  if (attachmentPathEl) attachmentPathEl.textContent = "SerÃ¡ definido ao salvar";
+  if (attachmentPathEl) attachmentPathEl.textContent = "Ser\u00e1 definido ao salvar";
   if (attachmentPathWrapEl) attachmentPathWrapEl.hidden = false;
   if (attachmentPreviewName) attachmentPreviewName.textContent = fileName;
   if (attachmentPreview) attachmentPreview.hidden = false;
@@ -675,7 +774,7 @@ function setAttachmentPreview(file) {
   };
   reader.onerror = () => {
     clearAttachmentSelection();
-    showError("NÃ£o foi possÃ­vel carregar a prÃ©-visualizaÃ§Ã£o do comprovante.");
+    showError("N\u00e3o foi poss\u00edvel carregar a pr\u00e9-visualiza\u00e7\u00e3o do comprovante.");
   };
   reader.readAsDataURL(file);
 }
@@ -873,7 +972,7 @@ function renderCategoryOptions(type = "") {
   }
   const groups = [
     { key: "in", title: "Entrada", icon: "arrow_downward" },
-    { key: "out", title: "SaÃ­da", icon: "arrow_upward" },
+    { key: "out", title: "Sa\u00edda", icon: "arrow_upward" },
   ];
 
   const html = groups
@@ -904,6 +1003,251 @@ function renderCategoryOptions(type = "") {
     .join("");
 
   categoryListEl.innerHTML = html || `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
+}
+
+function globalCategoriesOnly() {
+  return categories.filter((item) => String(item?.scope || "global") === "global");
+}
+
+function syncUserCategorySelections() {
+  const globals = globalCategoriesOnly();
+  if (!globals.length) {
+    selectedUserCategoryGlobalId = 0;
+  } else if (!globals.some((item) => Number(item?.id || 0) === selectedUserCategoryGlobalId)) {
+    selectedUserCategoryGlobalId = Number(globals[0]?.id || 0);
+  }
+
+  if (selectedUserCategoryIconGlyphEl) {
+    if (selectedUserCategoryIcon) {
+      selectedUserCategoryIconGlyphEl.textContent = selectedUserCategoryIcon;
+      selectedUserCategoryIconGlyphEl.hidden = false;
+    } else {
+      selectedUserCategoryIconGlyphEl.textContent = "label";
+      selectedUserCategoryIconGlyphEl.hidden = true;
+    }
+  }
+  if (selectedUserCategoryIconTextEl) {
+    if (selectedUserCategoryIcon) {
+      selectedUserCategoryIconTextEl.textContent = "Ícone selecionado";
+      selectedUserCategoryIconTextEl.classList.remove("is-placeholder");
+    } else {
+      selectedUserCategoryIconTextEl.textContent = "Selecione um ícone";
+      selectedUserCategoryIconTextEl.classList.add("is-placeholder");
+    }
+  }
+
+  if (selectedUserCategoryGlobalEl) {
+    const selected = globals.find((item) => Number(item?.id || 0) === selectedUserCategoryGlobalId);
+    if (selected) {
+      selectedUserCategoryGlobalEl.textContent = String(selected?.name || "");
+      selectedUserCategoryGlobalEl.classList.remove("is-placeholder");
+    } else {
+      selectedUserCategoryGlobalEl.textContent = "Selecionar categoria global";
+      selectedUserCategoryGlobalEl.classList.add("is-placeholder");
+    }
+  }
+  updateUserCategorySaveState();
+}
+
+function updateUserCategorySaveState() {
+  if (!saveUserCategoryBtn) return;
+  const name = String(userCategoryNameInput?.value || "").trim();
+  saveUserCategoryBtn.disabled = !(name && selectedUserCategoryGlobalId > 0 && selectedUserCategoryIcon);
+}
+
+async function ensureUserCategoryIconCatalogLoaded() {
+  if (userCategoryIconCatalogLoaded) return;
+  const fallback = Object.values(CATEGORY_GLYPH).filter((value, idx, arr) => value && arr.indexOf(value) === idx);
+  try {
+    const response = await fetch("/assets/data/material-symbols-rounded.json", {
+      method: "GET",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    if (response.ok) {
+      const payload = await safeJson(response, []);
+      const normalized = Array.isArray(payload)
+        ? payload
+            .map((item) => String(item || "").trim())
+            .filter((item, idx, arr) => item && arr.indexOf(item) === idx)
+        : [];
+      userCategoryIconCatalog = normalized.length ? normalized : fallback;
+    } else {
+      userCategoryIconCatalog = fallback;
+    }
+  } catch {
+    userCategoryIconCatalog = fallback;
+  } finally {
+    userCategoryIconCatalogLoaded = true;
+  }
+}
+
+function renderUserCategoryIconOptions() {
+  if (!userCategoryIconListEl) return;
+  userCategoryIconListEl.classList.add("icon-grid-list");
+  const source = userCategoryIconCatalog.length ? userCategoryIconCatalog : ["label"];
+  const filtered = source.slice(0, 600);
+  if (!filtered.length) {
+    userCategoryIconListEl.innerHTML = `<p class="category-empty">Nenhum ícone encontrado.</p>`;
+    return;
+  }
+  userCategoryIconListEl.innerHTML = filtered
+    .map((iconName) => {
+      const safe = escapeHtml(iconName);
+      const encoded = encodeURIComponent(iconName);
+      const isSelected = selectedUserCategoryIcon === iconName;
+      return `
+        <button type="button" class="icon-grid-option" data-user-category-icon="${encoded}" aria-label="${safe}" title="${safe}"${isSelected ? ' aria-current="true"' : ""}>
+          <span class="material-symbols-rounded">${safe}</span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderUserCategoryGlobalOptions() {
+  if (!userCategoryGlobalListEl) return;
+  userCategoryGlobalListEl.classList.remove("icon-grid-list");
+  const query = normalizeText(userCategoryGlobalSearchInput?.value || "");
+  const globals = globalCategoriesOnly().filter((item) =>
+    normalizeText(item?.name || "").includes(query)
+  );
+  if (!globals.length) {
+    userCategoryGlobalListEl.innerHTML = `<p class="category-empty">Nenhuma categoria global encontrada.</p>`;
+    return;
+  }
+  const groups = [
+    { key: "in", title: "Entrada", icon: "arrow_downward" },
+    { key: "out", title: "Saída", icon: "arrow_upward" },
+  ];
+  const html = groups
+    .map((group) => {
+      const options = globals.filter((item) => String(item?.type || "") === group.key);
+      if (!options.length) return "";
+      const optionsHtml = options
+        .map((category) => {
+          const id = Number(category?.id || 0);
+          const label = String(category?.name || "").trim();
+          const safeLabel = escapeHtml(label);
+          const isSelected = selectedUserCategoryGlobalId === id;
+          return `
+            <button type="button" class="category-option is-${group.key}" data-user-category-global="${id}"${isSelected ? ' aria-current="true"' : ""}>
+              <span class="category-option__lead"><span class="material-symbols-rounded">${group.icon}</span></span>
+              <span class="category-option__text">${safeLabel}</span>
+            </button>
+          `;
+        })
+        .join("");
+      return `
+        <section class="category-group">
+          <h4 class="category-group__title">${group.title}</h4>
+          <div class="category-group__items">${optionsHtml}</div>
+        </section>
+      `;
+    })
+    .join("");
+
+  userCategoryGlobalListEl.innerHTML = html || `<p class="category-empty">Nenhuma categoria global encontrada.</p>`;
+}
+
+async function openUserCategoryModal() {
+  if (!userCategoryModal) return;
+  editingUserCategoryId = 0;
+  if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Nova categoria";
+  if (userCategoryNameInput) userCategoryNameInput.value = "";
+  if (userCategoryGlobalSearchInput) userCategoryGlobalSearchInput.value = "";
+  selectedUserCategoryIcon = "";
+  syncUserCategorySelections();
+  await userCategoryModal.present();
+}
+
+async function openUserCategoryEditModal(category) {
+  if (!userCategoryModal) return;
+  editingUserCategoryId = Number(category?.id || 0);
+  if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Editar categoria";
+  if (userCategoryNameInput) userCategoryNameInput.value = String(category?.name || "");
+  if (userCategoryGlobalSearchInput) userCategoryGlobalSearchInput.value = "";
+  selectedUserCategoryIcon = String(category?.icon || "").trim();
+  selectedUserCategoryGlobalId = Number(category?.global_category_id || 0);
+  syncUserCategorySelections();
+  await userCategoryModal.present();
+}
+
+async function closeUserCategoryModal() {
+  await userCategoryModal?.dismiss();
+}
+
+async function openUserCategoryIconModal() {
+  if (!userCategoryIconModal) return;
+  await ensureUserCategoryIconCatalogLoaded();
+  renderUserCategoryIconOptions();
+  await userCategoryIconModal.present();
+}
+
+async function closeUserCategoryIconModal() {
+  await userCategoryIconModal?.dismiss();
+}
+
+async function openUserCategoryGlobalModal() {
+  if (!userCategoryGlobalModal) return;
+  renderUserCategoryGlobalOptions();
+  await userCategoryGlobalModal.present();
+}
+
+async function closeUserCategoryGlobalModal() {
+  await userCategoryGlobalModal?.dismiss();
+}
+
+async function createUserCategory() {
+  const name = String(userCategoryNameInput?.value || "").trim();
+  const icon = String(selectedUserCategoryIcon || "").trim();
+  const globalCategoryId = Number(selectedUserCategoryGlobalId || 0);
+  if (!name || globalCategoryId <= 0 || !String(selectedUserCategoryIcon || "").trim()) {
+    showError("Preencha nome, ícone e categoria global.");
+    return;
+  }
+
+  if (saveUserCategoryBtn) saveUserCategoryBtn.disabled = true;
+  try {
+    const endpoint = editingUserCategoryId > 0 ? `/api/user-categories/${editingUserCategoryId}` : "/api/user-categories";
+    const response = await fetch(endpoint, {
+      method: editingUserCategoryId > 0 ? "PUT" : "POST",
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({
+        name,
+        icon,
+        global_category_id: globalCategoryId,
+      }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || (editingUserCategoryId > 0 ? "Não foi possível atualizar categoria." : "Não foi possível criar categoria.")));
+      return;
+    }
+    await closeUserCategoryModal();
+    await loadCategories();
+    selectedCategoryValue = String(payload?.name || name);
+    if (selectedCategoryEl) {
+      selectedCategoryEl.textContent = selectedCategoryValue;
+      selectedCategoryEl.classList.remove("is-placeholder");
+    }
+    setEntryDirectionHint(selectedCategoryValue);
+    setEntryTheme(entryTypeFromSelectedCategory() || "neutral");
+    updateSaveState();
+    showInfo(editingUserCategoryId > 0 ? "Categoria atualizada com sucesso." : "Categoria criada com sucesso.");
+  } catch {
+    showError(editingUserCategoryId > 0 ? "Falha de rede ao atualizar categoria." : "Falha de rede ao criar categoria.");
+  } finally {
+    if (saveUserCategoryBtn) saveUserCategoryBtn.disabled = false;
+  }
 }
 
 function toAmountClass(value) {
@@ -945,7 +1289,7 @@ function rowTemplate(item, mode) {
     const chipTone = item.type === "in" ? "entry-chip--in" : "entry-chip--out";
     const entryId = Number(item.id || 0);
     return `
-      <button type="button" class="entry-row entry-row--button" data-entry-id="${entryId}" aria-label="Editar lanÃ§amento ${title}">
+      <button type="button" class="entry-row entry-row--button" data-entry-id="${entryId}" aria-label="Editar lan\u00e7amento ${title}">
         <div class="entry-row__title">${title}</div>
         <div class="entry-row__chips">
           <span class="entry-chip ${chipTone}">${category}</span>
@@ -968,10 +1312,10 @@ function rowTemplate(item, mode) {
   `;
 }
 
-function renderEntriesEmptyState(container, message = "Nenhum lanÃ§amento no perÃ­odo.") {
+function renderEntriesEmptyState(container, message = "Nenhum lan\u00e7amento no per\u00edodo.") {
   container.innerHTML = `
     <div class="tx-empty-state" role="status" aria-live="polite">
-      <p class="tx-empty-state__title">Nenhum lanÃ§amento</p>
+      <p class="tx-empty-state__title">Nenhum lan\u00e7amento</p>
       <p class="tx-empty-state__text">${escapeHtml(message)}</p>
     </div>
   `;
@@ -979,7 +1323,7 @@ function renderEntriesEmptyState(container, message = "Nenhum lanÃ§amento no p
 
 function renderEntriesGroupedFromServer(container, groups, emptyText) {
   if (!Array.isArray(groups) || groups.length === 0) {
-    renderEntriesEmptyState(container, emptyText || "Nenhum lanÃ§amento encontrado.");
+    renderEntriesEmptyState(container, emptyText || "Nenhum lan\u00e7amento encontrado.");
     return;
   }
 
@@ -1006,7 +1350,7 @@ function renderEntriesGroupedFromServer(container, groups, emptyText) {
               return `
                 <section class="entry-day">
                   <header class="entry-day__head">
-                    <div class="entry-group entry-group--day">${escapeHtml(String(dayNode?.label || ""))}</div>
+                    <div class="entry-group entry-group--day">${escapeHtml(dayGroupLabel(dayNode))}</div>
                     <div class="entry-day__value ${dayClass}">${money.format(dayBalanceValue)}</div>
                   </header>
                   <div class="entry-cluster__rows">${rows}</div>
@@ -1017,7 +1361,7 @@ function renderEntriesGroupedFromServer(container, groups, emptyText) {
           return `
             <section class="entry-month">
               <header class="entry-month__head">
-                <div class="entry-month__title">${escapeHtml(String(monthNode?.label || monthNode?.month || ""))}</div>
+                <div class="entry-month__title">${escapeHtml(monthLabelWithoutYear(String(monthNode?.label || monthNode?.month || ""), String(monthNode?.month || "")))}</div>
                 <div class="entry-month__value ${monthClass}">${money.format(monthBalance)}</div>
               </header>
               ${days}
@@ -1041,12 +1385,12 @@ function renderEntriesGroupedFromServer(container, groups, emptyText) {
 function formatFilterPanel() {
   if (!filterPanelPeriod) return;
   if (entryFilters.type === "deleted") {
-    filterPanelPeriod.textContent = "ExcluÃ­dos (todos)";
+    filterPanelPeriod.textContent = "Exclu\u00eddos (todos)";
     return;
   }
   const start = formatIsoDate(entryFilters.startDate);
   const end = formatIsoDate(entryFilters.endDate);
-  filterPanelPeriod.textContent = start && end ? `${start} atÃ© ${end}` : "--";
+  filterPanelPeriod.textContent = start && end ? `${start} at\u00e9 ${end}` : "--";
 }
 
 function syncFilterDraftToUi() {
@@ -1253,6 +1597,34 @@ function setupEntriesInteractions() {
       void openEntryEditor(entryId);
     }
   });
+
+  categoriesListScreen?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest(".cat-row--button");
+    if (!button) return;
+    const encoded = String(button.getAttribute("data-category-name") || "").trim();
+    const categoryName = encoded ? decodeURIComponent(encoded) : "";
+    if (!categoryName) return;
+    void openCategoryDetailModal(categoryName);
+  });
+
+  closeCategoryDetailModalBtn?.addEventListener("click", () => {
+    void closeCategoryDetailModal();
+  });
+
+  editCategoryFromDetailBtn?.addEventListener("click", () => {
+    if (!currentDetailCategoryName || currentDetailEditableCategoryId <= 0) {
+      showError("Somente categorias do usuário podem ser editadas.");
+      return;
+    }
+    const category = categories.find((item) => Number(item?.id || 0) === currentDetailEditableCategoryId);
+    if (!category || String(category?.scope || "global") !== "user") {
+      showError("Somente categorias do usuário podem ser editadas.");
+      return;
+    }
+    void closeCategoryDetailModal().then(() => openUserCategoryEditModal(category));
+  });
 }
 
 function renderRows(container, items, mode, emptyText) {
@@ -1323,11 +1695,392 @@ function renderCategories(items) {
     .join("");
 }
 
-function toneClassForCategory(name) {
-  const key = normalizeText(name);
-  let sum = 0;
-  for (let i = 0; i < key.length; i += 1) sum += key.charCodeAt(i);
-  return `tone-${(sum % 6) + 1}`;
+function hashString(value) {
+  const key = normalizeText(value);
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = ((hash << 5) - hash) + key.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function clampByte(value) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function hslToRgbBytes(h, s, l) {
+  const hue = (((Number(h) % 360) + 360) % 360) / 360;
+  const sat = Math.max(0, Math.min(100, Number(s))) / 100;
+  const lig = Math.max(0, Math.min(100, Number(l))) / 100;
+  if (sat === 0) {
+    const gray = clampByte(lig * 255);
+    return [gray, gray, gray];
+  }
+  const q = lig < 0.5 ? lig * (1 + sat) : lig + sat - (lig * sat);
+  const p = (2 * lig) - q;
+  const tc = [hue + (1 / 3), hue, hue - (1 / 3)];
+  const rgb = tc.map((tRaw) => {
+    let t = tRaw;
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    let c = p;
+    if (t < (1 / 6)) c = p + ((q - p) * 6 * t);
+    else if (t < (1 / 2)) c = q;
+    else if (t < (2 / 3)) c = p + ((q - p) * ((2 / 3) - t) * 6);
+    return clampByte(c * 255);
+  });
+  return [rgb[0], rgb[1], rgb[2]];
+}
+
+function rgbBytesToHex(r, g, b) {
+  const toHex = (n) => clampByte(n).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function hexToRgb(hex) {
+  const clean = String(hex || "").trim().replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return [0, 0, 0];
+  return [
+    Number.parseInt(clean.slice(0, 2), 16),
+    Number.parseInt(clean.slice(2, 4), 16),
+    Number.parseInt(clean.slice(4, 6), 16),
+  ];
+}
+
+function srgbToLinear(channelByte) {
+  const c = clampByte(channelByte) / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+function contrastRatio(hexA, hexB) {
+  const [r1, g1, b1] = hexToRgb(hexA);
+  const [r2, g2, b2] = hexToRgb(hexB);
+  const l1 = (0.2126 * srgbToLinear(r1)) + (0.7152 * srgbToLinear(g1)) + (0.0722 * srgbToLinear(b1));
+  const l2 = (0.2126 * srgbToLinear(r2)) + (0.7152 * srgbToLinear(g2)) + (0.0722 * srgbToLinear(b2));
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function hueDistance(a, b) {
+  const diff = Math.abs(a - b) % 360;
+  return Math.min(diff, 360 - diff);
+}
+
+function isHueInRange(hue, start, end) {
+  if (start <= end) return hue >= start && hue <= end;
+  return hue >= start || hue <= end;
+}
+
+function isForbiddenCategoryHue(hue) {
+  // Reservado para semântica financeira (positivo/negativo).
+  const redBand = isHueInRange(hue, 345, 18);
+  const greenBand = isHueInRange(hue, 88, 154);
+  return redBand || greenBand;
+}
+
+function moveHueToAllowed(hue) {
+  let candidate = ((Number(hue) % 360) + 360) % 360;
+  if (!isForbiddenCategoryHue(candidate)) return candidate;
+  for (let step = 1; step < 360; step += 1) {
+    const forward = (candidate + step) % 360;
+    if (!isForbiddenCategoryHue(forward)) return forward;
+    const backward = (candidate - step + 360) % 360;
+    if (!isForbiddenCategoryHue(backward)) return backward;
+  }
+  return 220;
+}
+
+function pickDistinctHue(baseHue, usedHues, minGap) {
+  const safeBase = moveHueToAllowed(baseHue);
+  if (!usedHues.length) return safeBase;
+  let bestHue = baseHue;
+  let bestScore = -1;
+  for (let step = 0; step < 360; step += 3) {
+    const forward = (safeBase + step) % 360;
+    const backward = (safeBase - step + 360) % 360;
+    for (const candidate of [forward, backward]) {
+      if (isForbiddenCategoryHue(candidate)) continue;
+      const nearest = Math.min(...usedHues.map((h) => hueDistance(candidate, h)));
+      if (nearest >= minGap) return candidate;
+      if (nearest > bestScore) {
+        bestScore = nearest;
+        bestHue = candidate;
+      }
+    }
+  }
+  return bestHue;
+}
+
+function buildCategoryToneMap(categoryNames) {
+  const unique = Array.from(new Set((Array.isArray(categoryNames) ? categoryNames : [])
+    .map((name) => String(name || "").trim())
+    .filter(Boolean)));
+
+  const result = new Map();
+  if (!unique.length) return result;
+
+  const canvasHex = "#eef1f5";
+  const minHueGap = Math.max(14, Math.min(34, Math.floor(320 / Math.max(unique.length, 1))));
+  const usedHues = [];
+
+  const ordered = unique
+    .map((name) => ({ name, hash: hashString(name) }))
+    .sort((a, b) => a.hash - b.hash);
+
+  for (const item of ordered) {
+    const baseHue = Math.round((item.hash * 137.508) % 360);
+    const safeBaseHue = moveHueToAllowed(baseHue);
+    const hue = pickDistinctHue(safeBaseHue, usedHues, minHueGap);
+    usedHues.push(hue);
+
+    const sat = 74;
+    let fgLight = 40;
+    let fgHex = rgbBytesToHex(...hslToRgbBytes(hue, sat, fgLight));
+    while (fgLight > 18 && contrastRatio(fgHex, canvasHex) < 4.6) {
+      fgLight -= 2;
+      fgHex = rgbBytesToHex(...hslToRgbBytes(hue, sat, fgLight));
+    }
+
+    const bgHex = rgbBytesToHex(...hslToRgbBytes(hue, 52, 92));
+    result.set(item.name, {
+      fg: fgHex,
+      bg: bgHex,
+      hue,
+    });
+  }
+  return result;
+}
+
+function categoryBalance(item) {
+  const inValue = Number(item?.in || 0);
+  const outValue = Number(item?.out || 0);
+  const explicitBalance = Number(item?.balance);
+  if (Number.isFinite(explicitBalance)) return explicitBalance;
+  return inValue - outValue;
+}
+
+function categoryTypeByName(name) {
+  const normalized = normalizeText(name);
+  const match = categories.find((item) => normalizeText(item?.name || "") === normalized);
+  const type = String(match?.type || "").trim();
+  if (type === "in" || type === "out") return type;
+  return "out";
+}
+
+function monthKeyFromIso(isoDate) {
+  const value = String(isoDate || "").slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(value)) return "";
+  return value;
+}
+
+function monthLabelFromKey(monthKey) {
+  const [year, month] = String(monthKey || "").split("-").map((value) => Number(value));
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return "";
+  const date = new Date(year, month - 1, 1);
+  const raw = date.toLocaleDateString("pt-BR", { month: "long" }).trim();
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function monthLabelWithoutYear(label, fallbackMonthKey = "") {
+  const source = String(label || "").trim();
+  if (!source && fallbackMonthKey) return monthLabelFromKey(fallbackMonthKey);
+  if (!source) return "";
+  const cleaned = source
+    .replace(/\s+de\s+\d{4}$/i, "")
+    .replace(/\s+\d{4}$/i, "")
+    .trim();
+  if (!cleaned) return fallbackMonthKey ? monthLabelFromKey(fallbackMonthKey) : "";
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function monthInitialFromKey(monthKey) {
+  const [year, month] = String(monthKey || "").split("-").map((value) => Number(value));
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return "";
+  const date = new Date(year, month - 1, 1);
+  const short = String(date.toLocaleDateString("pt-BR", { month: "short" }) || "").trim();
+  const normalized = short.replace(".", "");
+  return normalized ? normalized.charAt(0).toUpperCase() : "";
+}
+
+function dayMonthShortLabel(isoDate) {
+  const value = String(isoDate || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return "";
+  const date = new Date(year, month - 1, day);
+  const weekdayRaw = String(date.toLocaleDateString("pt-BR", { weekday: "short" }) || "").trim();
+  const weekday = weekdayRaw.replace(".", "").slice(0, 3).toUpperCase();
+  const monthShortRaw = String(date.toLocaleDateString("pt-BR", { month: "short" }) || "").trim();
+  const monthShort = monthShortRaw.replace(".", "").slice(0, 3).toUpperCase();
+  return `${weekday}, ${String(day).padStart(2, "0")}/${monthShort}`;
+}
+
+function dayGroupLabel(dayNode) {
+  const direct = String(dayNode?.date || dayNode?.day || "").slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return dayMonthShortLabel(direct);
+  const firstEntryDate = String((Array.isArray(dayNode?.entries) && dayNode.entries[0]?.date) || "").slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(firstEntryDate)) return dayMonthShortLabel(firstEntryDate);
+  return String(dayNode?.label || "").trim().toUpperCase();
+}
+
+function buildCategoryMonthlyBars(categoryName) {
+  const keyNow = monthRange();
+  const [yearNow, monthNow] = keyNow.split("-").map((value) => Number(value));
+  const months = [];
+  for (let i = 17; i >= 0; i -= 1) {
+    const date = new Date(yearNow, monthNow - 1 - i, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    months.push({ key, label: monthInitialFromKey(key) });
+  }
+  const map = new Map(months.map((item) => [item.key, 0]));
+  const normalizedCategory = normalizeText(categoryName);
+  dashboardEntriesCache.forEach((entry) => {
+    if (Number(entry?.deleted || 0) === 1) return;
+    if (normalizeText(entry?.category || "") !== normalizedCategory) return;
+    const key = monthKeyFromIso(entry?.date || "");
+    if (!map.has(key)) return;
+    map.set(key, Number(map.get(key) || 0) + Number(entry?.amount || 0));
+  });
+  const values = months.map((item) => Number(map.get(item.key) || 0));
+  const max = Math.max(...values, 1);
+  return months.map((item, idx) => ({
+    label: item.label,
+    value: values[idx],
+    ratio: Math.max(6, Math.round((values[idx] / max) * 100)),
+  }));
+}
+
+function signedEntryAmount(entry) {
+  const amount = Number(entry?.amount || 0);
+  return entry?.type === "out" ? -1 * amount : amount;
+}
+
+function buildCategoryEntriesHierarchy(categoryName) {
+  const normalizedCategory = normalizeText(categoryName);
+  const filtered = dashboardEntriesCache
+    .filter((entry) => Number(entry?.deleted || 0) !== 1)
+    .filter((entry) => normalizeText(entry?.category || "") === normalizedCategory)
+    .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
+
+  const yearsMap = new Map();
+  filtered.forEach((entry) => {
+    const iso = String(entry?.date || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+    const yearKey = iso.slice(0, 4);
+    const monthKey = iso.slice(0, 7);
+    const signed = signedEntryAmount(entry);
+
+    if (!yearsMap.has(yearKey)) {
+      yearsMap.set(yearKey, { yearKey, total: 0, monthsMap: new Map() });
+    }
+    const yearNode = yearsMap.get(yearKey);
+    yearNode.total += signed;
+
+    if (!yearNode.monthsMap.has(monthKey)) {
+      yearNode.monthsMap.set(monthKey, { monthKey, total: 0, daysMap: new Map() });
+    }
+    const monthNode = yearNode.monthsMap.get(monthKey);
+    monthNode.total += signed;
+    const dayKey = iso;
+    if (!monthNode.daysMap.has(dayKey)) {
+      monthNode.daysMap.set(dayKey, { dayKey, total: 0, entries: [] });
+    }
+    const dayNode = monthNode.daysMap.get(dayKey);
+    dayNode.total += signed;
+    dayNode.entries.push(entry);
+  });
+
+  return [...yearsMap.values()]
+    .sort((a, b) => b.yearKey.localeCompare(a.yearKey))
+    .map((yearNode) => ({
+      yearKey: yearNode.yearKey,
+      total: yearNode.total,
+      months: [...yearNode.monthsMap.values()]
+        .sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+        .map((monthNode) => ({
+          monthKey: monthNode.monthKey,
+          total: monthNode.total,
+          days: [...monthNode.daysMap.values()]
+            .sort((a, b) => b.dayKey.localeCompare(a.dayKey)),
+        })),
+    }));
+}
+
+function buildCategoryGroupsForLaunchListPattern(categoryName) {
+  const hierarchy = buildCategoryEntriesHierarchy(categoryName);
+  return hierarchy.map((yearNode) => ({
+    year: yearNode.yearKey,
+    label: yearNode.yearKey,
+    totals: { balance: Number(yearNode.total || 0) },
+    months: (Array.isArray(yearNode.months) ? yearNode.months : []).map((monthNode) => ({
+      month: monthNode.monthKey,
+      label: monthLabelFromKey(monthNode.monthKey),
+      totals: { balance: Number(monthNode.total || 0) },
+      days: (Array.isArray(monthNode.days) ? monthNode.days : []).map((dayNode) => ({
+        day: dayNode.dayKey,
+        label: dayMonthShortLabel(dayNode.dayKey),
+        totals: { balance: Number(dayNode.total || 0) },
+        entries: (Array.isArray(dayNode.entries) ? dayNode.entries : []).map((entry) => ({
+          ...entry,
+          category: String(entry?.category || categoryName || "").trim(),
+        })),
+      })),
+    })),
+  }));
+}
+
+function renderCategoryDetailModal(categoryName) {
+  if (!categoryDetailModal || !categoryDetailTitleEl || !categoryDetailTotalEl || !categoryDetailBarsEl || !categoryDetailListEl) return;
+  const meta = categoryRowsIndex.get(categoryName);
+  if (!meta) return;
+  currentDetailCategoryName = categoryName;
+  const categoryType = categoryTypeByName(categoryName);
+  const graphColor = categoryType === "in" ? "#2f925f" : "#c95b5b";
+  const sameNameCategories = categories.filter((item) => normalizeText(item?.name || "") === normalizeText(categoryName));
+  const hasGlobalCategory = sameNameCategories.some((item) => String(item?.scope || "global") === "global");
+  const editableUserCategory = sameNameCategories.find((item) => String(item?.scope || "global") === "user");
+  const isUserCategory = !hasGlobalCategory && Boolean(editableUserCategory);
+  currentDetailEditableCategoryId = isUserCategory ? Number(editableUserCategory?.id || 0) : 0;
+  if (editCategoryFromDetailBtn) {
+    editCategoryFromDetailBtn.style.display = isUserCategory ? "" : "none";
+    editCategoryFromDetailBtn.disabled = !isUserCategory;
+  }
+  if (categoryDetailFooterEl) {
+    categoryDetailFooterEl.style.display = isUserCategory ? "" : "none";
+  }
+
+  categoryDetailTitleEl.textContent = categoryName;
+  categoryDetailTotalEl.textContent = money.format(Number(meta?.currBalance || 0));
+  categoryDetailTotalEl.classList.remove("pos", "neg");
+  categoryDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
+
+  const bars = buildCategoryMonthlyBars(categoryName);
+  categoryDetailBarsEl.innerHTML = bars
+    .map((bar) => `
+      <span class="category-detail-bars__item">
+        <span class="category-detail-bars__slot">
+          <span class="category-detail-bars__bar" style="height:${bar.ratio}%;--bar-color:${graphColor}"></span>
+        </span>
+        <span class="category-detail-bars__label">${escapeHtml(bar.label)}</span>
+      </span>
+    `)
+    .join("");
+
+  const groups = buildCategoryGroupsForLaunchListPattern(categoryName);
+  renderEntriesGroupedFromServer(categoryDetailListEl, groups, "Sem lançamentos para esta categoria.");
+}
+
+async function openCategoryDetailModal(categoryName) {
+  renderCategoryDetailModal(categoryName);
+  await categoryDetailModal?.present();
+}
+
+async function closeCategoryDetailModal() {
+  currentDetailCategoryName = "";
+  currentDetailEditableCategoryId = 0;
+  await categoryDetailModal?.dismiss();
 }
 
 function renderCategoriesTab(currentAgg, previousAgg) {
@@ -1335,30 +2088,44 @@ function renderCategoriesTab(currentAgg, previousAgg) {
 
   const currentItems = Array.isArray(currentAgg?.by_category) ? currentAgg.by_category : [];
   const previousItems = Array.isArray(previousAgg?.by_category) ? previousAgg.by_category : [];
-  const prevMap = new Map(previousItems.map((item) => [String(item?.name || ""), Number(item?.out || 0)]));
+  const prevMap = new Map(previousItems.map((item) => [String(item?.name || ""), categoryBalance(item)]));
 
-  const currentMonthOut = Number(currentAgg?.totals?.out || 0);
-  const previousMonthOut = Number(previousAgg?.totals?.out || 0);
-  if (catSoFarEl) catSoFarEl.textContent = money.format(currentMonthOut);
-  if (catLastMonthEl) catLastMonthEl.textContent = money.format(previousMonthOut);
+  const currentMonthBalance = Number(currentAgg?.totals?.balance || 0);
+  const previousMonthBalance = Number(previousAgg?.totals?.balance || 0);
+  if (catSoFarEl) {
+    catSoFarEl.textContent = money.format(currentMonthBalance);
+    catSoFarEl.classList.remove("pos", "neg");
+    catSoFarEl.classList.add(currentMonthBalance >= 0 ? "pos" : "neg");
+  }
+  if (catLastMonthEl) {
+    catLastMonthEl.textContent = money.format(previousMonthBalance);
+    catLastMonthEl.classList.remove("pos", "neg");
+    catLastMonthEl.classList.add(previousMonthBalance >= 0 ? "pos" : "neg");
+  }
 
-  const topForDonut = currentItems
-    .map((item) => ({ name: String(item?.name || ""), out: Number(item?.out || 0) }))
-    .filter((item) => item.out > 0)
-    .sort((a, b) => b.out - a.out)
-    .slice(0, 4);
-  const donutTotal = topForDonut.reduce((acc, item) => acc + item.out, 0);
+  const donutItems = currentItems
+    .map((item) => ({ name: String(item?.name || "").trim(), value: Math.abs(categoryBalance(item)) }))
+    .filter((item) => item.name && item.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  const toneMap = buildCategoryToneMap([
+    ...currentItems.map((item) => String(item?.name || "")),
+    ...previousItems.map((item) => String(item?.name || "")),
+  ]);
+
+  const donutTotal = donutItems.reduce((acc, item) => acc + item.value, 0);
+
   if (catDonutEl) {
     if (!donutTotal) {
       catDonutEl.style.background = "conic-gradient(#dfe4ee 0turn 1turn)";
     } else {
-      const colors = ["#ea8a32", "#7c2fe0", "#de4f42", "#53b241"];
       let cursor = 0;
-      const segments = topForDonut.map((item, index) => {
-        const fraction = item.out / donutTotal;
+      const segments = donutItems.map((item) => {
+        const fraction = item.value / donutTotal;
         const start = cursor;
         cursor += fraction;
-        return `${colors[index % colors.length]} ${start}turn ${cursor}turn`;
+        const tone = toneMap.get(item.name);
+        return `${tone?.fg || "#2b7fff"} ${start}turn ${cursor}turn`;
       });
       catDonutEl.style.background = `conic-gradient(${segments.join(", ")})`;
     }
@@ -1367,38 +2134,52 @@ function renderCategoriesTab(currentAgg, previousAgg) {
   const listItems = currentItems
     .map((item) => {
       const name = String(item?.name || "").trim();
-      const currOut = Number(item?.out || 0);
-      const prevOut = Number(prevMap.get(name) || 0);
-      return { name, currOut, prevOut };
+      const currBalance = categoryBalance(item);
+      const prevBalance = Number(prevMap.get(name) || 0);
+      return { name, currBalance, prevBalance };
     })
     .filter((item) => item.name);
 
+  categoryRowsIndex = new Map();
+
   if (!listItems.length) {
-    categoriesListScreen.innerHTML = `<p class="cat-empty">Sem dados de categorias no perÃ­odo.</p>`;
+    categoriesListScreen.innerHTML = `<p class="cat-empty">Sem dados de categorias no per\u00edodo.</p>`;
     return;
   }
 
   categoriesListScreen.innerHTML = listItems
     .map((item) => {
       const icon = categoryGlyph(item.name);
+      const tone = toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
+      const toneColor = tone.fg;
+      const chipBg = tone.bg;
       const safeName = escapeHtml(item.name);
-      const base = Math.max(item.prevOut, item.currOut, 1);
-      const width = Math.max(4, Math.min(100, Math.round((item.currOut / base) * 100)));
-      const overClass = item.currOut > item.prevOut ? " is-over" : "";
+      const currAbs = Math.abs(item.currBalance);
+      const prevAbs = Math.abs(item.prevBalance);
+      const base = Math.max(currAbs, prevAbs, 1);
+      const currWidth = Math.max(0, Math.min(100, Math.round((currAbs / base) * 100)));
+      const prevWidth = Math.max(0, Math.min(100, Math.round((prevAbs / base) * 100)));
+      const currClass = item.currBalance >= 0 ? "pos" : "neg";
+      const prevClass = item.prevBalance >= 0 ? "pos" : "neg";
+      const encodedName = encodeURIComponent(item.name);
+      categoryRowsIndex.set(item.name, { currBalance: item.currBalance, prevBalance: item.prevBalance, toneColor, chipBg });
+
       return `
-        <div class="cat-row">
+        <button type="button" class="cat-row cat-row--button" data-category-name="${encodedName}">
           <div class="cat-row__meta">
-            <span class="cat-chip ${toneClassForCategory(item.name)}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
-            <span class="cat-row__bar"><span class="cat-row__bar-fill${overClass}" style="width:${width}%"></span></span>
+            <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
           </div>
-          <div class="cat-row__curr">${money.format(item.currOut)}</div>
-          <div class="cat-row__prev">${money.format(item.prevOut)}</div>
-        </div>
+          <div class="cat-row__curr ${currClass}">${money.format(item.currBalance)}</div>
+          <span class="cat-row__bar" style="--cat-tone:${toneColor}">
+            <span class="cat-row__bar-fill-prev" style="width:${prevWidth}%"></span>
+            <span class="cat-row__bar-fill-curr" style="width:${currWidth}%"></span>
+          </span>
+          <div class="cat-row__prev ${prevClass}">${money.format(item.prevBalance)}</div>
+        </button>
       `;
     })
     .join("");
 }
-
 async function loadCategories() {
   try {
     const response = await authFetch("/api/categories");
@@ -1419,9 +2200,11 @@ async function loadCategories() {
       formatFilterPanel();
     }
     renderCategoryOptions("");
+    syncUserCategorySelections();
   } catch {
     categories = [];
     renderCategoryOptions("");
+    syncUserCategorySelections();
   }
 }
 
@@ -1450,7 +2233,7 @@ async function uploadAttachment(file) {
   }
 
   if (!response.ok || !data?.file) {
-    throw new Error(data?.error || "NÃ£o foi possÃ­vel enviar o comprovante.");
+    throw new Error(data?.error || "N\u00e3o foi poss\u00edvel enviar o comprovante.");
   }
 
   return String(data.file);
@@ -1511,19 +2294,19 @@ async function createEntry() {
   const description = String(entryDescriptionInput?.value || "").trim();
 
   if (!["in", "out"].includes(type)) {
-    showError("Selecione uma categoria vÃ¡lida.");
+    showError("Selecione uma categoria v\u00e1lida.");
     return;
   }
   if (!Number.isFinite(amount) || amount <= 0) {
-    showError("Informe um valor vÃ¡lido.");
+    showError("Informe um valor v\u00e1lido.");
     return;
   }
   if (!category) {
-    showError("Categoria Ã© obrigatÃ³ria.");
+    showError("Categoria \u00e9 obrigat\u00f3ria.");
     return;
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    showError("Data invÃ¡lida.");
+    showError("Data inv\u00e1lida.");
     return;
   }
 
@@ -1565,12 +2348,12 @@ async function createEntry() {
     }
 
     if (!response.ok) {
-      showError(data?.error || "NÃ£o foi possÃ­vel salvar a entrada.");
+      showError(data?.error || "N\u00e3o foi poss\u00edvel salvar a entrada.");
       return;
     }
 
     await closeEntryModal();
-    showInfo(editingEntryId ? "LanÃ§amento atualizado com sucesso." : "Entrada adicionada com sucesso.");
+    showInfo(editingEntryId ? "Lan\u00e7amento atualizado com sucesso." : "Entrada adicionada com sucesso.");
     await loadDashboard();
     showTab("lancamentos");
   } catch {
@@ -1594,20 +2377,20 @@ async function restoreEntry() {
       return;
     }
     if (!response.ok) {
-      showError("NÃ£o foi possÃ­vel restaurar o lanÃ§amento.");
+      showError("N\u00e3o foi poss\u00edvel restaurar o lan\u00e7amento.");
       return;
     }
     await closeEntryModal();
-    showInfo("LanÃ§amento restaurado com sucesso.");
+    showInfo("Lan\u00e7amento restaurado com sucesso.");
     await loadDashboard();
   } catch {
-    showError("Falha de rede ao restaurar o lanÃ§amento.");
+    showError("Falha de rede ao restaurar o lan\u00e7amento.");
   }
 }
 
 async function deleteEntry() {
   if (!editingEntryId || editingEntryDeleted) return;
-  const confirmed = window.confirm("Excluir este lanÃ§amento?");
+  const confirmed = window.confirm("Excluir este lan\u00e7amento?");
   if (!confirmed) return;
 
   try {
@@ -1621,14 +2404,14 @@ async function deleteEntry() {
       return;
     }
     if (!response.ok) {
-      showError("NÃ£o foi possÃ­vel excluir o lanÃ§amento.");
+      showError("N\u00e3o foi poss\u00edvel excluir o lan\u00e7amento.");
       return;
     }
     await closeEntryModal();
-    showInfo("LanÃ§amento excluÃ­do com sucesso.");
+    showInfo("Lan\u00e7amento exclu\u00eddo com sucesso.");
     await loadDashboard();
   } catch {
-    showError("Falha de rede ao excluir o lanÃ§amento.");
+    showError("Falha de rede ao excluir o lan\u00e7amento.");
   }
 }
 
@@ -1727,6 +2510,73 @@ function setupEntryModal() {
 
   closeCategoryModalBtn?.addEventListener("click", () => {
     void closeCategorySheet();
+  });
+
+  openUserCategoryModalBtn?.addEventListener("click", () => {
+    void openUserCategoryModal();
+  });
+
+  closeUserCategoryModalBtn?.addEventListener("click", () => {
+    void closeUserCategoryModal();
+  });
+
+  cancelUserCategoryBtn?.addEventListener("click", () => {
+    void closeUserCategoryModal();
+  });
+
+  saveUserCategoryBtn?.addEventListener("click", () => {
+    void createUserCategory();
+  });
+
+  userCategoryNameInput?.addEventListener("ionInput", () => {
+    updateUserCategorySaveState();
+  });
+
+  openUserCategoryIconModalBtn?.addEventListener("click", () => {
+    void openUserCategoryIconModal();
+  });
+
+  closeUserCategoryIconModalBtn?.addEventListener("click", () => {
+    void closeUserCategoryIconModal();
+  });
+
+  userCategoryIconListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-user-category-icon]");
+    if (!button) return;
+    const encoded = String(button.getAttribute("data-user-category-icon") || "").trim();
+    const iconName = encoded ? decodeURIComponent(encoded) : "";
+    if (!iconName) return;
+    selectedUserCategoryIcon = iconName;
+    syncUserCategorySelections();
+    renderUserCategoryIconOptions();
+    void closeUserCategoryIconModal();
+  });
+
+  openUserCategoryGlobalModalBtn?.addEventListener("click", () => {
+    void openUserCategoryGlobalModal();
+  });
+
+  closeUserCategoryGlobalModalBtn?.addEventListener("click", () => {
+    void closeUserCategoryGlobalModal();
+  });
+
+  userCategoryGlobalSearchInput?.addEventListener("ionInput", () => {
+    renderUserCategoryGlobalOptions();
+  });
+
+  userCategoryGlobalListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-user-category-global]");
+    if (!button) return;
+    const id = Number(button.getAttribute("data-user-category-global") || 0);
+    if (id <= 0) return;
+    selectedUserCategoryGlobalId = id;
+    syncUserCategorySelections();
+    renderUserCategoryGlobalOptions();
+    void closeUserCategoryGlobalModal();
   });
 
   closeDateModalBtn?.addEventListener("click", () => {
@@ -1842,7 +2692,7 @@ async function loadDashboard() {
   const month = monthRange();
   const prevMonth = previousMonthRange(month);
   const groupsQuery = buildEntriesGroupsQueryString(entryFilters, entriesSearchTerm);
-  if (periodEl) periodEl.textContent = `PerÃ­odo: ${periodLabel()}`;
+  if (periodEl) periodEl.textContent = `Per\u00edodo: ${periodLabel()}`;
 
   try {
     const [profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes] = await Promise.all([
@@ -1859,7 +2709,7 @@ async function loadDashboard() {
       return;
     }
     if ([profileRes, monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => !response.ok)) {
-      showError("NÃ£o foi possÃ­vel carregar o dashboard.");
+      showError("N\u00e3o foi poss\u00edvel carregar o dashboard.");
       return;
     }
 
@@ -1872,7 +2722,9 @@ async function loadDashboard() {
       safeJson(entryGroupsRes, {}),
     ]);
 
-    const displayName = profile?.name || profile?.email || "UsuÃ¡rio";
+    dashboardEntriesCache = Array.isArray(entries) ? entries : [];
+
+    const displayName = profile?.name || profile?.email || "Usu\u00e1rio";
     if (userTitleEl) userTitleEl.textContent = displayName;
 
     const totals = monthAgg?.totals || {};
@@ -1885,18 +2737,18 @@ async function loadDashboard() {
       balanceHeadEl.textContent = money.format(balance);
       balanceHeadEl.className = `topbar-balance__value ${toAmountClass(balance)}`.trim();
     }
-    if (budgetLine) budgetLine.textContent = `${money.format(totalIn + totalOut)} orÃ§ado no mÃªs`;
+    if (budgetLine) budgetLine.textContent = `${money.format(totalIn + totalOut)} or\u00e7ado no m\u00eas`;
 
     const trend = Number((summary?.last_12_months || []).slice(-1)[0]?.month_balance || 0);
     const trendPrefix = trend >= 0 ? "+" : "-";
-    if (trendLabel) trendLabel.textContent = `Resultado do mÃªs ${trendPrefix} ${money.format(Math.abs(trend))}`;
+    if (trendLabel) trendLabel.textContent = `Resultado do m\u00eas ${trendPrefix} ${money.format(Math.abs(trend))}`;
     if (trendLine) trendLine.setAttribute("points", polylinePoints(summary?.last_12_months || []));
 
     const entryGroups = Array.isArray(groupedPayload?.groups) ? groupedPayload.groups : [];
-    renderEntriesGroupedFromServer(entriesList, entryGroups, "Nenhum lanÃ§amento encontrado.");
+    renderEntriesGroupedFromServer(entriesList, entryGroups, "Nenhum lan\u00e7amento encontrado.");
     if (entriesMetaEl) {
       const count = Number(groupedPayload?.count || 0);
-      entriesMetaEl.textContent = count === 1 ? "1 lanÃ§amento" : `${count} lanÃ§amentos`;
+      entriesMetaEl.textContent = count === 1 ? "1 lan\u00e7amento" : `${count} lan\u00e7amentos`;
     }
 
     try {
@@ -1913,15 +2765,16 @@ async function loadDashboard() {
             .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
             .slice(0, 3)
         : [];
-      renderRows(nextList, nextEntries, "next", "Nenhum lanÃ§amento futuro.");
+      renderRows(nextList, nextEntries, "next", "Nenhum lan\u00e7amento futuro.");
       renderCategories(monthAgg?.by_category || []);
       renderCategoriesTab(monthAgg || {}, prevMonthAgg || {});
     } catch (sectionError) {
-      console.error("Erro ao renderizar seÃ§Ãµes secundÃ¡rias do dashboard:", sectionError);
+      console.error("Erro ao renderizar se\u00e7\u00f5es secund\u00e1rias do dashboard:", sectionError);
     }
 
     await loadCategories();
     showInfo(`Atualizado com dados de ${periodLabel()}`);
+    requestAnimationFrame(updateOverlayPositioning);
   } catch (error) {
     console.error("Erro ao carregar dashboard:", error);
     showError("Falha ao processar os dados do dashboard.");
@@ -1980,7 +2833,10 @@ initEntryFilters();
 formatFilterPanel();
 setupEntriesInteractions();
 setInitialLoading(true);
+requestAnimationFrame(updateOverlayPositioning);
 void loadDashboard();
+
+
 
 
 

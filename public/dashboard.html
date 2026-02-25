@@ -50,9 +50,6 @@
           <button type="button" class="dash-tab is-active" data-tab="lancamentos" aria-selected="true">
             <span>Lançamentos</span>
           </button>
-          <button type="button" class="dash-tab" data-tab="painel" aria-selected="false">
-            <span>Painel</span>
-          </button>
           <button type="button" class="dash-tab" data-tab="categorias" aria-selected="false">
             <span>Categorias</span>
           </button>
@@ -68,6 +65,24 @@
           <button id="open-entry-filters-summary" type="button" class="tx-search__filter-btn" aria-label="Abrir filtros">
             <span class="material-symbols-rounded">tune</span>
           </button>
+        </div>
+      </div>
+
+      <div id="cat-summary-overlay" class="cat-summary-overlay" aria-label="Resumo de categorias">
+        <div class="cat-summary">
+          <div class="cat-summary__metric">
+            <div id="cat-so-far" class="cat-summary__value">R$ 0,00</div>
+            <div class="cat-summary__label">saldo no mês</div>
+          </div>
+          <div class="cat-summary__donut-wrap">
+            <div id="cat-donut" class="cat-summary__donut" aria-hidden="true">
+              <span class="cat-summary__donut-hole"></span>
+            </div>
+          </div>
+          <div class="cat-summary__metric cat-summary__metric--right">
+            <div id="cat-last-month" class="cat-summary__value">R$ 0,00</div>
+            <div class="cat-summary__label">mês anterior</div>
+          </div>
         </div>
       </div>
     </ion-header>
@@ -112,9 +127,6 @@
           </div>
         </section>
 
-        <p id="dash-error" class="dash-feedback dash-feedback--error" hidden role="alert" aria-live="polite"></p>
-        <p id="dash-info" class="dash-feedback dash-feedback--ok" hidden role="status" aria-live="polite"></p>
-
         <section id="sec-revisar" class="dash-section" data-tab-content="painel" aria-label="Itens para revisar" hidden>
           <header class="section-head section-head--inline">
             <p class="section-title">Para Revisar</p>
@@ -141,30 +153,20 @@
         </section>
 
         <section id="sec-categorias" class="dash-section dash-categories" data-tab-content="categorias" aria-label="Resumo por categorias" hidden>
-          <div class="cat-summary">
-            <div class="cat-summary__metric">
-              <div id="cat-so-far" class="cat-summary__value">R$ 0,00</div>
-              <div class="cat-summary__label">gasto no mês</div>
-            </div>
-            <div class="cat-summary__donut-wrap">
-              <div id="cat-donut" class="cat-summary__donut" aria-hidden="true">
-                <span class="cat-summary__donut-hole"></span>
-              </div>
-            </div>
-            <div class="cat-summary__metric cat-summary__metric--right">
-              <div id="cat-last-month" class="cat-summary__value">R$ 0,00</div>
-              <div class="cat-summary__label">mês anterior</div>
-            </div>
-          </div>
+          <button id="open-user-category-modal" type="button" class="tx-add-cta">Adicionar categoria</button>
 
           <div class="cat-list-head" aria-hidden="true">
             <span class="cat-list-head__name"></span>
-            <span class="cat-list-head__curr">Gasto</span>
+            <span class="cat-list-head__curr">Atual</span>
+            <span class="cat-list-head__bar"></span>
             <span class="cat-list-head__prev">Anterior</span>
           </div>
 
           <div id="categories-list-screen" class="cat-list"></div>
         </section>
+
+        <p id="dash-error" class="dash-feedback dash-feedback--error" hidden role="alert" aria-live="polite"></p>
+        <p id="dash-info" class="dash-feedback dash-feedback--ok" hidden role="status" aria-live="polite"></p>
 
       </main>
 
@@ -300,6 +302,128 @@
         <ion-searchbar id="category-search" mode="md" placeholder="Buscar categoria"></ion-searchbar>
         <div id="category-list" class="category-list"></div>
       </div>
+    </ion-modal>
+
+    <ion-modal id="user-category-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title id="user-category-modal-title" class="entry-title">Nova categoria</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-user-category-modal" aria-label="Fechar nova categoria">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Dados da categoria">
+            <p class="entry-stage__title">Nome</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="user-category-name" type="text" placeholder="Nome da categoria"></ion-input>
+            </ion-item>
+
+            <div class="entry-field-set">
+              <button id="open-user-category-icon-modal" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Ícone</span>
+                <span class="entry-picker-row__value-wrap">
+                  <span id="selected-user-category-icon-glyph" class="entry-picker-row__direction material-symbols-rounded" aria-hidden="true" hidden>label</span>
+                  <span id="selected-user-category-icon-text" class="entry-picker-row__value is-placeholder">Selecione um ícone</span>
+                </span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+
+            <div class="entry-field-set">
+              <button id="open-user-category-global-modal" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Categoria global</span>
+                <span id="selected-user-category-global" class="entry-picker-row__value is-placeholder">Selecionar categoria global</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-user-category">Cancelar</ion-button>
+            <ion-button color="primary" id="save-user-category">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="user-category-icon-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar ícone</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-user-category-icon-modal" aria-label="Fechar seleção de ícones">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="user-category-icon-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="user-category-global-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar categoria global</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-user-category-global-modal" aria-label="Fechar categoria global">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-searchbar id="user-category-global-search" mode="md" placeholder="Buscar categoria global"></ion-searchbar>
+        <div id="user-category-global-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="category-detail-modal" class="sheet-modal entry-picker-sheet category-detail-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Categoria</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-category-detail-modal" aria-label="Fechar detalhes da categoria">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding category-detail-content">
+        <h3 id="category-detail-title" class="category-detail-title">Categoria</h3>
+
+        <section class="category-detail-kpi">
+          <p class="category-detail-kpi__label">Saldo acumulado no mês</p>
+          <p id="category-detail-total" class="category-detail-kpi__value">R$ 0,00</p>
+        </section>
+
+        <section class="category-detail-chart">
+          <div id="category-detail-bars" class="category-detail-bars"></div>
+        </section>
+
+        <section class="category-detail-transactions">
+          <div class="category-detail-transactions__head">
+            <span>Transações</span>
+          </div>
+          <div id="category-detail-list" class="category-detail-list tx-list"></div>
+        </section>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button id="edit-category-from-detail" fill="outline">Editar categoria</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
     </ion-modal>
 
     <ion-modal id="entry-date-modal" class="sheet-modal entry-picker-sheet">
@@ -453,3 +577,4 @@
   <script type="module" src="/assets/js/dashboard.js"></script>
 </body>
 </html>
+

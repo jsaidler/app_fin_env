@@ -5,6 +5,7 @@ namespace App\Service;
 
 use App\Repository\CategoryRepositoryInterface;
 use App\Repository\EntryRepositoryInterface;
+use App\Repository\UserCategoryRepositoryInterface;
 use App\Repository\UserRepositoryInterface;
 use App\Util\Response;
 
@@ -13,12 +14,19 @@ class AlterdataExportService
     private EntryRepositoryInterface $entries;
     private UserRepositoryInterface $users;
     private CategoryRepositoryInterface $categories;
+    private UserCategoryRepositoryInterface $userCategories;
 
-    public function __construct(EntryRepositoryInterface $entries, UserRepositoryInterface $users, CategoryRepositoryInterface $categories)
+    public function __construct(
+        EntryRepositoryInterface $entries,
+        UserRepositoryInterface $users,
+        CategoryRepositoryInterface $categories,
+        UserCategoryRepositoryInterface $userCategories
+    )
     {
         $this->entries = $entries;
         $this->users = $users;
         $this->categories = $categories;
+        $this->userCategories = $userCategories;
     }
 
     public function exportText(array $filters = []): string
@@ -53,6 +61,16 @@ class AlterdataExportService
             $cats[strtolower($cat->name)] = $cat;
         }
 
+        $userCatMap = [];
+        foreach ($this->userCategories->listAll() as $userCategory) {
+            $uid = (int)$userCategory->userId;
+            $key = strtolower((string)$userCategory->name);
+            if (!isset($userCatMap[$uid])) {
+                $userCatMap[$uid] = [];
+            }
+            $userCatMap[$uid][$key] = $userCategory;
+        }
+
         $missingUsers = [];
         $missingCats = [];
         $lines = [];
@@ -66,7 +84,14 @@ class AlterdataExportService
                 continue;
             }
             $catKey = strtolower($entry->category);
-            $cat = $cats[$catKey] ?? null;
+            $userCat = $userCatMap[$entry->userId][$catKey] ?? null;
+            $cat = null;
+            if ($userCat) {
+                $cat = $this->categories->find((int)$userCat->globalCategoryId);
+            }
+            if (!$cat) {
+                $cat = $cats[$catKey] ?? null;
+            }
             if (!$cat || $cat->alterdataAuto === '') {
                 $missingCats[$entry->category] = $entry->category;
                 continue;
