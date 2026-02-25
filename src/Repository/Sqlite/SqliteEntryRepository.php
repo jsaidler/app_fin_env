@@ -51,7 +51,7 @@ class SqliteEntryRepository implements EntryRepositoryInterface
         $now = date('c');
         $needsReview = !empty($data['needs_review']) ? 1 : 0;
         $reviewedAt = $data['reviewed_at'] ?? null;
-        $stmt = $this->pdo->prepare('INSERT INTO entries (user_id,type,amount,category,account_id,description,date,attachment_path,created_at,updated_at,deleted_at,deleted_type,needs_review,reviewed_at) VALUES (:uid,:type,:amount,:category,:account_id,:description,:date,:attachment,:created,:updated,NULL,NULL,:needs_review,:reviewed_at)');
+        $stmt = $this->pdo->prepare('INSERT INTO entries (user_id,type,amount,category,account_id,description,date,attachment_path,created_at,updated_at,deleted_at,deleted_type,needs_review,reviewed_at,recurrence_id) VALUES (:uid,:type,:amount,:category,:account_id,:description,:date,:attachment,:created,:updated,NULL,NULL,:needs_review,:reviewed_at,:recurrence_id)');
         $stmt->execute([
             'uid' => $userId,
             'type' => $data['type'],
@@ -65,6 +65,7 @@ class SqliteEntryRepository implements EntryRepositoryInterface
             'updated' => $now,
             'needs_review' => $needsReview,
             'reviewed_at' => $reviewedAt,
+            'recurrence_id' => isset($data['recurrence_id']) ? (int)$data['recurrence_id'] : null,
         ]);
         $id = (int)$this->pdo->lastInsertId();
         return Entry::fromArray([
@@ -83,6 +84,7 @@ class SqliteEntryRepository implements EntryRepositoryInterface
             'deleted_type' => null,
             'needs_review' => $needsReview,
             'reviewed_at' => $reviewedAt,
+            'recurrence_id' => isset($data['recurrence_id']) ? (int)$data['recurrence_id'] : null,
         ]);
     }
 
@@ -94,7 +96,7 @@ class SqliteEntryRepository implements EntryRepositoryInterface
         }
         $merged = array_merge($existing->toArray(), $data);
         $merged['updated_at'] = date('c');
-        $stmt = $this->pdo->prepare('UPDATE entries SET type=:type, amount=:amount, category=:category, account_id=:account_id, description=:description, date=:date, attachment_path=:attachment, deleted_at=:deleted_at, deleted_type=:deleted_type, needs_review=:needs_review, reviewed_at=:reviewed_at, updated_at=:updated_at WHERE id=:id AND user_id=:uid');
+        $stmt = $this->pdo->prepare('UPDATE entries SET type=:type, amount=:amount, category=:category, account_id=:account_id, description=:description, date=:date, attachment_path=:attachment, deleted_at=:deleted_at, deleted_type=:deleted_type, needs_review=:needs_review, reviewed_at=:reviewed_at, recurrence_id=:recurrence_id, updated_at=:updated_at WHERE id=:id AND user_id=:uid');
         $stmt->execute([
             'type' => $merged['type'],
             'amount' => $merged['amount'],
@@ -107,6 +109,7 @@ class SqliteEntryRepository implements EntryRepositoryInterface
             'deleted_type' => $merged['deleted_type'],
             'needs_review' => !empty($merged['needs_review']) ? 1 : 0,
             'reviewed_at' => $merged['reviewed_at'],
+            'recurrence_id' => isset($merged['recurrence_id']) ? (int)$merged['recurrence_id'] : null,
             'updated_at' => $merged['updated_at'],
             'id' => $id,
             'uid' => $userId,
@@ -287,5 +290,23 @@ class SqliteEntryRepository implements EntryRepositoryInterface
             'account_id' => $accountId,
         ]);
         return (int)$stmt->fetchColumn();
+    }
+
+    public function listByRecurrence(int $userId, int $recurrenceId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT e.*, ua.name AS account_name, ua.type AS account_type
+             FROM entries e
+             LEFT JOIN user_accounts ua ON ua.id = e.account_id
+             WHERE e.user_id = :uid
+               AND e.recurrence_id = :recurrence_id
+             ORDER BY e.date DESC, e.id DESC'
+        );
+        $stmt->execute([
+            'uid' => $userId,
+            'recurrence_id' => $recurrenceId,
+        ]);
+        $rows = $stmt->fetchAll();
+        return array_map(fn($row) => Entry::fromArray($row), $rows);
     }
 }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteRecurrenceRepository;
 use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Service\AdminNotificationService;
 use App\Service\EntryService;
 use App\Service\MonthLockService;
+use App\Service\RecurrenceService;
 use App\Util\Response;
 
 class EntryController extends BaseController
@@ -19,6 +21,7 @@ class EntryController extends BaseController
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $this->recurrenceService()->syncDueEntries($uid);
         $service->purgeOlderThanDays(7);
         $includeDeleted = isset($_GET['include_deleted']) && $_GET['include_deleted'] === '1';
         $entries = $includeDeleted ? $service->listDeleted($uid) : $service->list($uid);
@@ -60,6 +63,7 @@ class EntryController extends BaseController
             'category' => $_GET['category'] ?? null,
         ];
         $service = new \App\Service\ReportService($this->entryRepo());
+        $this->recurrenceService()->syncDueEntries($uid);
         $summary = $service->aggregateEntriesView($uid, $filters);
         $filtered = $service->filterEntriesForUser($uid, $filters);
         $closed = array_filter($this->lockService()->listClosed(), fn($l) => $l['user_id'] === $uid && $l['closed']);
@@ -83,7 +87,36 @@ class EntryController extends BaseController
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
-        $data = $service->create($uid, $this->jsonInput());
+        $this->recurrenceService()->syncDueEntries($uid);
+        $input = $this->jsonInput();
+        $data = $service->create($uid, $input);
+
+        $frequency = trim((string)($input['recurrence_frequency'] ?? ''));
+        if ($frequency !== '') {
+            $recurrence = $this->recurrenceService()->createForUser($uid, [
+                'type' => $data['type'] ?? ($input['type'] ?? ''),
+                'amount' => $data['amount'] ?? ($input['amount'] ?? 0),
+                'category' => $data['category'] ?? ($input['category'] ?? ''),
+                'account_id' => $data['account_id'] ?? ($input['account_id'] ?? 0),
+                'description' => $data['description'] ?? ($input['description'] ?? ''),
+                'frequency' => $frequency,
+                'start_date' => $data['date'] ?? ($input['date'] ?? date('Y-m-d')),
+                'next_run_date' => $this->nextDateByFrequency(
+                    (string)($data['date'] ?? ($input['date'] ?? date('Y-m-d'))),
+                    $frequency
+                ),
+                'active' => 1,
+            ]);
+
+            $entryUpdated = $service->update($uid, (int)($data['id'] ?? 0), [
+                'recurrence_id' => (int)($recurrence['id'] ?? 0),
+            ]);
+            $data = $entryUpdated;
+            $data['recurrence'] = [
+                'id' => (int)($recurrence['id'] ?? 0),
+                'frequency' => (string)($recurrence['frequency'] ?? $frequency),
+            ];
+        }
         Response::json($data, 201);
     }
 
@@ -95,6 +128,7 @@ class EntryController extends BaseController
         }
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $this->recurrenceService()->syncDueEntries($uid);
         $data = $service->update($uid, $id, $this->jsonInput());
         Response::json($data);
     }
@@ -107,6 +141,7 @@ class EntryController extends BaseController
         }
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $this->recurrenceService()->syncDueEntries($uid);
         $deleted = $service->delete($uid, $id);
         Response::json(['deleted' => $deleted]);
     }
@@ -118,6 +153,7 @@ class EntryController extends BaseController
             Response::json(['error' => 'Administradores nao usam este recurso'], 403);
         }
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $this->recurrenceService()->syncDueEntries($uid);
         $entries = array_filter($service->listDeleted($uid), fn($e) => $e->deletedAt !== null);
         $data = array_values(array_map(function($e) {
             $arr = $e->toArray();
@@ -135,6 +171,7 @@ class EntryController extends BaseController
         }
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $this->recurrenceService()->syncDueEntries($uid);
         $data = $service->restore($uid, $id);
         Response::json($data);
     }
@@ -147,6 +184,7 @@ class EntryController extends BaseController
         }
         $id = (int) ($params['id'] ?? 0);
         $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $this->recurrenceService()->syncDueEntries($uid);
         $ok = $service->purge($uid, $id);
         Response::json(['deleted' => $ok]);
     }
@@ -161,6 +199,11 @@ class EntryController extends BaseController
         return new SqliteUserAccountRepository($this->db());
     }
 
+    private function recurrenceRepo()
+    {
+        return new SqliteRecurrenceRepository($this->db());
+    }
+
     private function lockService(): MonthLockService
     {
         return new MonthLockService($this->db());
@@ -169,5 +212,26 @@ class EntryController extends BaseController
     private function notificationService(): AdminNotificationService
     {
         return new AdminNotificationService($this->db());
+    }
+
+    private function recurrenceService(): RecurrenceService
+    {
+        return new RecurrenceService($this->recurrenceRepo(), $this->entryRepo(), $this->accountRepo());
+    }
+
+    private function nextDateByFrequency(string $dateIso, string $frequency): string
+    {
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateIso);
+        if (!$date) {
+            return $dateIso;
+        }
+        $normalized = strtolower(trim($frequency));
+        return match ($normalized) {
+            'daily' => $date->modify('+1 day')->format('Y-m-d'),
+            'weekly' => $date->modify('+7 days')->format('Y-m-d'),
+            'biweekly', 'quinzenal' => $date->modify('+14 days')->format('Y-m-d'),
+            'annual', 'anual', 'yearly' => $date->modify('+1 year')->format('Y-m-d'),
+            default => $date->modify('+1 month')->format('Y-m-d'),
+        };
     }
 }

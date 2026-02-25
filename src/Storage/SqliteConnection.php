@@ -104,6 +104,27 @@ class SqliteConnection
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_user_date ON entries(user_id, date)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_deleted ON entries(deleted_at)');
 
+        $pdo->exec('CREATE TABLE IF NOT EXISTS recurrences (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            amount REAL NOT NULL,
+            category TEXT NOT NULL,
+            account_id INTEGER NOT NULL,
+            description TEXT,
+            frequency TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            next_run_date TEXT NOT NULL,
+            last_run_date TEXT,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(account_id) REFERENCES user_accounts(id) ON DELETE CASCADE
+        )');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrences_user_active_next ON recurrences(user_id, active, next_run_date)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrences_account ON recurrences(account_id)');
+
         $pdo->exec('CREATE TABLE IF NOT EXISTS month_locks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -182,7 +203,9 @@ class SqliteConnection
         self::ensureColumn($pdo, 'entries', 'account_id', 'INTEGER');
         self::ensureColumn($pdo, 'entries', 'needs_review', 'INTEGER NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'entries', 'reviewed_at', 'TEXT');
+        self::ensureColumn($pdo, 'entries', 'recurrence_id', 'INTEGER');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_account_id ON entries(account_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_recurrence_id ON entries(recurrence_id)');
         self::backfillSupportThreads($pdo);
     }
 

@@ -34,6 +34,7 @@
   --cp-space-4: 12px;
   --cp-space-5: 14px;
   --cp-space-6: 16px;
+  --cp-list-block-start: 18px;
   --tx-search-h: 64px;
   --tx-search-overlap: calc(0.4 * var(--tx-search-h));
   --overlay-menu-min-gap: 14px;
@@ -42,6 +43,9 @@
   --cat-summary-h: 132px;
   --cat-summary-overlap: calc(0.4 * var(--cat-summary-h));
   --cat-summary-overlap-effective: max(var(--cat-summary-overlap), calc(var(--cat-summary-h) - var(--overlay-max-in-header)));
+  --cat-summary-h-current: var(--cat-summary-h);
+  --cat-summary-overlap-current: calc(0.4 * var(--cat-summary-h-current));
+  --cat-summary-overlap-effective-current: max(var(--cat-summary-overlap-current), calc(var(--cat-summary-h-current) - var(--overlay-max-in-header)));
 }
 
 * {
@@ -326,11 +330,19 @@ ion-content::part(scroll) {
 }
 
 #sec-categorias {
-  margin-top: calc((var(--cat-summary-h) - var(--cat-summary-overlap-effective)) + 20px);
+  margin-top: calc((var(--cat-summary-h-current) - var(--cat-summary-overlap-effective-current)) + 20px);
 }
 
 #sec-contas {
-  margin-top: calc((var(--cat-summary-h) - var(--cat-summary-overlap-effective)) + 20px);
+  margin-top: calc((var(--cat-summary-h-current) - var(--cat-summary-overlap-effective-current)) + 20px);
+}
+
+#sec-recorrentes {
+  margin-top: calc((var(--cat-summary-h-current) - var(--cat-summary-overlap-effective-current)) + 20px);
+}
+
+#sec-recorrentes .tx-list {
+  padding-top: var(--cp-list-block-start);
 }
 
 .tx-head {
@@ -396,7 +408,7 @@ ion-content::part(scroll) {
   left: 50%;
   transform: translateX(-50%);
   width: min(calc(100% - 32px), 600px);
-  bottom: calc(-1 * (var(--cat-summary-h) - var(--cat-summary-overlap-effective)));
+  bottom: calc(-1 * (var(--cat-summary-h-current) - var(--cat-summary-overlap-effective-current)));
   z-index: 34;
   pointer-events: none;
   opacity: 0;
@@ -542,7 +554,7 @@ ion-content::part(scroll) {
 }
 
 .tx-list .entry-cluster {
-  margin-top: 18px;
+  margin-top: var(--cp-list-block-start);
 }
 
 .tx-list .entry-cluster:first-child {
@@ -1081,6 +1093,17 @@ ion-content::part(scroll) {
 
 .dash-categories {
   margin-top: 0;
+  display: grid;
+  align-content: start;
+  row-gap: var(--cp-space-4);
+}
+
+.dash-categories .tx-head__meta,
+.dash-categories .cat-list-head,
+.dash-categories .cat-list,
+.dash-categories .tx-list {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .cat-summary {
@@ -1152,8 +1175,130 @@ ion-content::part(scroll) {
   border: 1px solid #e3e9f2;
 }
 
+.cat-summary__extra {
+  margin-top: 0;
+  padding: 0;
+  border-top: 0;
+  font-size: 13px;
+  color: #667a9a;
+  font-weight: 600;
+  letter-spacing: 0.002em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat-summary__extra-value {
+  margin-top: 0;
+  font-size: 12px;
+  color: #5f7394;
+  font-weight: 700;
+  letter-spacing: 0.002em;
+}
+
+.cat-summary.cat-summary--recurrences {
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 14px;
+  min-height: 0;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__donut-wrap {
+  display: none;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric:not(.cat-summary__metric--right) {
+  justify-content: flex-start;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__value {
+  order: 2;
+  max-width: 100%;
+  font-size: clamp(34px, 9.2vw, 40px);
+  letter-spacing: -0.02em;
+  font-weight: 730;
+  color: #203665;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric:not(.cat-summary__metric--right) .cat-summary__value {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  font-size: clamp(52px, 24vw, 120px);
+  line-height: 0.9;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__label {
+  order: 1;
+  font-size: 11px;
+  text-transform: lowercase;
+  color: #7b8da9;
+  line-height: 1.1;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric--right {
+  justify-content: flex-start;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric--right .cat-summary__value {
+  font-size: clamp(30px, 9.2vw, 40px);
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric--right .cat-summary__extra {
+  order: 3;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #70819d;
+  max-width: 100%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.2;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric--right .cat-summary__extra-value {
+  order: 4;
+  margin-top: auto;
+  font-size: clamp(20px, 5vw, 26px);
+  line-height: 1;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: #2b4270;
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric--right .cat-summary__extra-value.pos {
+  color: var(--color-success);
+}
+
+.cat-summary.cat-summary--recurrences .cat-summary__metric--right .cat-summary__extra-value.neg {
+  color: var(--color-danger);
+}
+
 .cat-list-head {
-  margin-top: 14px;
+  margin-top: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 116px minmax(86px, 1fr) 116px;
   gap: 10px;
@@ -1181,7 +1326,7 @@ ion-content::part(scroll) {
 }
 
 .cat-list {
-  margin-top: 6px;
+  margin-top: 0;
   display: grid;
   gap: 16px;
 }
@@ -1295,6 +1440,95 @@ ion-content::part(scroll) {
   margin: 8px 0 0;
   color: #7585a0;
   font-size: 13px;
+}
+
+.rec-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.rec-row__meta {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.rec-row__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #203665;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rec-row__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: #6f809c;
+}
+
+.rec-row__next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2f7b57;
+  background: #e9f4ed;
+  white-space: nowrap;
+}
+
+.rec-row__next.pos {
+  color: var(--color-success);
+  background: #e9f4ed;
+}
+
+.rec-row__next.neg {
+  color: var(--color-danger);
+  background: #f7ecef;
+}
+
+.recurrence-next-card {
+  margin: 8px 0 26px;
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, #eef6ff 0%, #f7fbff 100%);
+}
+
+.recurrence-next-card__label {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6e81a0;
+  font-weight: 700;
+}
+
+.recurrence-next-card__date {
+  margin: 8px 0 2px;
+  font-size: 20px;
+  color: #1f3664;
+  font-weight: 700;
+}
+
+.recurrence-next-card__amount {
+  margin: 0;
+  font-size: 18px;
+  color: #2a3f6b;
+  font-weight: 700;
+}
+
+.recurrence-next-card__meta {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #6f809c;
 }
 
 .category-detail-sheet::part(content) {
@@ -1435,6 +1669,14 @@ ion-content::part(scroll) {
 
 .category-detail-list.tx-list .entry-row__chips {
   display: none;
+}
+
+.recurrence-editor-history {
+  margin-top: 6px;
+}
+
+.recurrence-editor-history .entry-stage__title {
+  margin-bottom: 10px;
 }
 
 #edit-category-from-detail {
@@ -2587,6 +2829,7 @@ ion-input.amount-input {
     --overlay-max-in-header: 52px;
     --tx-search-overlap-effective: max(var(--tx-search-overlap), calc(var(--tx-search-h) - var(--overlay-max-in-header)));
     --cat-summary-overlap-effective: max(var(--cat-summary-overlap), calc(var(--cat-summary-h) - var(--overlay-max-in-header)));
+    --cat-summary-overlap-effective-current: max(var(--cat-summary-overlap-current), calc(var(--cat-summary-h-current) - var(--overlay-max-in-header)));
   }
 
   ion-content {
@@ -2614,11 +2857,11 @@ ion-input.amount-input {
   }
 
   #sec-categorias {
-    margin-top: calc((var(--cat-summary-h) - var(--cat-summary-overlap-effective)) + 16px);
+    margin-top: calc((var(--cat-summary-h-current) - var(--cat-summary-overlap-effective-current)) + 16px);
   }
 
   #sec-contas {
-    margin-top: calc((var(--cat-summary-h) - var(--cat-summary-overlap-effective)) + 16px);
+    margin-top: calc((var(--cat-summary-h-current) - var(--cat-summary-overlap-effective-current)) + 16px);
   }
 
   .tx-explore {

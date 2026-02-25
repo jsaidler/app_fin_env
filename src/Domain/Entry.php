@@ -22,6 +22,7 @@ class Entry
     public ?string $deletedType = null;
     public bool $needsReview = false;
     public ?string $reviewedAt = null;
+    public ?int $recurrenceId = null;
 
     public static function fromArray(array $data): self
     {
@@ -43,6 +44,7 @@ class Entry
         $e->deletedType = $data['deleted_type'] ?? null;
         $e->needsReview = !empty($data['needs_review']);
         $e->reviewedAt = $data['reviewed_at'] ?? null;
+        $e->recurrenceId = array_key_exists('recurrence_id', $data) && $data['recurrence_id'] !== null ? (int)$data['recurrence_id'] : null;
         return $e;
     }
 
@@ -66,6 +68,7 @@ class Entry
             'deleted_type' => $this->deletedType,
             'needs_review' => $this->needsReview ? 1 : 0,
             'reviewed_at' => $this->reviewedAt,
+            'recurrence_id' => $this->recurrenceId,
         ];
     }
 }

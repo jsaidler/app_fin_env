@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteRecurrenceRepository;
 use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Service\MonthLockService;
+use App\Service\RecurrenceService;
 use App\Service\ReportService;
 use App\Util\Response;
 
@@ -14,6 +16,7 @@ class ReportController extends BaseController
     public function summary(): void
     {
         $uid = $this->requireAuth();
+        $this->recurrenceService()->syncDueEntries($uid);
         $service = new ReportService($this->entryRepo(), $this->accountRepo());
         $summary = $service->summary($uid);
         Response::json($summary);
@@ -22,6 +25,7 @@ class ReportController extends BaseController
     public function aggregate(): void
     {
         $uid = $this->requireAuth();
+        $this->recurrenceService()->syncDueEntries($uid);
         $filters = [
             'start' => $_GET['start'] ?? null,
             'end' => $_GET['end'] ?? null,
@@ -36,6 +40,7 @@ class ReportController extends BaseController
     public function closure(): void
     {
         $uid = $this->requireAuth();
+        $this->recurrenceService()->syncDueEntries($uid);
         $month = trim((string)($_GET['month'] ?? ''));
         if (!preg_match('/^\\d{4}-\\d{2}$/', $month)) {
             Response::json(['error' => 'Mes invalido'], 422);
@@ -52,6 +57,7 @@ class ReportController extends BaseController
     public function entriesGroups(): void
     {
         $uid = $this->requireAuth();
+        $this->recurrenceService()->syncDueEntries($uid);
         $categoriesRaw = $_GET['categories'] ?? ($_GET['category'] ?? null);
         $categories = [];
         if (is_array($categoriesRaw)) {
@@ -86,5 +92,15 @@ class ReportController extends BaseController
     private function lockService(): MonthLockService
     {
         return new MonthLockService($this->db());
+    }
+
+    private function recurrenceRepo()
+    {
+        return new SqliteRecurrenceRepository($this->db());
+    }
+
+    private function recurrenceService(): RecurrenceService
+    {
+        return new RecurrenceService($this->recurrenceRepo(), $this->entryRepo(), $this->accountRepo());
     }
 }

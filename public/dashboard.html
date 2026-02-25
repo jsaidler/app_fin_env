@@ -57,7 +57,7 @@
             <span>Contas</span>
           </button>
           <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
-            <span>Recorrentes</span>
+            <span>Recorrências</span>
           </button>
         </nav>
       </div>
@@ -75,7 +75,7 @@
         <div class="cat-summary">
           <div class="cat-summary__metric">
             <div id="cat-so-far" class="cat-summary__value">R$ 0,00</div>
-            <div class="cat-summary__label">saldo no mês</div>
+            <div id="cat-so-far-label" class="cat-summary__label">saldo no mês</div>
           </div>
           <div class="cat-summary__donut-wrap">
             <div id="cat-donut" class="cat-summary__donut" aria-hidden="true">
@@ -84,7 +84,9 @@
           </div>
           <div class="cat-summary__metric cat-summary__metric--right">
             <div id="cat-last-month" class="cat-summary__value">R$ 0,00</div>
-            <div class="cat-summary__label">mês anterior</div>
+            <div id="cat-last-month-label" class="cat-summary__label">mês anterior</div>
+            <div id="cat-summary-extra" class="cat-summary__extra" hidden></div>
+            <div id="cat-summary-extra-value" class="cat-summary__extra-value" hidden></div>
           </div>
         </div>
       </div>
@@ -179,6 +181,12 @@
           </div>
 
           <div id="accounts-list-screen" class="cat-list"></div>
+        </section>
+
+        <section id="sec-recorrentes" class="dash-section dash-categories" data-tab-content="recorrentes" aria-label="Recorrências" hidden>
+          <button id="open-recurrence-inline" type="button" class="tx-add-cta">Adicionar recorrência</button>
+          <p id="recurrence-meta" class="tx-head__meta">--</p>
+          <div id="recurrences-list" class="tx-list"></div>
         </section>
 
         <p id="dash-error" class="dash-feedback dash-feedback--error" hidden role="alert" aria-live="polite"></p>
@@ -285,6 +293,16 @@
               <span class="material-symbols-rounded">chevron_right</span>
             </button>
           </section>
+
+          <section class="entry-stage" aria-label="Recorrência opcional">
+            <div class="entry-field-set">
+              <button id="open-entry-recurrence" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Recorrência</span>
+                <span id="selected-entry-recurrence" class="entry-picker-row__value">Nenhuma</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+          </section>
         </div>
 
         <input id="entry-attachment-file" class="file-input" type="file" accept="image/*,application/pdf" />
@@ -306,6 +324,201 @@
             <ion-button fill="outline" color="danger" id="delete-entry" hidden>Excluir</ion-button>
             <ion-button fill="outline" id="restore-entry" hidden>Restaurar</ion-button>
             <ion-button color="primary" id="save-entry" disabled>Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="recurrence-modal" class="sheet-modal entry-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title id="recurrence-modal-title" class="entry-title">Nova recorrência</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-recurrence" aria-label="Fechar recorrência">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-amount">
+          <div class="amount-label">Valor</div>
+          <div class="amount-row">
+            <span class="amount-currency">R$</span>
+            <ion-input
+              id="recurrence-amount"
+              class="amount-input"
+              type="tel"
+              inputmode="decimal"
+              placeholder="0,00"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="done"
+            ></ion-input>
+          </div>
+        </div>
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Dados da recorrência">
+            <div class="entry-field-set">
+              <button id="open-recurrence-category" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Categoria</span>
+                <span id="selected-recurrence-category" class="entry-picker-row__value is-placeholder">Selecionar categoria</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+
+            <div class="entry-field-set">
+              <button id="open-recurrence-account" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Conta / Cartão</span>
+                <span id="selected-recurrence-account" class="entry-picker-row__value is-placeholder">Selecionar conta/cartão</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+
+            <div class="entry-field-set">
+              <button id="open-recurrence-date" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Primeiro lançamento</span>
+                <span id="selected-recurrence-date" class="entry-picker-row__value is-placeholder">Selecionar data</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+
+            <div class="entry-field-set">
+              <button id="open-recurrence-frequency" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Frequência</span>
+                <span id="selected-recurrence-frequency" class="entry-picker-row__value">Mensal</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="entry-stage entry-stage--description" aria-label="Descrição opcional">
+            <p class="entry-stage__title">Descrição (opcional)</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="recurrence-description" type="text" placeholder="Ex.: Mensalidade"></ion-input>
+            </ion-item>
+          </section>
+
+          <section id="recurrence-editor-history" class="entry-stage recurrence-editor-history" aria-label="Lançamentos criados" hidden>
+            <p class="entry-stage__title">Lançamentos criados</p>
+            <div id="recurrence-editor-history-list" class="category-detail-list tx-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-recurrence">Cancelar</ion-button>
+            <ion-button fill="outline" color="danger" id="delete-recurrence" hidden>Excluir</ion-button>
+            <ion-button color="primary" id="save-recurrence">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="recurrence-category-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar categoria</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-recurrence-category-modal" aria-label="Fechar categorias da recorrência">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-searchbar id="recurrence-category-search" mode="md" placeholder="Buscar categoria"></ion-searchbar>
+        <div id="recurrence-category-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="recurrence-account-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar conta/cartão</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-recurrence-account-modal" aria-label="Fechar contas da recorrência">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-searchbar id="recurrence-account-search" mode="md" placeholder="Buscar conta/cartão"></ion-searchbar>
+        <div id="recurrence-account-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="recurrence-date-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar data</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-recurrence-date-modal" aria-label="Fechar data da recorrência">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-datetime
+          id="recurrence-date-picker"
+          presentation="date"
+          locale="pt-BR"
+          show-default-buttons="false"
+        ></ion-datetime>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="recurrence-frequency-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar frequência</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-recurrence-frequency-modal" aria-label="Fechar frequência da recorrência">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="recurrence-frequency-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="recurrence-detail-modal" class="sheet-modal entry-picker-sheet category-detail-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Recorrência</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-recurrence-detail" aria-label="Fechar detalhes da recorrência">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding category-detail-content">
+        <h3 id="recurrence-detail-title" class="category-detail-title">Recorrência</h3>
+        <section class="recurrence-next-card">
+          <p class="recurrence-next-card__label">Próximo lançamento</p>
+          <p id="recurrence-detail-next-date" class="recurrence-next-card__date">--</p>
+          <p id="recurrence-detail-next-amount" class="recurrence-next-card__amount">R$ 0,00</p>
+          <p id="recurrence-detail-next-meta" class="recurrence-next-card__meta">--</p>
+        </section>
+        <section class="category-detail-transactions">
+          <div class="category-detail-transactions__head">
+            <span>Lançamentos criados</span>
+          </div>
+          <div id="recurrence-detail-list" class="category-detail-list tx-list"></div>
+        </section>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button id="edit-recurrence-from-detail" fill="outline">Editar recorrência</ion-button>
           </div>
         </ion-toolbar>
       </ion-footer>
@@ -602,6 +815,22 @@
           locale="pt-BR"
           show-default-buttons="false"
         ></ion-datetime>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="entry-recurrence-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar recorrência</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-entry-recurrence-modal" aria-label="Fechar recorrência">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="entry-recurrence-list" class="category-list"></div>
       </div>
     </ion-modal>
 

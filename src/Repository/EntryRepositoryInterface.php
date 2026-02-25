@@ -17,6 +17,8 @@ interface EntryRepositoryInterface
     public function setReviewStatus(int $id, bool $needsReview, ?string $reviewedAt = null): bool;
     public function reassignCategoryForUser(int $userId, string $fromCategory, string $toCategory): int;
     public function countByUserAccount(int $userId, int $accountId, bool $includeDeleted = true): int;
+    /** @return Entry[] */
+    public function listByRecurrence(int $userId, int $recurrenceId): array;
 
     /** Admin operations */
     /** @return Entry[] */

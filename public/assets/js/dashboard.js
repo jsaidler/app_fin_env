@@ -18,13 +18,20 @@ const nextList = document.getElementById("next-list");
 const catGrid = document.getElementById("cat-grid");
 const categoriesListScreen = document.getElementById("categories-list-screen");
 const accountsListScreen = document.getElementById("accounts-list-screen");
+const recurrencesListScreen = document.getElementById("recurrences-list");
+const recurrenceMetaEl = document.getElementById("recurrence-meta");
 const catSoFarEl = document.getElementById("cat-so-far");
+const catSoFarLabelEl = document.getElementById("cat-so-far-label");
 const catLastMonthEl = document.getElementById("cat-last-month");
+const catLastMonthLabelEl = document.getElementById("cat-last-month-label");
+const catSummaryExtraEl = document.getElementById("cat-summary-extra");
+const catSummaryExtraValueEl = document.getElementById("cat-summary-extra-value");
 const catDonutEl = document.getElementById("cat-donut");
 const entriesList = document.getElementById("entries-list");
 const entriesSearchInput = document.getElementById("entries-search-input");
 const txSearchOverlay = document.getElementById("tx-search-overlay");
 const catSummaryOverlay = document.getElementById("cat-summary-overlay");
+const catSummaryCardEl = catSummaryOverlay?.querySelector(".cat-summary");
 const filterPanel = document.querySelector(".tx-filter-panel");
 const filterPanelPeriod = document.getElementById("entries-filter-panel-period");
 const openEntryFiltersSummaryBtn = document.getElementById("open-entry-filters-summary");
@@ -139,6 +146,11 @@ const accountDetailTotalEl = document.getElementById("account-detail-total");
 const accountDetailBarsEl = document.getElementById("account-detail-bars");
 const accountDetailListEl = document.getElementById("account-detail-list");
 const entryDescriptionInput = document.getElementById("entry-description");
+const openEntryRecurrenceBtn = document.getElementById("open-entry-recurrence");
+const selectedEntryRecurrenceEl = document.getElementById("selected-entry-recurrence");
+const entryRecurrenceModal = document.getElementById("entry-recurrence-modal");
+const closeEntryRecurrenceModalBtn = document.getElementById("close-entry-recurrence-modal");
+const entryRecurrenceListEl = document.getElementById("entry-recurrence-list");
 const openDateBtn = document.getElementById("open-date");
 const selectedDateEl = document.getElementById("selected-date");
 const dateModal = document.getElementById("entry-date-modal");
@@ -158,12 +170,59 @@ const attachmentViewerImage = document.getElementById("attachment-viewer-image")
 const attachmentViewerPdf = document.getElementById("attachment-viewer-pdf");
 const attachmentPathWrapEl = document.getElementById("attachment-path-wrap");
 const attachmentPathEl = document.getElementById("attachment-path");
+const recurrenceModal = document.getElementById("recurrence-modal");
+const openRecurrenceInlineBtn = document.getElementById("open-recurrence-inline");
+const closeRecurrenceBtn = document.getElementById("close-recurrence");
+const cancelRecurrenceBtn = document.getElementById("cancel-recurrence");
+const saveRecurrenceBtn = document.getElementById("save-recurrence");
+const deleteRecurrenceBtn = document.getElementById("delete-recurrence");
+const recurrenceModalTitleEl = document.getElementById("recurrence-modal-title");
+const recurrenceAmountInput = document.getElementById("recurrence-amount");
+const openRecurrenceCategoryBtn = document.getElementById("open-recurrence-category");
+const selectedRecurrenceCategoryEl = document.getElementById("selected-recurrence-category");
+const recurrenceCategoryModal = document.getElementById("recurrence-category-modal");
+const closeRecurrenceCategoryModalBtn = document.getElementById("close-recurrence-category-modal");
+const recurrenceCategorySearchInput = document.getElementById("recurrence-category-search");
+const recurrenceCategoryListEl = document.getElementById("recurrence-category-list");
+const openRecurrenceAccountBtn = document.getElementById("open-recurrence-account");
+const selectedRecurrenceAccountEl = document.getElementById("selected-recurrence-account");
+const recurrenceAccountModal = document.getElementById("recurrence-account-modal");
+const closeRecurrenceAccountModalBtn = document.getElementById("close-recurrence-account-modal");
+const recurrenceAccountSearchInput = document.getElementById("recurrence-account-search");
+const recurrenceAccountListEl = document.getElementById("recurrence-account-list");
+const openRecurrenceDateBtn = document.getElementById("open-recurrence-date");
+const selectedRecurrenceDateEl = document.getElementById("selected-recurrence-date");
+const recurrenceDateModal = document.getElementById("recurrence-date-modal");
+const closeRecurrenceDateModalBtn = document.getElementById("close-recurrence-date-modal");
+const recurrenceDatePicker = document.getElementById("recurrence-date-picker");
+const openRecurrenceFrequencyBtn = document.getElementById("open-recurrence-frequency");
+const selectedRecurrenceFrequencyEl = document.getElementById("selected-recurrence-frequency");
+const recurrenceFrequencyModal = document.getElementById("recurrence-frequency-modal");
+const closeRecurrenceFrequencyModalBtn = document.getElementById("close-recurrence-frequency-modal");
+const recurrenceFrequencyListEl = document.getElementById("recurrence-frequency-list");
+const recurrenceDescriptionInput = document.getElementById("recurrence-description");
+const recurrenceEditorHistorySectionEl = document.getElementById("recurrence-editor-history");
+const recurrenceEditorHistoryListEl = document.getElementById("recurrence-editor-history-list");
+const recurrenceDetailModal = document.getElementById("recurrence-detail-modal");
+const closeRecurrenceDetailBtn = document.getElementById("close-recurrence-detail");
+const recurrenceDetailTitleEl = document.getElementById("recurrence-detail-title");
+const recurrenceDetailNextDateEl = document.getElementById("recurrence-detail-next-date");
+const recurrenceDetailNextAmountEl = document.getElementById("recurrence-detail-next-amount");
+const recurrenceDetailNextMetaEl = document.getElementById("recurrence-detail-next-meta");
+const recurrenceDetailListEl = document.getElementById("recurrence-detail-list");
+const editRecurrenceFromDetailBtn = document.getElementById("edit-recurrence-from-detail");
 let selectedDateISO = "";
 let selectedCategoryValue = "";
 let selectedAccountId = 0;
 let accounts = [];
 let selectedAttachmentFile = null;
 let categories = [];
+let recurrences = [];
+let selectedEntryRecurrenceFrequency = "";
+let selectedRecurrenceCategoryValue = "";
+let selectedRecurrenceAccountId = 0;
+let selectedRecurrenceStartDateISO = "";
+let selectedRecurrenceFrequencyValue = "monthly";
 let savingEntry = false;
 let editingEntryId = null;
 let editingEntryAttachmentPath = "";
@@ -177,6 +236,7 @@ let draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [
 const topSummaryState = {
   categorias: { current: [], previous: [] },
   contas: { current: [], previous: [] },
+  recorrencias: { current: [] },
 };
 let selectedUserCategoryIcon = "";
 let selectedUserCategoryGlobalId = 0;
@@ -195,7 +255,17 @@ let selectedUserAccountIcon = "";
 let editingUserAccountId = 0;
 let confirmActionResolver = null;
 let confirmActionConfirmRole = "destructive";
+let editingRecurrenceId = 0;
+let recurrenceEditorHistoryToken = 0;
 const AUTH_TOKEN_KEY = "caixa_auth_token";
+const ENTRY_RECURRENCE_OPTIONS = [
+  { value: "", label: "Nenhuma", icon: "block" },
+  { value: "daily", label: "Diária", icon: "today" },
+  { value: "weekly", label: "Semanal", icon: "date_range" },
+  { value: "biweekly", label: "Quinzenal", icon: "calendar_view_week" },
+  { value: "monthly", label: "Mensal", icon: "calendar_month" },
+  { value: "annual", label: "Anual", icon: "event_repeat" },
+];
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -336,6 +406,7 @@ function showTab(tabName) {
   const isLancamentos = tabName === "lancamentos";
   const isCategorias = tabName === "categorias";
   const isContas = tabName === "contas";
+  const isRecorrencias = tabName === "recorrentes";
   tabSections.forEach((section) => {
     section.hidden = section.dataset.tabContent !== tabName;
   });
@@ -344,7 +415,7 @@ function showTab(tabName) {
     txSearchOverlay.setAttribute("aria-hidden", isLancamentos ? "false" : "true");
   }
   if (catSummaryOverlay) {
-    const showSummary = isCategorias || isContas;
+    const showSummary = isCategorias || isContas || isRecorrencias;
     catSummaryOverlay.classList.toggle("is-visible", showSummary);
     catSummaryOverlay.setAttribute("aria-hidden", showSummary ? "false" : "true");
   }
@@ -389,7 +460,7 @@ function updateOverlayPositioning() {
   const txSearchCard = txSearchOverlay?.querySelector(".tx-search");
   const catSummaryCard = catSummaryOverlay?.querySelector(".cat-summary");
   const txHeight = txSearchCard?.getBoundingClientRect().height || readCssPx("--tx-search-h", 64);
-  const catHeight = catSummaryCard?.getBoundingClientRect().height || readCssPx("--cat-summary-h", 132);
+  const catHeight = catSummaryCard?.getBoundingClientRect().height || readCssPx("--cat-summary-h-current", 132);
 
   const txDesiredOverlap = txHeight * 0.4;
   const catDesiredOverlap = catHeight * 0.4;
@@ -397,11 +468,11 @@ function updateOverlayPositioning() {
   const catEffectiveOverlap = Math.min(catDesiredOverlap, maxOverlapInsideHeader);
 
   writeCssPx("--tx-search-h", txHeight);
-  writeCssPx("--cat-summary-h", catHeight);
+  writeCssPx("--cat-summary-h-current", catHeight);
   writeCssPx("--tx-search-overlap", txDesiredOverlap);
-  writeCssPx("--cat-summary-overlap", catDesiredOverlap);
+  writeCssPx("--cat-summary-overlap-current", catDesiredOverlap);
   writeCssPx("--tx-search-overlap-effective", txEffectiveOverlap);
-  writeCssPx("--cat-summary-overlap-effective", catEffectiveOverlap);
+  writeCssPx("--cat-summary-overlap-effective-current", catEffectiveOverlap);
 }
 
 function ensureTabFillLayers() {
@@ -819,6 +890,7 @@ function updateEntryFlowUi() {
   if (openCategoryBtn) openCategoryBtn.disabled = locked;
   if (openAccountBtn) openAccountBtn.disabled = locked;
   if (openDateBtn) openDateBtn.disabled = locked;
+  if (openEntryRecurrenceBtn) openEntryRecurrenceBtn.disabled = locked;
   if (openAttachmentBtn) openAttachmentBtn.disabled = locked;
   if (entryDescriptionInput) entryDescriptionInput.disabled = locked;
   if (entryAmountInput) entryAmountInput.disabled = locked;
@@ -998,6 +1070,7 @@ function clearAttachmentSelection(clearStoredPath = false) {
 async function openCategorySheet() {
   await closeDateSheet();
   await closeAccountSheet();
+  await closeEntryRecurrenceSheet();
   await categoryModal?.present();
   setPickerExpanded(openCategoryBtn, true);
   refreshPickerLayerState();
@@ -1021,9 +1094,70 @@ function activeTabName() {
   return String(active?.dataset?.tab || "lancamentos");
 }
 
+function setTopSummaryLabels(left, right) {
+  if (catSoFarLabelEl) catSoFarLabelEl.textContent = String(left || "");
+  if (catLastMonthLabelEl) catLastMonthLabelEl.textContent = String(right || "");
+}
+
+function setTopSummaryExtra(text = "") {
+  if (!catSummaryExtraEl) return;
+  const value = String(text || "").trim();
+  catSummaryExtraEl.hidden = value.length === 0;
+  catSummaryExtraEl.textContent = value;
+}
+
+function setTopSummaryExtraValue(text = "", tone = "") {
+  if (!catSummaryExtraValueEl) return;
+  const value = String(text || "").trim();
+  const classTone = String(tone || "").trim();
+  catSummaryExtraValueEl.hidden = value.length === 0;
+  catSummaryExtraValueEl.textContent = value;
+  catSummaryExtraValueEl.classList.remove("pos", "neg");
+  if (classTone === "pos" || classTone === "neg") {
+    catSummaryExtraValueEl.classList.add(classTone);
+  }
+}
+
+function renderRecurrenceTopSummary(items) {
+  const rows = Array.isArray(items) ? items : [];
+  const activeRows = rows.filter((item) => Number(item?.active ?? 1) === 1);
+  const total = activeRows.length;
+  const nextRecurrence = activeRows
+    .sort((a, b) => String(a?.next_run_date || "").localeCompare(String(b?.next_run_date || "")))[0];
+
+  setTopSummaryLabels("recorrências ativas", "próxima data");
+  catSummaryCardEl?.classList.add("cat-summary--recurrences");
+
+  if (catSoFarEl) {
+    catSoFarEl.textContent = String(total);
+    catSoFarEl.classList.remove("pos", "neg");
+  }
+  if (catLastMonthEl) {
+    catLastMonthEl.textContent = nextRecurrence ? formatIsoDate(String(nextRecurrence?.next_run_date || "")) : "--";
+    catLastMonthEl.classList.remove("pos", "neg");
+  }
+  if (!nextRecurrence) {
+    setTopSummaryExtra("Nenhuma recorrência agendada no momento.");
+    setTopSummaryExtraValue("");
+  } else {
+    const category = String(nextRecurrence?.category || "Recorrência");
+    const frequency = recurrenceFrequencyLabel(nextRecurrence?.frequency);
+    const account = String(nextRecurrence?.account_name || "Sem conta/cartão");
+    const amountRaw = Number(nextRecurrence?.amount || 0);
+    const signedAmount = String(nextRecurrence?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
+    const amountClass = toAmountClass(signedAmount);
+    setTopSummaryExtra(`${category} · ${frequency} · ${account}`);
+    setTopSummaryExtraValue(money.format(signedAmount), amountClass);
+  }
+}
+
 function renderTopSummaryForTab(tabName) {
   const currentTab = String(tabName || activeTabName());
   if (currentTab === "categorias") {
+    catSummaryCardEl?.classList.remove("cat-summary--recurrences");
+    setTopSummaryLabels("saldo no mês", "mês anterior");
+    setTopSummaryExtra("");
+    setTopSummaryExtraValue("");
     const state = topSummaryState.categorias || { current: [], previous: [] };
     updateTopSummaryPanel(
       state.current,
@@ -1034,6 +1168,10 @@ function renderTopSummaryForTab(tabName) {
     return;
   }
   if (currentTab === "contas") {
+    catSummaryCardEl?.classList.remove("cat-summary--recurrences");
+    setTopSummaryLabels("saldo no mês", "mês anterior");
+    setTopSummaryExtra("");
+    setTopSummaryExtraValue("");
     const state = topSummaryState.contas || { current: [], previous: [] };
     updateTopSummaryPanel(
       state.current,
@@ -1041,12 +1179,18 @@ function renderTopSummaryForTab(tabName) {
       (item) => Number(item?.balance || 0),
       (item) => String(item?.name || ""),
     );
+    return;
+  }
+  if (currentTab === "recorrentes") {
+    const state = topSummaryState.recorrencias || { current: [] };
+    renderRecurrenceTopSummary(state.current);
   }
 }
 
 async function openAccountSheet() {
   await closeDateSheet();
   await closeCategorySheet();
+  await closeEntryRecurrenceSheet();
   await accountModal?.present();
   setPickerExpanded(openAccountBtn, true);
   refreshPickerLayerState();
@@ -1068,6 +1212,7 @@ async function closeAccountSheet() {
 async function openDateSheet() {
   await closeCategorySheet();
   await closeAccountSheet();
+  await closeEntryRecurrenceSheet();
   await dateModal?.present();
   setPickerExpanded(openDateBtn, true);
   refreshPickerLayerState();
@@ -1080,6 +1225,51 @@ async function closeDateSheet() {
     // no-op: modal may already be closed
   }
   setPickerExpanded(openDateBtn, false);
+  refreshPickerLayerState();
+}
+
+function entryRecurrenceLabel(value) {
+  const key = String(value || "").trim().toLowerCase();
+  const option = ENTRY_RECURRENCE_OPTIONS.find((item) => item.value === key);
+  return option ? option.label : "Nenhuma";
+}
+
+function syncEntryRecurrenceSelection() {
+  if (!selectedEntryRecurrenceEl) return;
+  selectedEntryRecurrenceEl.textContent = entryRecurrenceLabel(selectedEntryRecurrenceFrequency);
+  selectedEntryRecurrenceEl.classList.toggle("is-placeholder", !selectedEntryRecurrenceFrequency);
+}
+
+function renderEntryRecurrenceOptions() {
+  if (!entryRecurrenceListEl) return;
+  entryRecurrenceListEl.innerHTML = ENTRY_RECURRENCE_OPTIONS.map((item) => {
+    const isSelected = selectedEntryRecurrenceFrequency === item.value;
+    return `
+      <button type="button" class="category-option is-neutral" data-entry-recurrence="${encodeURIComponent(item.value)}"${isSelected ? ' aria-current="true"' : ""}>
+        <span class="category-option__lead"><span class="material-symbols-rounded">${item.icon}</span></span>
+        <span class="category-option__text">${escapeHtml(item.label)}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+async function openEntryRecurrenceSheet() {
+  await closeCategorySheet();
+  await closeAccountSheet();
+  await closeDateSheet();
+  renderEntryRecurrenceOptions();
+  await entryRecurrenceModal?.present();
+  setPickerExpanded(openEntryRecurrenceBtn, true);
+  refreshPickerLayerState();
+}
+
+async function closeEntryRecurrenceSheet() {
+  try {
+    await entryRecurrenceModal?.dismiss();
+  } catch {
+    // no-op
+  }
+  setPickerExpanded(openEntryRecurrenceBtn, false);
   refreshPickerLayerState();
 }
 
@@ -1239,9 +1429,11 @@ async function loadAccounts(includeInactive = false) {
     const data = await response.json();
     accounts = Array.isArray(data) ? data : [];
     renderAccountOptions();
+    syncRecurrencePickers();
   } catch {
     accounts = [];
     renderAccountOptions();
+    syncRecurrencePickers();
   }
 }
 
@@ -2995,6 +3187,801 @@ function renderAccountsTab(currentAgg, previousAgg) {
     .join("");
 }
 
+function recurrenceFrequencyLabel(value) {
+  const key = String(value || "").trim().toLowerCase();
+  if (key === "daily") return "Diário";
+  if (key === "weekly") return "Semanal";
+  if (key === "biweekly") return "Quinzenal";
+  if (key === "annual") return "Anual";
+  return "Mensal";
+}
+
+function buildGroupsFromFlatEntries(entries) {
+  const yearsMap = new Map();
+  const sorted = [...(Array.isArray(entries) ? entries : [])].sort((a, b) => {
+    const byDate = String(b?.date || "").localeCompare(String(a?.date || ""));
+    if (byDate !== 0) return byDate;
+    return String(b?.updated_at || b?.created_at || "").localeCompare(String(a?.updated_at || a?.created_at || ""));
+  });
+
+  sorted.forEach((entry) => {
+    const iso = String(entry?.date || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+    const yearKey = iso.slice(0, 4);
+    const monthKey = iso.slice(0, 7);
+    const amountRaw = Number(entry?.amount || 0);
+    const signed = String(entry?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
+
+    if (!yearsMap.has(yearKey)) {
+      yearsMap.set(yearKey, { year: yearKey, total: 0, months: new Map() });
+    }
+    const yearNode = yearsMap.get(yearKey);
+    yearNode.total += signed;
+
+    if (!yearNode.months.has(monthKey)) {
+      yearNode.months.set(monthKey, { month: monthKey, total: 0, days: new Map() });
+    }
+    const monthNode = yearNode.months.get(monthKey);
+    monthNode.total += signed;
+
+    if (!monthNode.days.has(iso)) {
+      monthNode.days.set(iso, { day: iso, total: 0, entries: [] });
+    }
+    const dayNode = monthNode.days.get(iso);
+    dayNode.total += signed;
+    dayNode.entries.push(entry);
+  });
+
+  return [...yearsMap.values()]
+    .sort((a, b) => String(b.year).localeCompare(String(a.year)))
+    .map((yearNode) => ({
+      year: yearNode.year,
+      label: yearNode.year,
+      totals: { balance: Number(yearNode.total || 0) },
+      months: [...yearNode.months.values()]
+        .sort((a, b) => String(b.month).localeCompare(String(a.month)))
+        .map((monthNode) => ({
+          month: monthNode.month,
+          label: monthLabelFromKey(monthNode.month),
+          totals: { balance: Number(monthNode.total || 0) },
+          days: [...monthNode.days.values()]
+            .sort((a, b) => String(b.day).localeCompare(String(a.day)))
+            .map((dayNode) => ({
+              day: dayNode.day,
+              date: dayNode.day,
+              label: dayMonthShortLabel(dayNode.day),
+              totals: { balance: Number(dayNode.total || 0) },
+              entries: dayNode.entries,
+            })),
+        })),
+    }));
+}
+
+function buildGroupsFromRecurrences(items) {
+  const yearsMap = new Map();
+  const sorted = [...(Array.isArray(items) ? items : [])].sort((a, b) => {
+    const byDate = String(b?.next_run_date || "").localeCompare(String(a?.next_run_date || ""));
+    if (byDate !== 0) return byDate;
+    return String(b?.updated_at || b?.created_at || "").localeCompare(String(a?.updated_at || a?.created_at || ""));
+  });
+
+  sorted.forEach((item) => {
+    const iso = String(item?.next_run_date || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+    const yearKey = iso.slice(0, 4);
+    const monthKey = iso.slice(0, 7);
+    const amountRaw = Number(item?.amount || 0);
+    const signed = String(item?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
+
+    if (!yearsMap.has(yearKey)) {
+      yearsMap.set(yearKey, { year: yearKey, total: 0, months: new Map() });
+    }
+    const yearNode = yearsMap.get(yearKey);
+    yearNode.total += signed;
+
+    if (!yearNode.months.has(monthKey)) {
+      yearNode.months.set(monthKey, { month: monthKey, total: 0, days: new Map() });
+    }
+    const monthNode = yearNode.months.get(monthKey);
+    monthNode.total += signed;
+
+    if (!monthNode.days.has(iso)) {
+      monthNode.days.set(iso, { day: iso, total: 0, entries: [] });
+    }
+    const dayNode = monthNode.days.get(iso);
+    dayNode.total += signed;
+    dayNode.entries.push(item);
+  });
+
+  return [...yearsMap.values()]
+    .sort((a, b) => String(b.year).localeCompare(String(a.year)))
+    .map((yearNode) => ({
+      year: yearNode.year,
+      label: yearNode.year,
+      totals: { balance: Number(yearNode.total || 0) },
+      months: [...yearNode.months.values()]
+        .sort((a, b) => String(b.month).localeCompare(String(a.month)))
+        .map((monthNode) => ({
+          month: monthNode.month,
+          label: monthLabelFromKey(monthNode.month),
+          totals: { balance: Number(monthNode.total || 0) },
+          days: [...monthNode.days.values()]
+            .sort((a, b) => String(b.day).localeCompare(String(a.day)))
+            .map((dayNode) => ({
+              day: dayNode.day,
+              date: dayNode.day,
+              label: dayMonthShortLabel(dayNode.day),
+              totals: { balance: Number(dayNode.total || 0) },
+              entries: dayNode.entries,
+            })),
+        })),
+    }));
+}
+
+function renderRecurrenceGroups(container, groups, emptyText) {
+  if (!Array.isArray(groups) || groups.length === 0) {
+    renderEntriesEmptyState(container, emptyText || "Nenhuma recorrência encontrada.");
+    return;
+  }
+
+  container.innerHTML = groups
+    .map((yearNode) => {
+      const months = (Array.isArray(yearNode?.months) ? yearNode.months : [])
+        .map((monthNode) => {
+          const days = (Array.isArray(monthNode?.days) ? monthNode.days : [])
+            .map((dayNode) => {
+              const rows = (Array.isArray(dayNode?.entries) ? dayNode.entries : [])
+                .map((item) => {
+                  const id = Number(item?.id || 0);
+                  const amountRaw = Number(item?.amount || 0);
+                  const signed = String(item?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
+                  const amountClass = toAmountClass(signed);
+                  const category = escapeHtml(String(item?.category || "Sem categoria"));
+                  const account = escapeHtml(String(item?.account_name || "Sem conta/cartão"));
+                  const frequency = escapeHtml(recurrenceFrequencyLabel(item?.frequency));
+                  const tone = String(item?.type || "") === "out" ? "entry-chip--out" : "entry-chip--in";
+                  return `
+                    <button type="button" class="entry-row entry-row--button" data-recurrence-id="${id}" aria-label="Abrir recorrência ${category}">
+                      <div class="entry-row__title">${category}</div>
+                      <div class="entry-row__chips">
+                        <span class="entry-chip ${tone}">${account} • ${frequency}</span>
+                      </div>
+                      <div class="entry-row__value ${amountClass}">${money.format(signed)}</div>
+                    </button>
+                  `;
+                })
+                .join("");
+              return `
+                <section class="entry-day">
+                  <header class="entry-day__head">
+                    <div class="entry-group entry-group--day">${escapeHtml(dayNode?.label || dayNode?.day || "")}</div>
+                  </header>
+                  <div class="entry-cluster__rows">${rows}</div>
+                </section>
+              `;
+            })
+            .join("");
+
+          return `
+            <section class="entry-month">
+              <header class="entry-month__head">
+                <div class="entry-month__title">${escapeHtml(monthLabelWithoutYear(String(monthNode?.label || monthNode?.month || ""), String(monthNode?.month || "")))}</div>
+              </header>
+              ${days}
+            </section>
+          `;
+        })
+        .join("");
+
+      return `
+        <section class="entry-year">
+          <header class="entry-year__head">
+            <div class="entry-group entry-group--year">${escapeHtml(yearNode?.label || yearNode?.year || "")}</div>
+          </header>
+          ${months}
+        </section>
+      `;
+    })
+    .join("");
+}
+
+function syncRecurrencePickers() {
+  if (selectedRecurrenceCategoryEl) {
+    selectedRecurrenceCategoryEl.textContent = selectedRecurrenceCategoryValue || "Selecionar categoria";
+    selectedRecurrenceCategoryEl.classList.toggle("is-placeholder", !selectedRecurrenceCategoryValue);
+  }
+  if (selectedRecurrenceAccountEl) {
+    const account = accounts.find((item) => Number(item?.id || 0) === Number(selectedRecurrenceAccountId || 0));
+    const name = String(account?.name || "");
+    selectedRecurrenceAccountEl.textContent = name || "Selecionar conta/cartão";
+    selectedRecurrenceAccountEl.classList.toggle("is-placeholder", !name);
+  }
+  if (selectedRecurrenceDateEl) {
+    selectedRecurrenceDateEl.textContent = selectedRecurrenceStartDateISO ? formatIsoDate(selectedRecurrenceStartDateISO) : "Selecionar data";
+    selectedRecurrenceDateEl.classList.toggle("is-placeholder", !selectedRecurrenceStartDateISO);
+  }
+  if (selectedRecurrenceFrequencyEl) {
+    selectedRecurrenceFrequencyEl.textContent = recurrenceFrequencyLabel(selectedRecurrenceFrequencyValue);
+    selectedRecurrenceFrequencyEl.classList.toggle("is-placeholder", !selectedRecurrenceFrequencyValue);
+  }
+}
+
+function renderRecurrenceCategoryOptions() {
+  if (!recurrenceCategoryListEl) return;
+  const query = String(recurrenceCategorySearchInput?.value || "").trim().toLowerCase();
+  const searched = categories.filter((item) => String(item?.name || "").toLowerCase().includes(query));
+  if (!searched.length) {
+    recurrenceCategoryListEl.innerHTML = `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
+    return;
+  }
+  const groups = [
+    { key: "in", title: "Entrada", icon: "arrow_downward" },
+    { key: "out", title: "Saída", icon: "arrow_upward" },
+  ];
+  recurrenceCategoryListEl.innerHTML = groups.map((group) => {
+    const options = searched.filter((item) => String(item?.type || "") === group.key);
+    if (!options.length) return "";
+    const optionsHtml = options.map((item) => {
+      const label = String(item?.name || "").trim();
+      const isSelected = label === selectedRecurrenceCategoryValue;
+      return `
+        <button type="button" class="category-option is-${group.key}" data-recurrence-category="${encodeURIComponent(label)}"${isSelected ? ' aria-current="true"' : ""}>
+          <span class="category-option__lead"><span class="material-symbols-rounded">${group.icon}</span></span>
+          <span class="category-option__text">${escapeHtml(label)}</span>
+        </button>
+      `;
+    }).join("");
+    return `
+      <section class="category-group">
+        <h4 class="category-group__title">${group.title}</h4>
+        <div class="category-group__items">${optionsHtml}</div>
+      </section>
+    `;
+  }).join("");
+}
+
+function renderRecurrenceAccountOptions() {
+  if (!recurrenceAccountListEl) return;
+  const query = String(recurrenceAccountSearchInput?.value || "").trim().toLowerCase();
+  const searched = accounts.filter((item) => String(item?.name || "").toLowerCase().includes(query));
+  if (!searched.length) {
+    recurrenceAccountListEl.innerHTML = `<p class="category-empty">Nenhuma conta/cartão encontrada.</p>`;
+    return;
+  }
+  const groups = [{ key: "bank" }, { key: "card" }];
+  recurrenceAccountListEl.innerHTML = groups.map((group) => {
+    const options = searched.filter((item) => String(item?.type || "bank") === group.key);
+    if (!options.length) return "";
+    const optionsHtml = options.map((item) => {
+      const id = Number(item?.id || 0);
+      const label = String(item?.name || "").trim();
+      const isSelected = selectedRecurrenceAccountId === id;
+      return `
+        <button type="button" class="category-option is-neutral" data-recurrence-account-id="${id}"${isSelected ? ' aria-current="true"' : ""}>
+          <span class="category-option__lead"><span class="material-symbols-rounded">${accountTypeIcon(group.key)}</span></span>
+          <span class="category-option__text">${escapeHtml(label)}</span>
+        </button>
+      `;
+    }).join("");
+    return `
+      <section class="category-group">
+        <h4 class="category-group__title">${accountTypeLabel(group.key)}</h4>
+        <div class="category-group__items">${optionsHtml}</div>
+      </section>
+    `;
+  }).join("");
+}
+
+function renderRecurrenceFrequencyOptions() {
+  if (!recurrenceFrequencyListEl) return;
+  const options = [
+    { value: "daily", label: "Diário", icon: "today" },
+    { value: "weekly", label: "Semanal", icon: "date_range" },
+    { value: "biweekly", label: "Quinzenal", icon: "calendar_view_week" },
+    { value: "monthly", label: "Mensal", icon: "calendar_month" },
+    { value: "annual", label: "Anual", icon: "event_repeat" },
+  ];
+  recurrenceFrequencyListEl.innerHTML = options.map((item) => {
+    const isSelected = selectedRecurrenceFrequencyValue === item.value;
+    return `
+      <button type="button" class="category-option is-neutral" data-recurrence-frequency="${item.value}"${isSelected ? ' aria-current="true"' : ""}>
+        <span class="category-option__lead"><span class="material-symbols-rounded">${item.icon}</span></span>
+        <span class="category-option__text">${escapeHtml(item.label)}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+async function openRecurrenceCategorySheet() {
+  await closeRecurrenceAccountSheet();
+  await closeRecurrenceDateSheet();
+  await closeRecurrenceFrequencySheet();
+  renderRecurrenceCategoryOptions();
+  await recurrenceCategoryModal?.present();
+  setPickerExpanded(openRecurrenceCategoryBtn, true);
+  refreshPickerLayerState();
+}
+
+async function closeRecurrenceCategorySheet() {
+  try { await recurrenceCategoryModal?.dismiss(); } catch {}
+  setPickerExpanded(openRecurrenceCategoryBtn, false);
+  refreshPickerLayerState();
+}
+
+async function openRecurrenceAccountSheet() {
+  await closeRecurrenceCategorySheet();
+  await closeRecurrenceDateSheet();
+  await closeRecurrenceFrequencySheet();
+  renderRecurrenceAccountOptions();
+  await recurrenceAccountModal?.present();
+  setPickerExpanded(openRecurrenceAccountBtn, true);
+  refreshPickerLayerState();
+}
+
+async function closeRecurrenceAccountSheet() {
+  try { await recurrenceAccountModal?.dismiss(); } catch {}
+  setPickerExpanded(openRecurrenceAccountBtn, false);
+  refreshPickerLayerState();
+}
+
+async function openRecurrenceDateSheet() {
+  await closeRecurrenceCategorySheet();
+  await closeRecurrenceAccountSheet();
+  await closeRecurrenceFrequencySheet();
+  if (recurrenceDatePicker) recurrenceDatePicker.value = selectedRecurrenceStartDateISO || todayIsoDate();
+  await recurrenceDateModal?.present();
+  setPickerExpanded(openRecurrenceDateBtn, true);
+  refreshPickerLayerState();
+}
+
+async function closeRecurrenceDateSheet() {
+  try { await recurrenceDateModal?.dismiss(); } catch {}
+  setPickerExpanded(openRecurrenceDateBtn, false);
+  refreshPickerLayerState();
+}
+
+async function openRecurrenceFrequencySheet() {
+  await closeRecurrenceCategorySheet();
+  await closeRecurrenceAccountSheet();
+  await closeRecurrenceDateSheet();
+  renderRecurrenceFrequencyOptions();
+  await recurrenceFrequencyModal?.present();
+  setPickerExpanded(openRecurrenceFrequencyBtn, true);
+  refreshPickerLayerState();
+}
+
+async function closeRecurrenceFrequencySheet() {
+  try { await recurrenceFrequencyModal?.dismiss(); } catch {}
+  setPickerExpanded(openRecurrenceFrequencyBtn, false);
+  refreshPickerLayerState();
+}
+
+function resetRecurrenceForm() {
+  editingRecurrenceId = 0;
+  if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Nova recorrência";
+  if (recurrenceAmountInput) recurrenceAmountInput.value = formatMoneyInput(0);
+  selectedRecurrenceCategoryValue = "";
+  selectedRecurrenceAccountId = 0;
+  selectedRecurrenceStartDateISO = todayIsoDate();
+  selectedRecurrenceFrequencyValue = "monthly";
+  if (recurrenceDescriptionInput) recurrenceDescriptionInput.value = "";
+  syncRecurrencePickers();
+  if (deleteRecurrenceBtn) {
+    deleteRecurrenceBtn.hidden = true;
+    deleteRecurrenceBtn.style.display = "none";
+  }
+  recurrenceEditorHistoryToken += 1;
+  if (recurrenceEditorHistorySectionEl) recurrenceEditorHistorySectionEl.hidden = true;
+  if (recurrenceEditorHistoryListEl) recurrenceEditorHistoryListEl.innerHTML = "";
+}
+
+async function openRecurrenceModal() {
+  hideMessages();
+  await loadCategories();
+  await loadAccounts();
+  if (!editingRecurrenceId) resetRecurrenceForm();
+  await recurrenceModal?.present();
+}
+
+async function closeRecurrenceModal() {
+  await closeRecurrenceCategorySheet();
+  await closeRecurrenceAccountSheet();
+  await closeRecurrenceDateSheet();
+  await closeRecurrenceFrequencySheet();
+  try {
+    await recurrenceModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function saveRecurrence() {
+  const amount = parseMoneyInput(recurrenceAmountInput?.value || "");
+  const category = String(selectedRecurrenceCategoryValue || "").trim();
+  const accountId = Number(selectedRecurrenceAccountId || 0);
+  const frequency = String(selectedRecurrenceFrequencyValue || "monthly");
+  const startDate = String(selectedRecurrenceStartDateISO || "").slice(0, 10);
+  const description = String(recurrenceDescriptionInput?.value || "").trim();
+  const categoryType = String(categories.find((item) => String(item?.name || "") === category)?.type || "");
+
+  if (!["in", "out"].includes(categoryType)) {
+    showError("Selecione uma categoria válida para recorrência.");
+    return;
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    showError("Informe um valor válido.");
+    return;
+  }
+  if (accountId <= 0) {
+    showError("Conta/cartão é obrigatória.");
+    return;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    showError("Data inicial inválida.");
+    return;
+  }
+
+  try {
+    const endpoint = editingRecurrenceId ? `/api/recurrences/${editingRecurrenceId}` : "/api/recurrences";
+    const method = editingRecurrenceId ? "PUT" : "POST";
+    const response = await fetch(endpoint, {
+      method,
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({
+        type: categoryType,
+        amount,
+        category,
+        account_id: accountId,
+        description,
+        frequency,
+        start_date: startDate,
+      }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível salvar a recorrência."));
+      return;
+    }
+    await closeRecurrenceModal();
+    showInfo(editingRecurrenceId ? "Recorrência atualizada com sucesso." : "Recorrência criada com sucesso.");
+    await loadDashboard();
+    showTab("recorrentes");
+  } catch {
+    showError("Falha de rede ao salvar a recorrência.");
+  }
+}
+
+async function deleteRecurrence() {
+  if (editingRecurrenceId <= 0) return;
+  const confirmed = await confirmActionModal({
+    header: "Excluir recorrência",
+    message: "A recorrência será removida. Os lançamentos já criados permanecem no histórico.",
+    confirmText: "Excluir",
+    cancelText: "Cancelar",
+    confirmRole: "destructive",
+  });
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`/api/recurrences/${editingRecurrenceId}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível excluir a recorrência."));
+      return;
+    }
+    await closeRecurrenceModal();
+    await closeRecurrenceDetailModal();
+    showInfo("Recorrência excluída com sucesso.");
+    await loadDashboard();
+  } catch {
+    showError("Falha de rede ao excluir a recorrência.");
+  }
+}
+
+function renderRecurrencesTab(items) {
+  recurrences = Array.isArray(items) ? items : [];
+  topSummaryState.recorrencias.current = recurrences;
+  const total = recurrences.length;
+  if (recurrenceMetaEl) {
+    recurrenceMetaEl.textContent = total === 1 ? "1 recorrência" : `${total} recorrências`;
+  }
+  if (activeTabName() === "recorrentes") {
+    renderTopSummaryForTab("recorrentes");
+  }
+
+  if (!recurrencesListScreen) return;
+  if (!recurrences.length) {
+    recurrencesListScreen.innerHTML = `<p class="cat-empty">Sem recorrências cadastradas.</p>`;
+    return;
+  }
+  const groups = buildGroupsFromRecurrences(recurrences);
+  renderRecurrenceGroups(recurrencesListScreen, groups, "Sem recorrências cadastradas.");
+}
+
+async function openRecurrenceEditor(recurrenceId) {
+  const item = recurrences.find((row) => Number(row?.id || 0) === Number(recurrenceId));
+  if (!item) return;
+  editingRecurrenceId = Number(item?.id || 0);
+  await loadCategories();
+  await loadAccounts();
+  if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Editar recorrência";
+  if (recurrenceAmountInput) recurrenceAmountInput.value = formatMoneyInput(Number(item?.amount || 0));
+  selectedRecurrenceCategoryValue = String(item?.category || "");
+  selectedRecurrenceAccountId = Number(item?.account_id || 0);
+  selectedRecurrenceStartDateISO = String(item?.start_date || todayIsoDate()).slice(0, 10);
+  selectedRecurrenceFrequencyValue = String(item?.frequency || "monthly");
+  if (recurrenceDescriptionInput) recurrenceDescriptionInput.value = String(item?.description || "");
+  syncRecurrencePickers();
+  if (deleteRecurrenceBtn) {
+    deleteRecurrenceBtn.hidden = false;
+    deleteRecurrenceBtn.style.display = "";
+  }
+  await recurrenceModal?.present();
+  void loadRecurrenceEditorHistory(editingRecurrenceId);
+}
+
+async function loadRecurrenceEditorHistory(recurrenceId) {
+  const id = Number(recurrenceId || 0);
+  if (id <= 0 || !recurrenceEditorHistorySectionEl || !recurrenceEditorHistoryListEl) return;
+  const token = ++recurrenceEditorHistoryToken;
+  recurrenceEditorHistorySectionEl.hidden = false;
+  renderEntriesEmptyState(recurrenceEditorHistoryListEl, "Carregando lançamentos criados...");
+  try {
+    const response = await authFetch(`/api/recurrences/${id}`);
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      if (token !== recurrenceEditorHistoryToken) return;
+      renderEntriesEmptyState(recurrenceEditorHistoryListEl, "Não foi possível carregar os lançamentos criados.");
+      return;
+    }
+    if (token !== recurrenceEditorHistoryToken) return;
+    const entries = Array.isArray(payload?.entries) ? payload.entries : [];
+    const groups = buildGroupsFromFlatEntries(entries);
+    renderEntriesGroupedFromServer(recurrenceEditorHistoryListEl, groups, "Nenhum lançamento criado por esta recorrência.");
+  } catch {
+    if (token !== recurrenceEditorHistoryToken) return;
+    renderEntriesEmptyState(recurrenceEditorHistoryListEl, "Falha de rede ao carregar lançamentos criados.");
+  }
+}
+
+async function openRecurrenceDetailModal(recurrenceId) {
+  try {
+    const response = await authFetch(`/api/recurrences/${recurrenceId}`);
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível carregar a recorrência."));
+      return;
+    }
+
+    if (recurrenceDetailTitleEl) {
+      recurrenceDetailTitleEl.textContent = String(payload?.category || "Recorrência");
+    }
+    if (recurrenceDetailNextDateEl) {
+      recurrenceDetailNextDateEl.textContent = formatIsoDate(String(payload?.next_entry?.date || payload?.next_run_date || ""));
+    }
+    if (recurrenceDetailNextAmountEl) {
+      const value = Number(payload?.next_entry?.amount || payload?.amount || 0);
+      const type = String(payload?.next_entry?.type || payload?.type || "");
+      const signed = type === "out" ? -Math.abs(value) : Math.abs(value);
+      recurrenceDetailNextAmountEl.textContent = money.format(signed);
+      recurrenceDetailNextAmountEl.classList.remove("pos", "neg");
+      recurrenceDetailNextAmountEl.classList.add(signed >= 0 ? "pos" : "neg");
+    }
+    if (recurrenceDetailNextMetaEl) {
+      const frequency = recurrenceFrequencyLabel(payload?.frequency);
+      const account = String(payload?.next_entry?.account_name || payload?.account_name || "Sem conta/cartão");
+      recurrenceDetailNextMetaEl.textContent = `${frequency} • ${account}`;
+    }
+    const entries = Array.isArray(payload?.entries) ? payload.entries : [];
+    const groups = buildGroupsFromFlatEntries(entries);
+    renderEntriesGroupedFromServer(recurrenceDetailListEl, groups, "Nenhum lançamento criado por esta recorrência.");
+    editingRecurrenceId = Number(payload?.id || 0);
+    await recurrenceDetailModal?.present();
+  } catch {
+    showError("Falha de rede ao carregar a recorrência.");
+  }
+}
+
+async function closeRecurrenceDetailModal() {
+  try {
+    await recurrenceDetailModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function loadRecurrences() {
+  try {
+    const response = await authFetch("/api/recurrences");
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    if (!response.ok) {
+      renderRecurrencesTab([]);
+      return;
+    }
+    const data = await response.json();
+    renderRecurrencesTab(Array.isArray(data) ? data : []);
+  } catch {
+    renderRecurrencesTab([]);
+  }
+}
+
+function setupRecurrenceInteractions() {
+  openRecurrenceInlineBtn?.addEventListener("click", () => {
+    editingRecurrenceId = 0;
+    resetRecurrenceForm();
+    void openRecurrenceModal();
+  });
+  closeRecurrenceBtn?.addEventListener("click", () => {
+    void closeRecurrenceModal();
+  });
+  cancelRecurrenceBtn?.addEventListener("click", () => {
+    void closeRecurrenceModal();
+  });
+  saveRecurrenceBtn?.addEventListener("click", () => {
+    void saveRecurrence();
+  });
+  deleteRecurrenceBtn?.addEventListener("click", () => {
+    void deleteRecurrence();
+  });
+
+  openRecurrenceCategoryBtn?.addEventListener("click", () => {
+    renderRecurrenceCategoryOptions();
+    void openRecurrenceCategorySheet();
+  });
+  closeRecurrenceCategoryModalBtn?.addEventListener("click", () => {
+    void closeRecurrenceCategorySheet();
+  });
+  recurrenceCategorySearchInput?.addEventListener("ionInput", () => {
+    renderRecurrenceCategoryOptions();
+  });
+  recurrenceCategoryListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-recurrence-category]");
+    if (!button) return;
+    const encoded = String(button.getAttribute("data-recurrence-category") || "").trim();
+    const value = encoded ? decodeURIComponent(encoded) : "";
+    if (!value) return;
+    selectedRecurrenceCategoryValue = value;
+    syncRecurrencePickers();
+    void closeRecurrenceCategorySheet();
+  });
+
+  openRecurrenceAccountBtn?.addEventListener("click", () => {
+    renderRecurrenceAccountOptions();
+    void openRecurrenceAccountSheet();
+  });
+  closeRecurrenceAccountModalBtn?.addEventListener("click", () => {
+    void closeRecurrenceAccountSheet();
+  });
+  recurrenceAccountSearchInput?.addEventListener("ionInput", () => {
+    renderRecurrenceAccountOptions();
+  });
+  recurrenceAccountListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-recurrence-account-id]");
+    if (!button) return;
+    const accountId = Number(button.getAttribute("data-recurrence-account-id") || 0);
+    if (accountId <= 0) return;
+    selectedRecurrenceAccountId = accountId;
+    syncRecurrencePickers();
+    void closeRecurrenceAccountSheet();
+  });
+
+  openRecurrenceDateBtn?.addEventListener("click", () => {
+    void openRecurrenceDateSheet();
+  });
+  closeRecurrenceDateModalBtn?.addEventListener("click", () => {
+    void closeRecurrenceDateSheet();
+  });
+  recurrenceDatePicker?.addEventListener("ionChange", (event) => {
+    const value = String(event?.detail?.value || "").slice(0, 10);
+    if (!value) return;
+    selectedRecurrenceStartDateISO = value;
+    syncRecurrencePickers();
+    void closeRecurrenceDateSheet();
+  });
+
+  openRecurrenceFrequencyBtn?.addEventListener("click", () => {
+    renderRecurrenceFrequencyOptions();
+    void openRecurrenceFrequencySheet();
+  });
+  closeRecurrenceFrequencyModalBtn?.addEventListener("click", () => {
+    void closeRecurrenceFrequencySheet();
+  });
+  recurrenceFrequencyListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-recurrence-frequency]");
+    if (!button) return;
+    const value = String(button.getAttribute("data-recurrence-frequency") || "").trim();
+    if (!value) return;
+    selectedRecurrenceFrequencyValue = value;
+    syncRecurrencePickers();
+    void closeRecurrenceFrequencySheet();
+  });
+
+  recurrenceAmountInput?.addEventListener("ionInput", (event) => {
+    const value = parseMoneyInput(event?.detail?.value || recurrenceAmountInput.value || "");
+    recurrenceAmountInput.value = formatMoneyInput(value);
+  });
+  recurrencesListScreen?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-recurrence-id]");
+    if (!button) return;
+    const recurrenceId = Number(button.getAttribute("data-recurrence-id") || 0);
+    if (recurrenceId > 0) {
+      void openRecurrenceEditor(recurrenceId);
+    }
+  });
+  closeRecurrenceDetailBtn?.addEventListener("click", () => {
+    void closeRecurrenceDetailModal();
+  });
+  editRecurrenceFromDetailBtn?.addEventListener("click", () => {
+    if (editingRecurrenceId > 0) {
+      void closeRecurrenceDetailModal().then(() => openRecurrenceEditor(editingRecurrenceId));
+    }
+  });
+
+  recurrenceCategoryModal?.addEventListener("ionModalDidDismiss", () => {
+    setPickerExpanded(openRecurrenceCategoryBtn, false);
+    refreshPickerLayerState();
+  });
+  recurrenceCategoryModal?.addEventListener("ionModalDidPresent", () => {
+    refreshPickerLayerState();
+  });
+  recurrenceAccountModal?.addEventListener("ionModalDidDismiss", () => {
+    setPickerExpanded(openRecurrenceAccountBtn, false);
+    refreshPickerLayerState();
+  });
+  recurrenceAccountModal?.addEventListener("ionModalDidPresent", () => {
+    refreshPickerLayerState();
+  });
+  recurrenceDateModal?.addEventListener("ionModalDidDismiss", () => {
+    setPickerExpanded(openRecurrenceDateBtn, false);
+    refreshPickerLayerState();
+  });
+  recurrenceDateModal?.addEventListener("ionModalDidPresent", () => {
+    refreshPickerLayerState();
+  });
+  recurrenceFrequencyModal?.addEventListener("ionModalDidDismiss", () => {
+    setPickerExpanded(openRecurrenceFrequencyBtn, false);
+    refreshPickerLayerState();
+  });
+  recurrenceFrequencyModal?.addEventListener("ionModalDidPresent", () => {
+    refreshPickerLayerState();
+  });
+}
+
 async function loadCategories() {
   try {
     const response = await authFetch("/api/categories");
@@ -3004,7 +3991,8 @@ async function loadCategories() {
     }
     if (!response.ok) {
       categories = [];
-    renderCategoryOptions("");
+      renderCategoryOptions("");
+      syncRecurrencePickers();
       return;
     }
     const data = await response.json();
@@ -3016,10 +4004,12 @@ async function loadCategories() {
     }
     renderCategoryOptions("");
     syncUserCategorySelections();
+    syncRecurrencePickers();
   } catch {
     categories = [];
     renderCategoryOptions("");
     syncUserCategorySelections();
+    syncRecurrencePickers();
   }
 }
 
@@ -3088,6 +4078,8 @@ function resetEntryForm() {
   renderCategoryOptions("");
   renderAccountOptions();
   clearAttachmentSelection();
+  selectedEntryRecurrenceFrequency = "";
+  syncEntryRecurrenceSelection();
   updateSaveState();
 }
 
@@ -3106,6 +4098,7 @@ async function closeEntryModal() {
   await closeCategorySheet();
   await closeAccountSheet();
   await closeDateSheet();
+  await closeEntryRecurrenceSheet();
   await entryModal?.dismiss();
   setEntryLayerState(false);
   refreshPickerLayerState();
@@ -3118,6 +4111,7 @@ async function createEntry() {
   const accountId = Number(selectedAccountId || 0);
   const date = String(selectedDateISO || "").slice(0, 10).trim();
   const description = String(entryDescriptionInput?.value || "").trim();
+  const recurrenceFrequency = String(selectedEntryRecurrenceFrequency || "");
 
   if (!["in", "out"].includes(type)) {
     showError("Selecione uma categoria v\u00e1lida.");
@@ -3163,6 +4157,7 @@ async function createEntry() {
         date,
         description,
         attachment_path: attachmentPath,
+        recurrence_frequency: recurrenceFrequency,
       }),
     });
 
@@ -3289,6 +4284,26 @@ function setupEntryModal() {
   entryAmountInput?.addEventListener("ionInput", (event) => {
     renderAmountInput(event?.detail?.value || "");
     updateSaveState();
+  });
+
+  openEntryRecurrenceBtn?.addEventListener("click", () => {
+    void openEntryRecurrenceSheet();
+  });
+
+  closeEntryRecurrenceModalBtn?.addEventListener("click", () => {
+    void closeEntryRecurrenceSheet();
+  });
+
+  entryRecurrenceListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-entry-recurrence]");
+    if (!button) return;
+    const encoded = String(button.getAttribute("data-entry-recurrence") || "").trim();
+    selectedEntryRecurrenceFrequency = encoded ? decodeURIComponent(encoded) : "";
+    syncEntryRecurrenceSelection();
+    renderEntryRecurrenceOptions();
+    void closeEntryRecurrenceSheet();
   });
 
   openDateBtn?.addEventListener("click", () => {
@@ -3551,6 +4566,15 @@ function setupEntryModal() {
     refreshPickerLayerState();
   });
 
+  entryRecurrenceModal?.addEventListener("ionModalDidDismiss", () => {
+    setPickerExpanded(openEntryRecurrenceBtn, false);
+    refreshPickerLayerState();
+  });
+
+  entryRecurrenceModal?.addEventListener("ionModalDidPresent", () => {
+    refreshPickerLayerState();
+  });
+
   entryModal?.addEventListener("ionModalDidDismiss", () => {
     setEntryLayerState(false);
     refreshPickerLayerState();
@@ -3726,6 +4750,7 @@ async function loadDashboard() {
 
     await loadCategories();
     await loadAccounts(true);
+    await loadRecurrences();
     showInfo(`Atualizado com dados de ${periodLabel()}`);
     requestAnimationFrame(updateOverlayPositioning);
   } catch (error) {
@@ -3782,6 +4807,7 @@ refreshBtn?.addEventListener("click", () => {
 
 setupTabNav();
 setupEntryModal();
+setupRecurrenceInteractions();
 setupConfirmActionModal();
 initEntryFilters();
 formatFilterPanel();
