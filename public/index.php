@@ -7,6 +7,7 @@ use App\Controller\ReportController;
 use App\Controller\ExportController;
 use App\Controller\UploadController;
 use App\Controller\AccountController;
+use App\Controller\FinancialAccountController;
 use App\Controller\AdminController;
 use App\Controller\SupportController;
 use App\Controller\CategoryController;
@@ -213,6 +214,10 @@ $router->add('GET', '/api/user-categories', [CategoryController::class, 'listUse
 $router->add('POST', '/api/user-categories', [CategoryController::class, 'createUserCategory']);
 $router->add('PUT', '/api/user-categories/{id}', [CategoryController::class, 'updateUserCategory']);
 $router->add('DELETE', '/api/user-categories/{id}', [CategoryController::class, 'deleteUserCategory']);
+$router->add('GET', '/api/accounts', [FinancialAccountController::class, 'list']);
+$router->add('POST', '/api/accounts', [FinancialAccountController::class, 'create']);
+$router->add('PUT', '/api/accounts/{id}', [FinancialAccountController::class, 'update']);
+$router->add('DELETE', '/api/accounts/{id}', [FinancialAccountController::class, 'delete']);
 $router->add('GET', '/api/reports/summary', [ReportController::class, 'summary']);
 $router->add('GET', '/api/reports/aggregate', [ReportController::class, 'aggregate']);
 $router->add('GET', '/api/reports/entries-groups', [ReportController::class, 'entriesGroups']);

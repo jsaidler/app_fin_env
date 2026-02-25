@@ -70,6 +70,22 @@ class SqliteConnection
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_categories_global ON user_categories(global_category_id)');
         $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_categories_user_name_nocase ON user_categories(user_id, name COLLATE NOCASE)');
 
+        $pdo->exec('CREATE TABLE IF NOT EXISTS user_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            icon TEXT NOT NULL DEFAULT "account_balance_wallet",
+            initial_balance REAL NOT NULL DEFAULT 0,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        )');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_accounts_user ON user_accounts(user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_accounts_active ON user_accounts(active)');
+        $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_accounts_user_name_nocase ON user_accounts(user_id, name COLLATE NOCASE)');
+
         $pdo->exec('CREATE TABLE IF NOT EXISTS entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -162,8 +178,11 @@ class SqliteConnection
 
         self::ensureColumn($pdo, 'users', 'alterdata_code', 'TEXT');
         self::ensureColumn($pdo, 'categories', 'alterdata_auto', 'TEXT');
+        self::ensureColumn($pdo, 'user_accounts', 'initial_balance', 'REAL NOT NULL DEFAULT 0');
+        self::ensureColumn($pdo, 'entries', 'account_id', 'INTEGER');
         self::ensureColumn($pdo, 'entries', 'needs_review', 'INTEGER NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'entries', 'reviewed_at', 'TEXT');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_account_id ON entries(account_id)');
         self::backfillSupportThreads($pdo);
     }
 

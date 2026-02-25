@@ -17,6 +17,7 @@ const reviewActionEl = document.getElementById("review-action");
 const nextList = document.getElementById("next-list");
 const catGrid = document.getElementById("cat-grid");
 const categoriesListScreen = document.getElementById("categories-list-screen");
+const accountsListScreen = document.getElementById("accounts-list-screen");
 const catSoFarEl = document.getElementById("cat-so-far");
 const catLastMonthEl = document.getElementById("cat-last-month");
 const catDonutEl = document.getElementById("cat-donut");
@@ -46,6 +47,12 @@ const closeEntriesFilterStartDateModalBtn = document.getElementById("close-entri
 const closeEntriesFilterEndDateModalBtn = document.getElementById("close-entries-filter-end-date-modal");
 const entriesFilterStartDatePicker = document.getElementById("entries-filter-start-date-picker");
 const entriesFilterEndDatePicker = document.getElementById("entries-filter-end-date-picker");
+const confirmActionModalEl = document.getElementById("confirm-action-modal");
+const confirmActionTitleEl = document.getElementById("confirm-action-title");
+const confirmActionMessageEl = document.getElementById("confirm-action-message");
+const closeConfirmActionModalBtn = document.getElementById("close-confirm-action-modal");
+const cancelConfirmActionBtn = document.getElementById("cancel-confirm-action");
+const confirmConfirmActionBtn = document.getElementById("confirm-confirm-action");
 
 const tabButtons = Array.from(document.querySelectorAll(".dash-tab"));
 const tabSections = Array.from(document.querySelectorAll("[data-tab-content]"));
@@ -72,7 +79,14 @@ const categoryModal = document.getElementById("entry-category-modal");
 const closeCategoryModalBtn = document.getElementById("close-category-modal");
 const categorySearchInput = document.getElementById("category-search");
 const categoryListEl = document.getElementById("category-list");
+const openAccountBtn = document.getElementById("open-account");
+const selectedAccountEl = document.getElementById("selected-account");
+const accountModal = document.getElementById("entry-account-modal");
+const closeAccountModalBtn = document.getElementById("close-account-modal");
+const accountSearchInput = document.getElementById("account-search");
+const accountListEl = document.getElementById("account-list");
 const openUserCategoryModalBtn = document.getElementById("open-user-category-modal");
+const openUserAccountModalBtn = document.getElementById("open-user-account-modal");
 const userCategoryModal = document.getElementById("user-category-modal");
 const closeUserCategoryModalBtn = document.getElementById("close-user-category-modal");
 const cancelUserCategoryBtn = document.getElementById("cancel-user-category");
@@ -91,14 +105,39 @@ const userCategoryGlobalModal = document.getElementById("user-category-global-mo
 const closeUserCategoryGlobalModalBtn = document.getElementById("close-user-category-global-modal");
 const userCategoryGlobalSearchInput = document.getElementById("user-category-global-search");
 const userCategoryGlobalListEl = document.getElementById("user-category-global-list");
+const userAccountModal = document.getElementById("user-account-modal");
+const closeUserAccountModalBtn = document.getElementById("close-user-account-modal");
+const cancelUserAccountBtn = document.getElementById("cancel-user-account");
+const saveUserAccountBtn = document.getElementById("save-user-account");
+const userAccountModalTitleEl = document.getElementById("user-account-modal-title");
+const userAccountNameInput = document.getElementById("user-account-name");
+const userAccountInitialBalanceInput = document.getElementById("user-account-initial-balance");
+const userAccountTypeInput = document.getElementById("user-account-type");
+const openUserAccountIconModalBtn = document.getElementById("open-user-account-icon-modal");
+const selectedUserAccountIconGlyphEl = document.getElementById("selected-user-account-icon-glyph");
+const selectedUserAccountIconTextEl = document.getElementById("selected-user-account-icon-text");
+const userAccountIconModal = document.getElementById("user-account-icon-modal");
+const closeUserAccountIconModalBtn = document.getElementById("close-user-account-icon-modal");
+const userAccountIconListEl = document.getElementById("user-account-icon-list");
 const categoryDetailModal = document.getElementById("category-detail-modal");
 const closeCategoryDetailModalBtn = document.getElementById("close-category-detail-modal");
 const editCategoryFromDetailBtn = document.getElementById("edit-category-from-detail");
+const deleteCategoryFromDetailBtn = document.getElementById("delete-category-from-detail");
 const categoryDetailFooterEl = categoryDetailModal?.querySelector("ion-footer");
 const categoryDetailTitleEl = document.getElementById("category-detail-title");
+const categoryDetailGlobalNameEl = document.getElementById("category-detail-global-name");
 const categoryDetailTotalEl = document.getElementById("category-detail-total");
 const categoryDetailBarsEl = document.getElementById("category-detail-bars");
 const categoryDetailListEl = document.getElementById("category-detail-list");
+const accountDetailModal = document.getElementById("account-detail-modal");
+const closeAccountDetailModalBtn = document.getElementById("close-account-detail-modal");
+const editAccountFromDetailBtn = document.getElementById("edit-account-from-detail");
+const deleteAccountFromDetailBtn = document.getElementById("delete-account-from-detail");
+const accountDetailFooterEl = accountDetailModal?.querySelector("ion-footer");
+const accountDetailTitleEl = document.getElementById("account-detail-title");
+const accountDetailTotalEl = document.getElementById("account-detail-total");
+const accountDetailBarsEl = document.getElementById("account-detail-bars");
+const accountDetailListEl = document.getElementById("account-detail-list");
 const entryDescriptionInput = document.getElementById("entry-description");
 const openDateBtn = document.getElementById("open-date");
 const selectedDateEl = document.getElementById("selected-date");
@@ -121,6 +160,8 @@ const attachmentPathWrapEl = document.getElementById("attachment-path-wrap");
 const attachmentPathEl = document.getElementById("attachment-path");
 let selectedDateISO = "";
 let selectedCategoryValue = "";
+let selectedAccountId = 0;
+let accounts = [];
 let selectedAttachmentFile = null;
 let categories = [];
 let savingEntry = false;
@@ -133,6 +174,10 @@ let loadedEntriesIndex = new Map();
 let initialBootPending = true;
 let entryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
 let draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
+const topSummaryState = {
+  categorias: { current: [], previous: [] },
+  contas: { current: [], previous: [] },
+};
 let selectedUserCategoryIcon = "";
 let selectedUserCategoryGlobalId = 0;
 let userCategoryIconCatalog = [];
@@ -141,7 +186,15 @@ let dashboardEntriesCache = [];
 let categoryRowsIndex = new Map();
 let currentDetailCategoryName = "";
 let currentDetailEditableCategoryId = 0;
+let currentDetailGlobalCategoryName = "";
 let editingUserCategoryId = 0;
+let accountRowsIndex = new Map();
+let currentDetailAccountId = 0;
+let currentDetailAccountName = "";
+let selectedUserAccountIcon = "";
+let editingUserAccountId = 0;
+let confirmActionResolver = null;
+let confirmActionConfirmRole = "destructive";
 const AUTH_TOKEN_KEY = "caixa_auth_token";
 
 const money = new Intl.NumberFormat("pt-BR", {
@@ -208,6 +261,59 @@ function showInfo(message) {
   infoEl.hidden = false;
 }
 
+async function confirmActionModal({
+  header = "Confirmar ação",
+  message = "",
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
+  confirmRole = "destructive",
+} = {}) {
+  if (!confirmActionModalEl) return false;
+  confirmActionConfirmRole = String(confirmRole || "destructive");
+  if (confirmActionTitleEl) confirmActionTitleEl.textContent = String(header || "Confirmar ação");
+  if (confirmActionMessageEl) confirmActionMessageEl.innerHTML = String(message || "");
+  if (cancelConfirmActionBtn) cancelConfirmActionBtn.textContent = String(cancelText || "Cancelar");
+  if (confirmConfirmActionBtn) confirmConfirmActionBtn.textContent = String(confirmText || "Confirmar");
+  return new Promise(async (resolve) => {
+    confirmActionResolver = resolve;
+    await confirmActionModalEl.present();
+  });
+}
+
+async function closeConfirmActionModal(role = "cancel") {
+  if (!confirmActionModalEl) return;
+  const resolver = confirmActionResolver;
+  confirmActionResolver = null;
+  try {
+    await confirmActionModalEl.dismiss(null, role);
+  } catch {
+    // no-op
+  }
+  if (typeof resolver === "function") {
+    resolver(role === confirmActionConfirmRole);
+  }
+}
+
+function setupConfirmActionModal() {
+  closeConfirmActionModalBtn?.addEventListener("click", () => {
+    void closeConfirmActionModal("cancel");
+  });
+  cancelConfirmActionBtn?.addEventListener("click", () => {
+    void closeConfirmActionModal("cancel");
+  });
+  confirmConfirmActionBtn?.addEventListener("click", () => {
+    void closeConfirmActionModal(confirmActionConfirmRole);
+  });
+  confirmActionModalEl?.addEventListener("ionModalDidDismiss", (event) => {
+    const resolver = confirmActionResolver;
+    confirmActionResolver = null;
+    if (typeof resolver === "function") {
+      const role = String(event?.detail?.role || "cancel");
+      resolver(role === confirmActionConfirmRole);
+    }
+  });
+}
+
 function hideMessages() {
   errorEl.hidden = true;
   infoEl.hidden = true;
@@ -229,6 +335,7 @@ function showTab(tabName) {
   const transitionToken = ++navTransitionToken;
   const isLancamentos = tabName === "lancamentos";
   const isCategorias = tabName === "categorias";
+  const isContas = tabName === "contas";
   tabSections.forEach((section) => {
     section.hidden = section.dataset.tabContent !== tabName;
   });
@@ -237,8 +344,9 @@ function showTab(tabName) {
     txSearchOverlay.setAttribute("aria-hidden", isLancamentos ? "false" : "true");
   }
   if (catSummaryOverlay) {
-    catSummaryOverlay.classList.toggle("is-visible", isCategorias);
-    catSummaryOverlay.setAttribute("aria-hidden", isCategorias ? "false" : "true");
+    const showSummary = isCategorias || isContas;
+    catSummaryOverlay.classList.toggle("is-visible", showSummary);
+    catSummaryOverlay.setAttribute("aria-hidden", showSummary ? "false" : "true");
   }
   tabButtons.forEach((button) => {
     const isActive = button.dataset.tab === tabName;
@@ -248,6 +356,7 @@ function showTab(tabName) {
 
   const active = tabButtons.find((button) => button.classList.contains("is-active"));
   triggerTabLiquidFill(previousActive, active, transitionToken);
+  renderTopSummaryForTab(tabName);
 
   requestAnimationFrame(() => {
     void scrollActiveTabIntoView(transitionToken);
@@ -708,6 +817,7 @@ function setEntryModalMode(mode = "create") {
 function updateEntryFlowUi() {
   const locked = Boolean(editingEntryDeleted);
   if (openCategoryBtn) openCategoryBtn.disabled = locked;
+  if (openAccountBtn) openAccountBtn.disabled = locked;
   if (openDateBtn) openDateBtn.disabled = locked;
   if (openAttachmentBtn) openAttachmentBtn.disabled = locked;
   if (entryDescriptionInput) entryDescriptionInput.disabled = locked;
@@ -887,6 +997,7 @@ function clearAttachmentSelection(clearStoredPath = false) {
 
 async function openCategorySheet() {
   await closeDateSheet();
+  await closeAccountSheet();
   await categoryModal?.present();
   setPickerExpanded(openCategoryBtn, true);
   refreshPickerLayerState();
@@ -905,8 +1016,58 @@ async function closeCategorySheet() {
   refreshPickerLayerState();
 }
 
+function activeTabName() {
+  const active = tabButtons.find((button) => button.classList.contains("is-active"));
+  return String(active?.dataset?.tab || "lancamentos");
+}
+
+function renderTopSummaryForTab(tabName) {
+  const currentTab = String(tabName || activeTabName());
+  if (currentTab === "categorias") {
+    const state = topSummaryState.categorias || { current: [], previous: [] };
+    updateTopSummaryPanel(
+      state.current,
+      state.previous,
+      categoryBalance,
+      (item) => String(item?.name || ""),
+    );
+    return;
+  }
+  if (currentTab === "contas") {
+    const state = topSummaryState.contas || { current: [], previous: [] };
+    updateTopSummaryPanel(
+      state.current,
+      state.previous,
+      (item) => Number(item?.balance || 0),
+      (item) => String(item?.name || ""),
+    );
+  }
+}
+
+async function openAccountSheet() {
+  await closeDateSheet();
+  await closeCategorySheet();
+  await accountModal?.present();
+  setPickerExpanded(openAccountBtn, true);
+  refreshPickerLayerState();
+  setTimeout(() => {
+    accountSearchInput?.setFocus?.();
+  }, 30);
+}
+
+async function closeAccountSheet() {
+  try {
+    await accountModal?.dismiss();
+  } catch {
+    // no-op: modal may already be closed
+  }
+  setPickerExpanded(openAccountBtn, false);
+  refreshPickerLayerState();
+}
+
 async function openDateSheet() {
   await closeCategorySheet();
+  await closeAccountSheet();
   await dateModal?.present();
   setPickerExpanded(openDateBtn, true);
   refreshPickerLayerState();
@@ -927,18 +1088,21 @@ function isEntryFormValid() {
   const type = entryTypeFromSelectedCategory();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
+  const accountId = Number(selectedAccountId || 0);
   const date = String(selectedDateISO || "").slice(0, 10).trim();
   return ["in", "out"].includes(type)
     && Number.isFinite(amount)
     && amount > 0
     && category.length > 0
+    && accountId > 0
     && /^\d{4}-\d{2}-\d{2}$/.test(date);
 }
 
 function hasEntryMinimumRequiredData() {
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
-  return Number.isFinite(amount) && amount > 0 && category.length > 0;
+  const accountId = Number(selectedAccountId || 0);
+  return Number.isFinite(amount) && amount > 0 && category.length > 0 && accountId > 0;
 }
 
 function updateSaveState() {
@@ -1003,6 +1167,82 @@ function renderCategoryOptions(type = "") {
     .join("");
 
   categoryListEl.innerHTML = html || `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
+}
+
+function accountTypeLabel(value) {
+  return String(value || "") === "card" ? "Cartões" : "Contas";
+}
+
+function accountTypeIcon(value) {
+  return String(value || "") === "card" ? "credit_card" : "account_balance";
+}
+
+function renderAccountOptions() {
+  if (!accountListEl) return;
+  const query = String(accountSearchInput?.value || "").trim().toLowerCase();
+  const searched = accounts.filter((account) =>
+    String(account?.name || "").toLowerCase().includes(query)
+  );
+
+  if (!searched.length) {
+    accountListEl.innerHTML = `<p class="category-empty">Nenhuma conta/cartão encontrada.</p>`;
+    return;
+  }
+
+  const groups = [
+    { key: "bank" },
+    { key: "card" },
+  ];
+
+  const html = groups
+    .map((group) => {
+      const options = searched.filter((account) => String(account?.type || "bank") === group.key);
+      if (!options.length) return "";
+      const optionsHtml = options
+        .map((account) => {
+          const id = Number(account?.id || 0);
+          const label = String(account?.name || "").trim();
+          const isSelected = selectedAccountId === id;
+          return `
+            <button type="button" class="category-option is-neutral" data-account-id="${id}"${isSelected ? ' aria-current="true"' : ""}>
+              <span class="category-option__lead"><span class="material-symbols-rounded">${accountTypeIcon(group.key)}</span></span>
+              <span class="category-option__text">${escapeHtml(label)}</span>
+            </button>
+          `;
+        })
+        .join("");
+      return `
+        <section class="category-group">
+          <h4 class="category-group__title">${accountTypeLabel(group.key)}</h4>
+          <div class="category-group__items">${optionsHtml}</div>
+        </section>
+      `;
+    })
+    .join("");
+
+  accountListEl.innerHTML = html || `<p class="category-empty">Nenhuma conta/cartão encontrada.</p>`;
+}
+
+async function loadAccounts(includeInactive = false) {
+  try {
+    const url = includeInactive ? "/api/accounts?include_inactive=1" : "/api/accounts";
+    const response = await authFetch(url);
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    if (!response.ok) {
+      accounts = [];
+      renderAccountOptions();
+      return;
+    }
+    const data = await response.json();
+    accounts = Array.isArray(data) ? data : [];
+    renderAccountOptions();
+  } catch {
+    accounts = [];
+    renderAccountOptions();
+  }
 }
 
 function globalCategoriesOnly() {
@@ -1250,6 +1490,175 @@ async function createUserCategory() {
   }
 }
 
+function syncUserAccountSelections() {
+  if (selectedUserAccountIconGlyphEl) {
+    if (selectedUserAccountIcon) {
+      selectedUserAccountIconGlyphEl.textContent = selectedUserAccountIcon;
+      selectedUserAccountIconGlyphEl.hidden = false;
+    } else {
+      selectedUserAccountIconGlyphEl.textContent = "account_balance_wallet";
+      selectedUserAccountIconGlyphEl.hidden = true;
+    }
+  }
+  if (selectedUserAccountIconTextEl) {
+    if (selectedUserAccountIcon) {
+      selectedUserAccountIconTextEl.textContent = "Ícone selecionado";
+      selectedUserAccountIconTextEl.classList.remove("is-placeholder");
+    } else {
+      selectedUserAccountIconTextEl.textContent = "Selecione um ícone";
+      selectedUserAccountIconTextEl.classList.add("is-placeholder");
+    }
+  }
+  updateUserAccountSaveState();
+}
+
+function updateUserAccountSaveState() {
+  const hasName = String(userAccountNameInput?.value || "").trim().length > 0;
+  const hasIcon = String(selectedUserAccountIcon || "").trim().length > 0;
+  if (saveUserAccountBtn) {
+    saveUserAccountBtn.disabled = !(hasName && hasIcon);
+  }
+}
+
+function resetUserAccountModal() {
+  editingUserAccountId = 0;
+  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Nova conta/cartão";
+  if (userAccountNameInput) userAccountNameInput.value = "";
+  if (userAccountInitialBalanceInput) userAccountInitialBalanceInput.value = formatMoneyInput(0);
+  if (userAccountTypeInput) userAccountTypeInput.value = "bank";
+  selectedUserAccountIcon = "";
+  syncUserAccountSelections();
+}
+
+async function openUserAccountModal() {
+  resetUserAccountModal();
+  await ensureUserCategoryIconCatalogLoaded();
+  renderUserAccountIconOptions();
+  await userAccountModal?.present();
+}
+
+async function openUserAccountEditModal(account) {
+  editingUserAccountId = Number(account?.id || 0);
+  if (editingUserAccountId <= 0) {
+    showError("Conta/cartão inválido para edição.");
+    return;
+  }
+  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Editar conta/cartão";
+  if (userAccountNameInput) userAccountNameInput.value = String(account?.name || "");
+  if (userAccountInitialBalanceInput) userAccountInitialBalanceInput.value = formatMoneyInput(Number(account?.initial_balance || 0));
+  if (userAccountTypeInput) userAccountTypeInput.value = String(account?.type || "bank");
+  selectedUserAccountIcon = String(account?.icon || "account_balance_wallet");
+  syncUserAccountSelections();
+  await ensureUserCategoryIconCatalogLoaded();
+  renderUserAccountIconOptions();
+  await userAccountModal?.present();
+}
+
+async function closeUserAccountModal() {
+  await userAccountModal?.dismiss();
+  resetUserAccountModal();
+}
+
+function renderUserAccountIconOptions() {
+  if (!userAccountIconListEl) return;
+  userAccountIconListEl.classList.add("icon-grid-list");
+  const preferred = [
+    "account_balance_wallet",
+    "account_balance",
+    "credit_card",
+    "wallet",
+    "savings",
+    "payments",
+    "paid",
+    "attach_money",
+    "currency_exchange",
+    "receipt_long",
+    "point_of_sale",
+    "storefront",
+    "shopping_cart",
+    "local_atm",
+    "calculate",
+  ];
+  const base = userCategoryIconCatalog.length
+    ? userCategoryIconCatalog
+    : preferred;
+  const preferredAvailable = preferred.filter((icon) => base.includes(icon));
+  const remaining = base.filter((icon) => !preferredAvailable.includes(icon));
+  const ordered = [...preferredAvailable, ...remaining];
+  const withSelected = selectedUserAccountIcon && !ordered.includes(selectedUserAccountIcon)
+    ? [selectedUserAccountIcon, ...ordered]
+    : ordered;
+  const items = withSelected.slice(0, 600);
+  userAccountIconListEl.innerHTML = items
+    .map((iconName) => {
+      const safe = escapeHtml(iconName);
+      const encoded = encodeURIComponent(iconName);
+      const isSelected = selectedUserAccountIcon === iconName;
+      return `
+        <button type="button" class="icon-grid-option" data-user-account-icon="${encoded}" aria-label="${safe}" title="${safe}"${isSelected ? ' aria-current="true"' : ""}>
+          <span class="material-symbols-rounded">${safe}</span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+async function openUserAccountIconModal() {
+  if (!userAccountIconModal) return;
+  await ensureUserCategoryIconCatalogLoaded();
+  renderUserAccountIconOptions();
+  await userAccountIconModal.present();
+}
+
+async function closeUserAccountIconModal() {
+  await userAccountIconModal?.dismiss();
+}
+
+async function saveUserAccount() {
+  const name = String(userAccountNameInput?.value || "").trim();
+  const icon = String(selectedUserAccountIcon || "").trim();
+  const type = String(userAccountTypeInput?.value || "bank").trim();
+  const initialBalance = parseMoneyInput(userAccountInitialBalanceInput?.value || "");
+  if (!name || !icon || !["bank", "card"].includes(type)) {
+    showError("Preencha nome, tipo e ícone da conta/cartão.");
+    return;
+  }
+  if (!Number.isFinite(initialBalance)) {
+    showError("Saldo inicial inválido.");
+    return;
+  }
+  if (saveUserAccountBtn) saveUserAccountBtn.disabled = true;
+  try {
+    const endpoint = editingUserAccountId > 0 ? `/api/accounts/${editingUserAccountId}` : "/api/accounts";
+    const response = await fetch(endpoint, {
+      method: editingUserAccountId > 0 ? "PUT" : "POST",
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({ name, type, icon, initial_balance: initialBalance }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || (editingUserAccountId > 0 ? "Não foi possível atualizar conta/cartão." : "Não foi possível criar conta/cartão.")));
+      return;
+    }
+    await closeUserAccountModal();
+    await loadAccounts(true);
+    await loadDashboard();
+    showInfo(editingUserAccountId > 0 ? "Conta/cartão atualizado com sucesso." : "Conta/cartão criado com sucesso.");
+  } catch {
+    showError(editingUserAccountId > 0 ? "Falha de rede ao atualizar conta/cartão." : "Falha de rede ao criar conta/cartão.");
+  } finally {
+    if (saveUserAccountBtn) saveUserAccountBtn.disabled = false;
+  }
+}
+
 function toAmountClass(value) {
   if (value < 0) return "neg";
   if (value > 0) return "pos";
@@ -1467,6 +1876,7 @@ async function openEntryEditor(entryId) {
   const entry = loadedEntriesIndex.get(Number(entryId));
   if (!entry) return;
   await loadCategories();
+  await loadAccounts(true);
   resetEntryForm();
   editingEntryId = Number(entry.id || 0);
   editingEntryAttachmentPath = String(entry.attachment_path || "");
@@ -1484,6 +1894,12 @@ async function openEntryEditor(entryId) {
   }
   setEntryDirectionHint(selectedCategoryValue);
   setEntryTheme(entryTypeFromSelectedCategory() || "neutral");
+  selectedAccountId = Number(entry.account_id || 0);
+  if (selectedAccountEl) {
+    const accountName = String(entry.account_name || "").trim();
+    selectedAccountEl.textContent = accountName || "Selecionar conta/cartão";
+    selectedAccountEl.classList.toggle("is-placeholder", !accountName);
+  }
   setEntryModalMode(editingEntryDeleted ? "deleted" : "edit");
   selectedDateISO = String(entry.date || todayIsoDate()).slice(0, 10);
   if (datePicker) datePicker.value = selectedDateISO;
@@ -1609,6 +2025,16 @@ function setupEntriesInteractions() {
     void openCategoryDetailModal(categoryName);
   });
 
+  accountsListScreen?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-account-id]");
+    if (!button) return;
+    const accountId = Number(button.getAttribute("data-account-id") || 0);
+    if (accountId <= 0) return;
+    void openAccountDetailModal(accountId);
+  });
+
   closeCategoryDetailModalBtn?.addEventListener("click", () => {
     void closeCategoryDetailModal();
   });
@@ -1624,6 +2050,31 @@ function setupEntriesInteractions() {
       return;
     }
     void closeCategoryDetailModal().then(() => openUserCategoryEditModal(category));
+  });
+
+  deleteCategoryFromDetailBtn?.addEventListener("click", () => {
+    void deleteUserCategoryFromDetail();
+  });
+
+  closeAccountDetailModalBtn?.addEventListener("click", () => {
+    void closeAccountDetailModal();
+  });
+
+  editAccountFromDetailBtn?.addEventListener("click", () => {
+    if (currentDetailAccountId <= 0) {
+      showError("Conta/cartão inválido para edição.");
+      return;
+    }
+    const account = accounts.find((item) => Number(item?.id || 0) === currentDetailAccountId);
+    if (!account) {
+      showError("Conta/cartão inválido para edição.");
+      return;
+    }
+    void closeAccountDetailModal().then(() => openUserAccountEditModal(account));
+  });
+
+  deleteAccountFromDetailBtn?.addEventListener("click", () => {
+    void deleteUserAccountFromDetail();
   });
 }
 
@@ -1861,6 +2312,76 @@ function categoryBalance(item) {
   return inValue - outValue;
 }
 
+function updateTopSummaryPanel(
+  currentItems,
+  previousItems,
+  getBalance,
+  getName,
+  currentBalanceOverride = null,
+  previousBalanceOverride = null,
+  donutColorResolver = null,
+) {
+  const currList = Array.isArray(currentItems) ? currentItems : [];
+  const prevList = Array.isArray(previousItems) ? previousItems : [];
+
+  const computedCurrentBalance = currList.reduce((acc, item) => acc + Number(getBalance(item) || 0), 0);
+  const computedPreviousBalance = prevList.reduce((acc, item) => acc + Number(getBalance(item) || 0), 0);
+  const hasCurrentOverride = currentBalanceOverride !== null && currentBalanceOverride !== undefined && currentBalanceOverride !== "";
+  const hasPreviousOverride = previousBalanceOverride !== null && previousBalanceOverride !== undefined && previousBalanceOverride !== "";
+  const currentMonthBalance = hasCurrentOverride && Number.isFinite(Number(currentBalanceOverride))
+    ? Number(currentBalanceOverride)
+    : computedCurrentBalance;
+  const previousMonthBalance = hasPreviousOverride && Number.isFinite(Number(previousBalanceOverride))
+    ? Number(previousBalanceOverride)
+    : computedPreviousBalance;
+
+  if (catSoFarEl) {
+    catSoFarEl.textContent = money.format(currentMonthBalance);
+    catSoFarEl.classList.remove("pos", "neg");
+    catSoFarEl.classList.add(currentMonthBalance >= 0 ? "pos" : "neg");
+  }
+  if (catLastMonthEl) {
+    catLastMonthEl.textContent = money.format(previousMonthBalance);
+    catLastMonthEl.classList.remove("pos", "neg");
+    catLastMonthEl.classList.add(previousMonthBalance >= 0 ? "pos" : "neg");
+  }
+
+  const donutItems = currList
+    .map((item) => ({ name: String(getName(item) || "").trim(), value: Math.abs(Number(getBalance(item) || 0)) }))
+    .filter((item) => item.name && item.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  const toneMap = buildCategoryToneMap([
+    ...currList.map((item) => String(getName(item) || "")),
+    ...prevList.map((item) => String(getName(item) || "")),
+  ]);
+
+  const donutTotal = donutItems.reduce((acc, item) => acc + item.value, 0);
+  if (catDonutEl) {
+    if (!donutTotal) {
+      catDonutEl.style.background = "conic-gradient(#dfe4ee 0turn 1turn)";
+    } else {
+      let cursor = 0;
+      const segments = donutItems.map((item) => {
+        const fraction = item.value / donutTotal;
+        const start = cursor;
+        cursor += fraction;
+        let color = "";
+        if (typeof donutColorResolver === "function") {
+          const sourceItem = currList.find((entry) => String(getName(entry) || "").trim() === item.name) || null;
+          color = String(donutColorResolver(sourceItem, item.name, Number(getBalance(sourceItem) || 0)) || "").trim();
+        }
+        if (!color) {
+          const tone = toneMap.get(item.name);
+          color = tone?.fg || "#2b7fff";
+        }
+        return `${color} ${start}turn ${cursor}turn`;
+      });
+      catDonutEl.style.background = `conic-gradient(${segments.join(", ")})`;
+    }
+  }
+}
+
 function categoryTypeByName(name) {
   const normalized = normalizeText(name);
   const match = categories.find((item) => normalizeText(item?.name || "") === normalized);
@@ -2031,6 +2552,105 @@ function buildCategoryGroupsForLaunchListPattern(categoryName) {
   }));
 }
 
+function buildAccountMonthlyBars(accountName) {
+  const keyNow = monthRange();
+  const [yearNow, monthNow] = keyNow.split("-").map((value) => Number(value));
+  const months = [];
+  for (let i = 17; i >= 0; i -= 1) {
+    const date = new Date(yearNow, monthNow - 1 - i, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    months.push({ key, label: monthInitialFromKey(key) });
+  }
+  const map = new Map(months.map((item) => [item.key, 0]));
+  const normalizedAccount = normalizeText(accountName);
+  dashboardEntriesCache.forEach((entry) => {
+    if (Number(entry?.deleted || 0) === 1) return;
+    if (normalizeText(entry?.account_name || "") !== normalizedAccount) return;
+    const key = monthKeyFromIso(entry?.date || "");
+    if (!map.has(key)) return;
+    map.set(key, Number(map.get(key) || 0) + Number(entry?.amount || 0));
+  });
+  const values = months.map((item) => Number(map.get(item.key) || 0));
+  const max = Math.max(...values, 1);
+  return months.map((item, idx) => ({
+    label: item.label,
+    value: values[idx],
+    ratio: Math.max(6, Math.round((values[idx] / max) * 100)),
+  }));
+}
+
+function buildAccountEntriesHierarchy(accountName) {
+  const normalizedAccount = normalizeText(accountName);
+  const filtered = dashboardEntriesCache
+    .filter((entry) => Number(entry?.deleted || 0) !== 1)
+    .filter((entry) => normalizeText(entry?.account_name || "") === normalizedAccount)
+    .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
+
+  const yearsMap = new Map();
+  filtered.forEach((entry) => {
+    const iso = String(entry?.date || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+    const yearKey = iso.slice(0, 4);
+    const monthKey = iso.slice(0, 7);
+    const signed = signedEntryAmount(entry);
+    if (!yearsMap.has(yearKey)) {
+      yearsMap.set(yearKey, { yearKey, total: 0, monthsMap: new Map() });
+    }
+    const yearNode = yearsMap.get(yearKey);
+    yearNode.total += signed;
+    if (!yearNode.monthsMap.has(monthKey)) {
+      yearNode.monthsMap.set(monthKey, { monthKey, total: 0, daysMap: new Map() });
+    }
+    const monthNode = yearNode.monthsMap.get(monthKey);
+    monthNode.total += signed;
+    const dayKey = iso;
+    if (!monthNode.daysMap.has(dayKey)) {
+      monthNode.daysMap.set(dayKey, { dayKey, total: 0, entries: [] });
+    }
+    const dayNode = monthNode.daysMap.get(dayKey);
+    dayNode.total += signed;
+    dayNode.entries.push(entry);
+  });
+
+  return [...yearsMap.values()]
+    .sort((a, b) => b.yearKey.localeCompare(a.yearKey))
+    .map((yearNode) => ({
+      yearKey: yearNode.yearKey,
+      total: yearNode.total,
+      months: [...yearNode.monthsMap.values()]
+        .sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+        .map((monthNode) => ({
+          monthKey: monthNode.monthKey,
+          total: monthNode.total,
+          days: [...monthNode.daysMap.values()]
+            .sort((a, b) => b.dayKey.localeCompare(a.dayKey)),
+        })),
+    }));
+}
+
+function buildAccountGroupsForLaunchListPattern(accountName) {
+  const hierarchy = buildAccountEntriesHierarchy(accountName);
+  return hierarchy.map((yearNode) => ({
+    year: yearNode.yearKey,
+    label: yearNode.yearKey,
+    totals: { balance: Number(yearNode.total || 0) },
+    months: (Array.isArray(yearNode.months) ? yearNode.months : []).map((monthNode) => ({
+      month: monthNode.monthKey,
+      label: monthLabelFromKey(monthNode.monthKey),
+      totals: { balance: Number(monthNode.total || 0) },
+      days: (Array.isArray(monthNode.days) ? monthNode.days : []).map((dayNode) => ({
+        day: dayNode.dayKey,
+        label: dayMonthShortLabel(dayNode.dayKey),
+        totals: { balance: Number(dayNode.total || 0) },
+        entries: (Array.isArray(dayNode.entries) ? dayNode.entries : []).map((entry) => ({
+          ...entry,
+          category: String(entry?.category || "").trim(),
+        })),
+      })),
+    })),
+  }));
+}
+
 function renderCategoryDetailModal(categoryName) {
   if (!categoryDetailModal || !categoryDetailTitleEl || !categoryDetailTotalEl || !categoryDetailBarsEl || !categoryDetailListEl) return;
   const meta = categoryRowsIndex.get(categoryName);
@@ -2040,18 +2660,35 @@ function renderCategoryDetailModal(categoryName) {
   const graphColor = categoryType === "in" ? "#2f925f" : "#c95b5b";
   const sameNameCategories = categories.filter((item) => normalizeText(item?.name || "") === normalizeText(categoryName));
   const hasGlobalCategory = sameNameCategories.some((item) => String(item?.scope || "global") === "global");
+  const globalCategoryWithSameName = sameNameCategories.find((item) => String(item?.scope || "global") === "global");
   const editableUserCategory = sameNameCategories.find((item) => String(item?.scope || "global") === "user");
   const isUserCategory = !hasGlobalCategory && Boolean(editableUserCategory);
   currentDetailEditableCategoryId = isUserCategory ? Number(editableUserCategory?.id || 0) : 0;
+  currentDetailGlobalCategoryName = isUserCategory ? String(editableUserCategory?.global_name || "").trim() : "";
   if (editCategoryFromDetailBtn) {
     editCategoryFromDetailBtn.style.display = isUserCategory ? "" : "none";
     editCategoryFromDetailBtn.disabled = !isUserCategory;
+  }
+  if (deleteCategoryFromDetailBtn) {
+    deleteCategoryFromDetailBtn.style.display = isUserCategory ? "" : "none";
+    deleteCategoryFromDetailBtn.disabled = !isUserCategory;
   }
   if (categoryDetailFooterEl) {
     categoryDetailFooterEl.style.display = isUserCategory ? "" : "none";
   }
 
   categoryDetailTitleEl.textContent = categoryName;
+  if (categoryDetailGlobalNameEl) {
+    const candidate = String(
+      editableUserCategory?.global_name
+      || globalCategoryWithSameName?.name
+      || currentDetailGlobalCategoryName
+      || ""
+    ).trim();
+    const shouldShow = candidate && normalizeText(candidate) !== normalizeText(categoryName);
+    categoryDetailGlobalNameEl.hidden = !shouldShow;
+    categoryDetailGlobalNameEl.textContent = shouldShow ? candidate : "";
+  }
   categoryDetailTotalEl.textContent = money.format(Number(meta?.currBalance || 0));
   categoryDetailTotalEl.classList.remove("pos", "neg");
   categoryDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
@@ -2080,7 +2717,144 @@ async function openCategoryDetailModal(categoryName) {
 async function closeCategoryDetailModal() {
   currentDetailCategoryName = "";
   currentDetailEditableCategoryId = 0;
+  currentDetailGlobalCategoryName = "";
   await categoryDetailModal?.dismiss();
+}
+
+function renderAccountDetailModal(accountId) {
+  if (!accountDetailModal || !accountDetailTitleEl || !accountDetailTotalEl || !accountDetailBarsEl || !accountDetailListEl) return;
+  const meta = accountRowsIndex.get(Number(accountId));
+  if (!meta) return;
+  currentDetailAccountId = Number(accountId);
+  currentDetailAccountName = String(meta?.name || "");
+  const graphColor = Number(meta?.currBalance || 0) >= 0 ? "#2f925f" : "#c95b5b";
+  if (editAccountFromDetailBtn) {
+    editAccountFromDetailBtn.style.display = "";
+    editAccountFromDetailBtn.disabled = false;
+  }
+  if (deleteAccountFromDetailBtn) {
+    deleteAccountFromDetailBtn.style.display = "";
+    deleteAccountFromDetailBtn.disabled = false;
+  }
+  if (accountDetailFooterEl) {
+    accountDetailFooterEl.style.display = "";
+  }
+
+  accountDetailTitleEl.textContent = currentDetailAccountName || "Conta/Cartão";
+  accountDetailTotalEl.textContent = money.format(Number(meta?.currBalance || 0));
+  accountDetailTotalEl.classList.remove("pos", "neg");
+  accountDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
+
+  const bars = buildAccountMonthlyBars(currentDetailAccountName);
+  accountDetailBarsEl.innerHTML = bars
+    .map((bar) => `
+      <span class="category-detail-bars__item">
+        <span class="category-detail-bars__slot">
+          <span class="category-detail-bars__bar" style="height:${bar.ratio}%;--bar-color:${graphColor}"></span>
+        </span>
+        <span class="category-detail-bars__label">${escapeHtml(bar.label)}</span>
+      </span>
+    `)
+    .join("");
+
+  const groups = buildAccountGroupsForLaunchListPattern(currentDetailAccountName);
+  renderEntriesGroupedFromServer(accountDetailListEl, groups, "Sem lançamentos para esta conta/cartão.");
+}
+
+async function openAccountDetailModal(accountId) {
+  renderAccountDetailModal(accountId);
+  await accountDetailModal?.present();
+}
+
+async function closeAccountDetailModal() {
+  currentDetailAccountId = 0;
+  currentDetailAccountName = "";
+  await accountDetailModal?.dismiss();
+}
+
+async function deleteUserAccountFromDetail() {
+  if (currentDetailAccountId <= 0) {
+    showError("Conta/cartão inválido para exclusão.");
+    return;
+  }
+  const confirmed = await confirmActionModal({
+    header: "Excluir conta/cartão",
+    message: "Se houver lançamentos vinculados, a conta/cartão será apenas desativada.",
+    confirmText: "Excluir",
+    cancelText: "Cancelar",
+    confirmRole: "destructive",
+  });
+  if (!confirmed) return;
+  try {
+    const response = await fetch(`/api/accounts/${currentDetailAccountId}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível excluir conta/cartão."));
+      return;
+    }
+    await closeAccountDetailModal();
+    await loadAccounts(true);
+    await loadDashboard();
+    if (payload?.deactivated) {
+      showInfo("Conta/cartão desativada porque possui lançamentos vinculados.");
+    } else {
+      showInfo("Conta/cartão excluído com sucesso.");
+    }
+  } catch {
+    showError("Falha de rede ao excluir conta/cartão.");
+  }
+}
+
+async function deleteUserCategoryFromDetail() {
+  if (!currentDetailCategoryName || currentDetailEditableCategoryId <= 0) {
+    showError("Somente categorias do usuário podem ser excluídas.");
+    return;
+  }
+
+  const globalName = String(currentDetailGlobalCategoryName || "").trim();
+  const warning = globalName
+    ? `Os lançamentos desta categoria não serão excluídos. Eles serão movidos para a categoria global <strong>${escapeHtml(globalName)}</strong>.`
+    : "Os lançamentos desta categoria não serão excluídos. Eles serão movidos para a categoria global vinculada.";
+
+  const confirmed = await confirmActionModal({
+    header: "Excluir categoria",
+    message: warning,
+    confirmText: "Excluir",
+    cancelText: "Cancelar",
+    confirmRole: "destructive",
+  });
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`/api/user-categories/${currentDetailEditableCategoryId}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível excluir a categoria."));
+      return;
+    }
+    await closeCategoryDetailModal();
+    await loadCategories();
+    await loadDashboard();
+    showInfo("Categoria excluída. Lançamentos movidos para a categoria global.");
+  } catch {
+    showError("Falha de rede ao excluir a categoria.");
+  }
 }
 
 function renderCategoriesTab(currentAgg, previousAgg) {
@@ -2088,48 +2862,14 @@ function renderCategoriesTab(currentAgg, previousAgg) {
 
   const currentItems = Array.isArray(currentAgg?.by_category) ? currentAgg.by_category : [];
   const previousItems = Array.isArray(previousAgg?.by_category) ? previousAgg.by_category : [];
+  topSummaryState.categorias.current = currentItems;
+  topSummaryState.categorias.previous = previousItems;
   const prevMap = new Map(previousItems.map((item) => [String(item?.name || ""), categoryBalance(item)]));
-
-  const currentMonthBalance = Number(currentAgg?.totals?.balance || 0);
-  const previousMonthBalance = Number(previousAgg?.totals?.balance || 0);
-  if (catSoFarEl) {
-    catSoFarEl.textContent = money.format(currentMonthBalance);
-    catSoFarEl.classList.remove("pos", "neg");
-    catSoFarEl.classList.add(currentMonthBalance >= 0 ? "pos" : "neg");
-  }
-  if (catLastMonthEl) {
-    catLastMonthEl.textContent = money.format(previousMonthBalance);
-    catLastMonthEl.classList.remove("pos", "neg");
-    catLastMonthEl.classList.add(previousMonthBalance >= 0 ? "pos" : "neg");
-  }
-
-  const donutItems = currentItems
-    .map((item) => ({ name: String(item?.name || "").trim(), value: Math.abs(categoryBalance(item)) }))
-    .filter((item) => item.name && item.value > 0)
-    .sort((a, b) => b.value - a.value);
 
   const toneMap = buildCategoryToneMap([
     ...currentItems.map((item) => String(item?.name || "")),
     ...previousItems.map((item) => String(item?.name || "")),
   ]);
-
-  const donutTotal = donutItems.reduce((acc, item) => acc + item.value, 0);
-
-  if (catDonutEl) {
-    if (!donutTotal) {
-      catDonutEl.style.background = "conic-gradient(#dfe4ee 0turn 1turn)";
-    } else {
-      let cursor = 0;
-      const segments = donutItems.map((item) => {
-        const fraction = item.value / donutTotal;
-        const start = cursor;
-        cursor += fraction;
-        const tone = toneMap.get(item.name);
-        return `${tone?.fg || "#2b7fff"} ${start}turn ${cursor}turn`;
-      });
-      catDonutEl.style.background = `conic-gradient(${segments.join(", ")})`;
-    }
-  }
 
   const listItems = currentItems
     .map((item) => {
@@ -2180,6 +2920,81 @@ function renderCategoriesTab(currentAgg, previousAgg) {
     })
     .join("");
 }
+
+function renderAccountsTab(currentAgg, previousAgg) {
+  if (!accountsListScreen) return;
+
+  const currentItems = Array.isArray(currentAgg?.by_account) ? currentAgg.by_account : [];
+  const previousItems = Array.isArray(previousAgg?.by_account) ? previousAgg.by_account : [];
+  topSummaryState.contas.current = currentItems;
+  topSummaryState.contas.previous = previousItems;
+  const prevMap = new Map(previousItems.map((item) => [String(item?.name || ""), Number(item?.balance || 0)]));
+
+  const listItems = currentItems
+    .map((item) => {
+      const name = String(item?.name || "").trim();
+      const id = Number(item?.id || 0);
+      const type = String(item?.type || "bank");
+      const currBalance = Number(item?.balance || 0);
+      const prevBalance = Number(prevMap.get(name) || 0);
+      const normalizedName = name || "Sem conta/cartão";
+      return { id, type, name: normalizedName, currBalance, prevBalance };
+    })
+    .filter((item) => item.name);
+
+  accountRowsIndex = new Map();
+  if (!listItems.length) {
+    accountsListScreen.innerHTML = `<p class="cat-empty">Sem dados de contas/cartões no período.</p>`;
+    return;
+  }
+
+  const toneMap = buildCategoryToneMap([
+    ...currentItems.map((item) => String(item?.name || "")),
+    ...previousItems.map((item) => String(item?.name || "")),
+  ]);
+
+  accountsListScreen.innerHTML = listItems
+    .map((item) => {
+      const tone = toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
+      const toneColor = tone.fg;
+      const chipBg = tone.bg;
+      const icon = item.id <= 0
+        ? "account_balance_wallet"
+        : (item.type === "card" ? "credit_card" : "account_balance");
+      const safeName = escapeHtml(item.name);
+      const currAbs = Math.abs(item.currBalance);
+      const prevAbs = Math.abs(item.prevBalance);
+      const base = Math.max(currAbs, prevAbs, 1);
+      const currWidth = Math.max(0, Math.min(100, Math.round((currAbs / base) * 100)));
+      const prevWidth = Math.max(0, Math.min(100, Math.round((prevAbs / base) * 100)));
+      const currClass = item.currBalance >= 0 ? "pos" : "neg";
+      const prevClass = item.prevBalance >= 0 ? "pos" : "neg";
+
+      accountRowsIndex.set(item.id, {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        currBalance: item.currBalance,
+        prevBalance: item.prevBalance,
+      });
+
+      return `
+        <button type="button" class="cat-row cat-row--button" data-account-id="${item.id}">
+          <div class="cat-row__meta">
+            <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
+          </div>
+          <div class="cat-row__curr ${currClass}">${money.format(item.currBalance)}</div>
+          <span class="cat-row__bar" style="--cat-tone:${toneColor}">
+            <span class="cat-row__bar-fill-prev" style="width:${prevWidth}%"></span>
+            <span class="cat-row__bar-fill-curr" style="width:${currWidth}%"></span>
+          </span>
+          <div class="cat-row__prev ${prevClass}">${money.format(item.prevBalance)}</div>
+        </button>
+      `;
+    })
+    .join("");
+}
+
 async function loadCategories() {
   try {
     const response = await authFetch("/api/categories");
@@ -2253,8 +3068,15 @@ function resetEntryForm() {
     selectedCategoryEl.textContent = "Selecionar categoria";
     selectedCategoryEl.classList.add("is-placeholder");
   }
+  selectedAccountId = 0;
+  if (accountSearchInput) accountSearchInput.value = "";
+  if (selectedAccountEl) {
+    selectedAccountEl.textContent = "Selecionar conta/cartão";
+    selectedAccountEl.classList.add("is-placeholder");
+  }
   setEntryDirectionHint("");
   setPickerExpanded(openCategoryBtn, false);
+  setPickerExpanded(openAccountBtn, false);
   if (entryDescriptionInput) entryDescriptionInput.value = "";
   selectedDateISO = todayIsoDate();
   if (datePicker) datePicker.value = selectedDateISO;
@@ -2264,6 +3086,7 @@ function resetEntryForm() {
   }
   setPickerExpanded(openDateBtn, false);
   renderCategoryOptions("");
+  renderAccountOptions();
   clearAttachmentSelection();
   updateSaveState();
 }
@@ -2272,6 +3095,7 @@ async function openEntryModal() {
   hideMessages();
   resetEntryForm();
   await loadCategories();
+  await loadAccounts();
   setEntryModalMode("create");
   await entryModal?.present();
   setEntryLayerState(true);
@@ -2280,6 +3104,7 @@ async function openEntryModal() {
 async function closeEntryModal() {
   await closeAttachmentViewer();
   await closeCategorySheet();
+  await closeAccountSheet();
   await closeDateSheet();
   await entryModal?.dismiss();
   setEntryLayerState(false);
@@ -2290,6 +3115,7 @@ async function createEntry() {
   const type = entryTypeFromSelectedCategory();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
+  const accountId = Number(selectedAccountId || 0);
   const date = String(selectedDateISO || "").slice(0, 10).trim();
   const description = String(entryDescriptionInput?.value || "").trim();
 
@@ -2303,6 +3129,10 @@ async function createEntry() {
   }
   if (!category) {
     showError("Categoria \u00e9 obrigat\u00f3ria.");
+    return;
+  }
+  if (accountId <= 0) {
+    showError("Conta/cartão é obrigatória.");
     return;
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -2329,6 +3159,7 @@ async function createEntry() {
         type,
         amount,
         category,
+        account_id: accountId,
         date,
         description,
         attachment_path: attachmentPath,
@@ -2390,7 +3221,13 @@ async function restoreEntry() {
 
 async function deleteEntry() {
   if (!editingEntryId || editingEntryDeleted) return;
-  const confirmed = window.confirm("Excluir este lan\u00e7amento?");
+  const confirmed = await confirmActionModal({
+    header: "Excluir lançamento",
+    message: "Este lançamento será movido para excluídos e poderá ser restaurado depois.",
+    confirmText: "Excluir",
+    cancelText: "Cancelar",
+    confirmRole: "destructive",
+  });
   if (!confirmed) return;
 
   try {
@@ -2512,8 +3349,54 @@ function setupEntryModal() {
     void closeCategorySheet();
   });
 
+  openAccountBtn?.addEventListener("click", () => {
+    renderAccountOptions();
+    void openAccountSheet();
+  });
+
+  accountSearchInput?.addEventListener("ionInput", () => {
+    const typed = String(accountSearchInput?.value || "").trim();
+    const selected = accounts.find((item) => Number(item?.id || 0) === Number(selectedAccountId || 0));
+    if (selected && typed && typed !== String(selected?.name || "")) {
+      selectedAccountId = 0;
+      if (selectedAccountEl) {
+        selectedAccountEl.textContent = "Selecionar conta/cartão";
+        selectedAccountEl.classList.add("is-placeholder");
+      }
+      updateSaveState();
+    }
+    renderAccountOptions();
+  });
+
+  accountListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-account-id]");
+    if (!button) return;
+    const accountId = Number(button.getAttribute("data-account-id") || 0);
+    if (accountId <= 0) return;
+    const account = accounts.find((item) => Number(item?.id || 0) === accountId);
+    if (!account) return;
+    selectedAccountId = accountId;
+    if (accountSearchInput) accountSearchInput.value = String(account?.name || "");
+    if (selectedAccountEl) {
+      selectedAccountEl.textContent = String(account?.name || "");
+      selectedAccountEl.classList.remove("is-placeholder");
+    }
+    updateSaveState();
+    void closeAccountSheet();
+  });
+
+  closeAccountModalBtn?.addEventListener("click", () => {
+    void closeAccountSheet();
+  });
+
   openUserCategoryModalBtn?.addEventListener("click", () => {
     void openUserCategoryModal();
+  });
+
+  openUserAccountModalBtn?.addEventListener("click", () => {
+    void openUserAccountModal();
   });
 
   closeUserCategoryModalBtn?.addEventListener("click", () => {
@@ -2524,6 +3407,14 @@ function setupEntryModal() {
     void closeUserCategoryModal();
   });
 
+  closeUserAccountModalBtn?.addEventListener("click", () => {
+    void closeUserAccountModal();
+  });
+
+  cancelUserAccountBtn?.addEventListener("click", () => {
+    void closeUserAccountModal();
+  });
+
   saveUserCategoryBtn?.addEventListener("click", () => {
     void createUserCategory();
   });
@@ -2532,12 +3423,40 @@ function setupEntryModal() {
     updateUserCategorySaveState();
   });
 
+  saveUserAccountBtn?.addEventListener("click", () => {
+    void saveUserAccount();
+  });
+
+  userAccountNameInput?.addEventListener("ionInput", () => {
+    updateUserAccountSaveState();
+  });
+
+  userAccountInitialBalanceInput?.addEventListener("ionInput", (event) => {
+    const raw = event?.detail?.value ?? userAccountInitialBalanceInput.value ?? "";
+    const value = parseMoneyInput(String(raw));
+    if (userAccountInitialBalanceInput) {
+      userAccountInitialBalanceInput.value = formatMoneyInput(Number.isFinite(value) ? value : 0);
+    }
+  });
+
+  userAccountTypeInput?.addEventListener("ionChange", () => {
+    updateUserAccountSaveState();
+  });
+
   openUserCategoryIconModalBtn?.addEventListener("click", () => {
     void openUserCategoryIconModal();
   });
 
   closeUserCategoryIconModalBtn?.addEventListener("click", () => {
     void closeUserCategoryIconModal();
+  });
+
+  openUserAccountIconModalBtn?.addEventListener("click", () => {
+    void openUserAccountIconModal();
+  });
+
+  closeUserAccountIconModalBtn?.addEventListener("click", () => {
+    void closeUserAccountIconModal();
   });
 
   userCategoryIconListEl?.addEventListener("click", (event) => {
@@ -2552,6 +3471,20 @@ function setupEntryModal() {
     syncUserCategorySelections();
     renderUserCategoryIconOptions();
     void closeUserCategoryIconModal();
+  });
+
+  userAccountIconListEl?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-user-account-icon]");
+    if (!button) return;
+    const encoded = String(button.getAttribute("data-user-account-icon") || "").trim();
+    const iconName = encoded ? decodeURIComponent(encoded) : "";
+    if (!iconName) return;
+    selectedUserAccountIcon = iconName;
+    syncUserAccountSelections();
+    renderUserAccountIconOptions();
+    void closeUserAccountIconModal();
   });
 
   openUserCategoryGlobalModalBtn?.addEventListener("click", () => {
@@ -2589,6 +3522,23 @@ function setupEntryModal() {
   });
 
   categoryModal?.addEventListener("ionModalDidPresent", () => {
+    refreshPickerLayerState();
+  });
+
+  userAccountModal?.addEventListener("ionModalDidDismiss", () => {
+    refreshPickerLayerState();
+  });
+
+  userAccountModal?.addEventListener("ionModalDidPresent", () => {
+    refreshPickerLayerState();
+  });
+
+  accountModal?.addEventListener("ionModalDidDismiss", () => {
+    setPickerExpanded(openAccountBtn, false);
+    refreshPickerLayerState();
+  });
+
+  accountModal?.addEventListener("ionModalDidPresent", () => {
     refreshPickerLayerState();
   });
 
@@ -2768,11 +3718,14 @@ async function loadDashboard() {
       renderRows(nextList, nextEntries, "next", "Nenhum lan\u00e7amento futuro.");
       renderCategories(monthAgg?.by_category || []);
       renderCategoriesTab(monthAgg || {}, prevMonthAgg || {});
+      renderAccountsTab(monthAgg || {}, prevMonthAgg || {});
+      renderTopSummaryForTab(activeTabName());
     } catch (sectionError) {
       console.error("Erro ao renderizar se\u00e7\u00f5es secund\u00e1rias do dashboard:", sectionError);
     }
 
     await loadCategories();
+    await loadAccounts(true);
     showInfo(`Atualizado com dados de ${periodLabel()}`);
     requestAnimationFrame(updateOverlayPositioning);
   } catch (error) {
@@ -2829,6 +3782,7 @@ refreshBtn?.addEventListener("click", () => {
 
 setupTabNav();
 setupEntryModal();
+setupConfirmActionModal();
 initEntryFilters();
 formatFilterPanel();
 setupEntriesInteractions();

@@ -53,6 +53,9 @@
           <button type="button" class="dash-tab" data-tab="categorias" aria-selected="false">
             <span>Categorias</span>
           </button>
+          <button type="button" class="dash-tab" data-tab="contas" aria-selected="false">
+            <span>Contas</span>
+          </button>
           <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
             <span>Recorrentes</span>
           </button>
@@ -165,6 +168,19 @@
           <div id="categories-list-screen" class="cat-list"></div>
         </section>
 
+        <section id="sec-contas" class="dash-section dash-categories" data-tab-content="contas" aria-label="Resumo por contas e cartões" hidden>
+          <button id="open-user-account-modal" type="button" class="tx-add-cta">Adicionar conta/cartão</button>
+
+          <div class="cat-list-head" aria-hidden="true">
+            <span class="cat-list-head__name"></span>
+            <span class="cat-list-head__curr">Atual</span>
+            <span class="cat-list-head__bar"></span>
+            <span class="cat-list-head__prev">Anterior</span>
+          </div>
+
+          <div id="accounts-list-screen" class="cat-list"></div>
+        </section>
+
         <p id="dash-error" class="dash-feedback dash-feedback--error" hidden role="alert" aria-live="polite"></p>
         <p id="dash-info" class="dash-feedback dash-feedback--ok" hidden role="status" aria-live="polite"></p>
 
@@ -241,6 +257,14 @@
             </div>
 
             <div class="entry-field-set">
+              <button id="open-account" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Conta / Cartão</span>
+                <span id="selected-account" class="entry-picker-row__value is-placeholder">Selecionar conta/cartão</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+
+            <div class="entry-field-set">
               <button id="open-date" type="button" class="entry-picker-row" aria-expanded="false">
                 <span class="entry-picker-row__label">Data</span>
                 <span id="selected-date" class="entry-picker-row__value is-placeholder">Selecionar data</span>
@@ -304,6 +328,23 @@
       </div>
     </ion-modal>
 
+    <ion-modal id="entry-account-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar conta/cartão</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-account-modal" aria-label="Fechar contas/cartões">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-searchbar id="account-search" mode="md" placeholder="Buscar conta/cartão"></ion-searchbar>
+        <div id="account-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
     <ion-modal id="user-category-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
@@ -349,6 +390,121 @@
           <div class="modal-actions">
             <ion-button fill="clear" id="cancel-user-category">Cancelar</ion-button>
             <ion-button color="primary" id="save-user-category">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="user-account-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title id="user-account-modal-title" class="entry-title">Nova conta/cartão</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-user-account-modal" aria-label="Fechar conta/cartão">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Dados da conta/cartão">
+            <p class="entry-stage__title">Nome</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="user-account-name" type="text" placeholder="Nome da conta/cartão"></ion-input>
+            </ion-item>
+
+            <p class="entry-stage__title">Saldo inicial</p>
+            <ion-item class="entry-text-field entry-text-field--no-label">
+              <ion-input id="user-account-initial-balance" type="tel" inputmode="decimal" placeholder="0,00"></ion-input>
+            </ion-item>
+
+            <section class="filters-block" aria-label="Tipo de conta/cartão">
+              <p class="entry-stage__title">Tipo</p>
+              <ion-segment id="user-account-type" value="bank" mode="md">
+                <ion-segment-button value="bank">
+                  <ion-label>Conta</ion-label>
+                </ion-segment-button>
+                <ion-segment-button value="card">
+                  <ion-label>Cartão</ion-label>
+                </ion-segment-button>
+              </ion-segment>
+            </section>
+
+            <div class="entry-field-set">
+              <button id="open-user-account-icon-modal" type="button" class="entry-picker-row" aria-expanded="false">
+                <span class="entry-picker-row__label">Ícone</span>
+                <span class="entry-picker-row__value-wrap">
+                  <span id="selected-user-account-icon-glyph" class="entry-picker-row__direction material-symbols-rounded" aria-hidden="true" hidden>account_balance_wallet</span>
+                  <span id="selected-user-account-icon-text" class="entry-picker-row__value is-placeholder">Selecione um ícone</span>
+                </span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-user-account">Cancelar</ion-button>
+            <ion-button color="primary" id="save-user-account">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="user-account-icon-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar ícone</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-user-account-icon-modal" aria-label="Fechar seleção de ícones da conta/cartão">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="user-account-icon-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="account-detail-modal" class="sheet-modal entry-picker-sheet category-detail-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Conta/Cartão</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-account-detail-modal" aria-label="Fechar detalhes da conta/cartão">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding category-detail-content">
+        <h3 id="account-detail-title" class="category-detail-title">Conta/Cartão</h3>
+
+        <section class="category-detail-kpi">
+          <p class="category-detail-kpi__label">Saldo acumulado no mês</p>
+          <p id="account-detail-total" class="category-detail-kpi__value">R$ 0,00</p>
+        </section>
+
+        <section class="category-detail-chart">
+          <div id="account-detail-bars" class="category-detail-bars"></div>
+        </section>
+
+        <section class="category-detail-transactions">
+          <div class="category-detail-transactions__head">
+            <span>Transações</span>
+          </div>
+          <div id="account-detail-list" class="category-detail-list tx-list"></div>
+        </section>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button id="delete-account-from-detail" fill="outline" color="danger">Excluir conta/cartão</ion-button>
+            <ion-button id="edit-account-from-detail" fill="outline">Editar conta/cartão</ion-button>
           </div>
         </ion-toolbar>
       </ion-footer>
@@ -400,6 +556,7 @@
       </ion-header>
       <div class="entry-content ion-padding category-detail-content">
         <h3 id="category-detail-title" class="category-detail-title">Categoria</h3>
+        <p id="category-detail-global-name" class="category-detail-global-name" hidden></p>
 
         <section class="category-detail-kpi">
           <p class="category-detail-kpi__label">Saldo acumulado no mês</p>
@@ -420,6 +577,7 @@
       <ion-footer class="entry-actions">
         <ion-toolbar>
           <div class="modal-actions">
+            <ion-button id="delete-category-from-detail" fill="outline" color="danger">Excluir categoria</ion-button>
             <ion-button id="edit-category-from-detail" fill="outline">Editar categoria</ion-button>
           </div>
         </ion-toolbar>
@@ -569,6 +727,30 @@
           show-default-buttons="false"
         ></ion-datetime>
       </div>
+    </ion-modal>
+
+    <ion-modal id="confirm-action-modal" class="sheet-modal entry-picker-sheet confirm-sheet" backdrop-dismiss="false">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title id="confirm-action-title" class="entry-title">Confirmar ação</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-confirm-action-modal" aria-label="Fechar confirmação">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding confirm-sheet__content">
+        <p id="confirm-action-message" class="confirm-sheet__message"></p>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button id="cancel-confirm-action" fill="outline">Cancelar</ion-button>
+            <ion-button id="confirm-confirm-action" color="danger">Confirmar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
     </ion-modal>
 
   </ion-app>

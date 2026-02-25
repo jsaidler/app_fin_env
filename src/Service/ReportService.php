@@ -119,6 +119,7 @@ class ReportService
             'pending' => $this->pendingTotals($filtered),
             'by_day' => $this->dailySeries($approved),
             'by_category' => $this->categorySummary($approved),
+            'by_account' => $this->accountSummary($approved),
             'last_12_months' => $this->last12Months($entries),
         ];
     }
@@ -601,6 +602,47 @@ class ReportService
         }
         usort($items, fn($a, $b) => ($b['in'] + $b['out']) <=> ($a['in'] + $a['out']));
         $items = array_slice($items, 0, 6);
+        foreach ($items as &$item) {
+            $share = $totalAll ? (($item['in'] + $item['out']) / $totalAll) * 100 : 0;
+            $item['share'] = (int)round($share);
+            $item['balance'] = $item['in'] - $item['out'];
+        }
+        unset($item);
+        return $items;
+    }
+
+    /** @param array<int, object> $entries */
+    private function accountSummary(array $entries): array
+    {
+        $map = [];
+        foreach ($entries as $entry) {
+            $name = trim((string)($entry->accountName ?? ''));
+            if ($name === '') {
+                $name = 'Sem conta/cartão';
+            }
+            $accountId = (int)($entry->accountId ?? 0);
+            $key = ($accountId > 0 ? $accountId . ':' : 'name:') . strtolower($name);
+            if (!isset($map[$key])) {
+                $map[$key] = [
+                    'id' => $accountId,
+                    'name' => $name,
+                    'type' => (string)($entry->accountType ?? 'bank'),
+                    'in' => 0,
+                    'out' => 0,
+                ];
+            }
+            if ($entry->type === 'in') {
+                $map[$key]['in'] += $entry->amount;
+            } else {
+                $map[$key]['out'] += $entry->amount;
+            }
+        }
+        $items = array_values($map);
+        $totalAll = 0;
+        foreach ($items as $item) {
+            $totalAll += $item['in'] + $item['out'];
+        }
+        usort($items, fn($a, $b) => ($b['in'] + $b['out']) <=> ($a['in'] + $a['out']));
         foreach ($items as &$item) {
             $share = $totalAll ? (($item['in'] + $item['out']) / $totalAll) * 100 : 0;
             $item['share'] = (int)round($share);

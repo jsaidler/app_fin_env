@@ -15,6 +15,8 @@ interface EntryRepositoryInterface
     public function delete(int $id, int $userId, bool $hard = false): bool;
     public function purge(int $id, ?int $userId = null): bool;
     public function setReviewStatus(int $id, bool $needsReview, ?string $reviewedAt = null): bool;
+    public function reassignCategoryForUser(int $userId, string $fromCategory, string $toCategory): int;
+    public function countByUserAccount(int $userId, int $accountId, bool $includeDeleted = true): int;
 
     /** Admin operations */
     /** @return Entry[] */

@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteCategoryRepository;
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Repository\Sqlite\SqliteUserRepository;
 use App\Service\AdminEntryService;
 use App\Service\AdminService;
@@ -96,7 +97,7 @@ class AdminController extends BaseController
             'needs_review' => isset($_GET['needs_review']) ? (int)$_GET['needs_review'] === 1 : null,
         ];
         $filters = array_filter($filters, fn($v) => $v !== null && $v !== '');
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $data = $service->list($filters);
         Response::json($data);
     }
@@ -104,7 +105,7 @@ class AdminController extends BaseController
     public function createAdminEntry(): void
     {
         $this->requireAdmin();
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $entry = $service->create($this->jsonInput());
         Response::json($entry, 201);
     }
@@ -113,7 +114,7 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $entry = $service->update($id, $this->jsonInput());
         Response::json($entry);
     }
@@ -122,7 +123,7 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $res = $service->delete($id);
         Response::json($res);
     }
@@ -134,7 +135,7 @@ class AdminController extends BaseController
         if ($id <= 0) {
             Response::json(['error' => 'Lancamento invalido'], 422);
         }
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $ok = $service->approve($id);
         (new AdminNotificationService($this->db()))->markReadByEntry($id);
         Response::json(['approved' => $ok]);
@@ -147,7 +148,7 @@ class AdminController extends BaseController
         if ($id <= 0) {
             Response::json(['error' => 'Lancamento invalido'], 422);
         }
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $entry = $service->reject($id);
         (new AdminNotificationService($this->db()))->markReadByEntry($id);
         Response::json(['rejected' => true, 'entry' => $entry]);
@@ -315,6 +316,11 @@ class AdminController extends BaseController
     protected function categoryRepo()
     {
         return new SqliteCategoryRepository($this->db());
+    }
+
+    protected function accountRepo()
+    {
+        return new SqliteUserAccountRepository($this->db());
     }
 
     protected function lockService(): MonthLockService

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\EntryRepositoryInterface;
+use App\Repository\UserAccountRepositoryInterface;
 use App\Repository\UserRepositoryInterface;
 use App\Util\Response;
 use App\Util\Validator;
@@ -13,13 +14,21 @@ class AdminEntryService
 {
     private EntryRepositoryInterface $entries;
     private UserRepositoryInterface $users;
+    private UserAccountRepositoryInterface $accounts;
     private ?MonthLockService $locks;
     private ?string $uploadDir;
 
-    public function __construct(EntryRepositoryInterface $entries, UserRepositoryInterface $users, ?MonthLockService $locks = null, ?string $uploadDir = null)
+    public function __construct(
+        EntryRepositoryInterface $entries,
+        UserRepositoryInterface $users,
+        UserAccountRepositoryInterface $accounts,
+        ?MonthLockService $locks = null,
+        ?string $uploadDir = null
+    )
     {
         $this->entries = $entries;
         $this->users = $users;
+        $this->accounts = $accounts;
         $this->locks = $locks;
         $this->uploadDir = $uploadDir;
     }
@@ -52,7 +61,7 @@ class AdminEntryService
             Response::json(['error' => 'Usuario invalido'], 422);
         }
         $merged = array_merge($entry->toArray(), $input);
-        $this->assertValid($merged);
+        $this->assertValid($merged, $userId);
         if (array_key_exists('attachment_path', $input)) {
             $this->assertAttachmentOwner($input['attachment_path'], $userId);
         }
@@ -72,7 +81,7 @@ class AdminEntryService
         if (!$user || $user->role === 'admin') {
             Response::json(['error' => 'Usuario invalido'], 422);
         }
-        $this->assertValid($input);
+        $this->assertValid($input, $userId);
         if (array_key_exists('attachment_path', $input)) {
             $this->assertAttachmentOwner($input['attachment_path'], $userId);
         }
@@ -131,7 +140,7 @@ class AdminEntryService
         return $updated?->toArray() ?? [];
     }
 
-    private function assertValid(array $input): void
+    private function assertValid(array $input, int $userId): void
     {
         if (!in_array($input['type'] ?? '', ['in', 'out'], true)) {
             Response::json(['error' => 'Tipo invalido'], 422);
@@ -141,6 +150,14 @@ class AdminEntryService
         }
         if (!Validator::nonEmpty($input['category'] ?? '')) {
             Response::json(['error' => 'Categoria obrigatoria'], 422);
+        }
+        $accountId = (int)($input['account_id'] ?? 0);
+        if ($accountId <= 0) {
+            Response::json(['error' => 'Conta/cartao obrigatorio'], 422);
+        }
+        $account = $this->accounts->findForUser($accountId, $userId);
+        if (!$account || !$account->active) {
+            Response::json(['error' => 'Conta/cartao invalido'], 422);
         }
         if (!Validator::date($input['date'] ?? '')) {
             Response::json(['error' => 'Data invalida'], 422);

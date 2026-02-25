@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\EntryRepositoryInterface;
+use App\Repository\UserAccountRepositoryInterface;
 use App\Util\Response;
 use App\Util\Validator;
 use App\Service\MonthLockService;
@@ -13,13 +14,21 @@ use App\Domain\Entry;
 class EntryService
 {
     private EntryRepositoryInterface $entries;
+    private UserAccountRepositoryInterface $accounts;
     private ?MonthLockService $locks;
     private ?string $uploadDir;
     private ?AdminNotificationService $notifications;
 
-    public function __construct(EntryRepositoryInterface $entries, ?MonthLockService $locks = null, ?string $uploadDir = null, ?AdminNotificationService $notifications = null)
+    public function __construct(
+        EntryRepositoryInterface $entries,
+        UserAccountRepositoryInterface $accounts,
+        ?MonthLockService $locks = null,
+        ?string $uploadDir = null,
+        ?AdminNotificationService $notifications = null
+    )
     {
         $this->entries = $entries;
+        $this->accounts = $accounts;
         $this->locks = $locks;
         $this->uploadDir = $uploadDir;
         $this->notifications = $notifications;
@@ -37,7 +46,7 @@ class EntryService
 
     public function create(int $userId, array $input): array
     {
-        $this->assertValid($input);
+        $this->assertValid($input, $userId);
         $this->assertAttachmentOwner($input['attachment_path'] ?? null, $userId);
         $month = substr($input['date'], 0, 7);
         $closed = $this->isClosed($month, $userId);
@@ -62,7 +71,7 @@ class EntryService
         if (!$existing) {
             Response::json(['error' => 'Lancamento nao encontrado'], 404);
         }
-        $this->assertValid(array_merge($existing->toArray(), $input));
+        $this->assertValid(array_merge($existing->toArray(), $input), $userId);
         if (array_key_exists('attachment_path', $input)) {
             $this->assertAttachmentOwner($input['attachment_path'], $userId);
         }
@@ -155,7 +164,7 @@ class EntryService
         }
     }
 
-    private function assertValid(array $input): void
+    private function assertValid(array $input, int $userId): void
     {
         if (!in_array($input['type'] ?? '', ['in', 'out'], true)) {
             Response::json(['error' => 'Tipo invalido'], 422);
@@ -165,6 +174,14 @@ class EntryService
         }
         if (!Validator::nonEmpty($input['category'] ?? '')) {
             Response::json(['error' => 'Categoria obrigatoria'], 422);
+        }
+        $accountId = (int)($input['account_id'] ?? 0);
+        if ($accountId <= 0) {
+            Response::json(['error' => 'Conta/cartao obrigatorio'], 422);
+        }
+        $account = $this->accounts->findForUser($accountId, $userId);
+        if (!$account || !$account->active) {
+            Response::json(['error' => 'Conta/cartao invalido'], 422);
         }
         if (!Validator::date($input['date'] ?? '')) {
             Response::json(['error' => 'Data invalida'], 422);

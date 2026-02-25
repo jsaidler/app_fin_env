@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Service\AdminNotificationService;
 use App\Service\EntryService;
 use App\Service\MonthLockService;
@@ -17,7 +18,7 @@ class EntryController extends BaseController
         if (($this->authPayload['role'] ?? 'user') === 'admin') {
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
-        $service = new EntryService($this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $service->purgeOlderThanDays(7);
         $includeDeleted = isset($_GET['include_deleted']) && $_GET['include_deleted'] === '1';
         $entries = $includeDeleted ? $service->listDeleted($uid) : $service->list($uid);
@@ -81,7 +82,7 @@ class EntryController extends BaseController
         if (($this->authPayload['role'] ?? 'user') === 'admin') {
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
-        $service = new EntryService($this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $data = $service->create($uid, $this->jsonInput());
         Response::json($data, 201);
     }
@@ -93,7 +94,7 @@ class EntryController extends BaseController
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $data = $service->update($uid, $id, $this->jsonInput());
         Response::json($data);
     }
@@ -105,7 +106,7 @@ class EntryController extends BaseController
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $deleted = $service->delete($uid, $id);
         Response::json(['deleted' => $deleted]);
     }
@@ -116,7 +117,7 @@ class EntryController extends BaseController
         if (($this->authPayload['role'] ?? 'user') === 'admin') {
             Response::json(['error' => 'Administradores nao usam este recurso'], 403);
         }
-        $service = new EntryService($this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $entries = array_filter($service->listDeleted($uid), fn($e) => $e->deletedAt !== null);
         $data = array_values(array_map(function($e) {
             $arr = $e->toArray();
@@ -133,7 +134,7 @@ class EntryController extends BaseController
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $data = $service->restore($uid, $id);
         Response::json($data);
     }
@@ -145,7 +146,7 @@ class EntryController extends BaseController
             Response::json(['error' => 'Administradores nao lancam entradas'], 403);
         }
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $ok = $service->purge($uid, $id);
         Response::json(['deleted' => $ok]);
     }
@@ -153,6 +154,11 @@ class EntryController extends BaseController
     private function entryRepo()
     {
         return new SqliteEntryRepository($this->db());
+    }
+
+    private function accountRepo()
+    {
+        return new SqliteUserAccountRepository($this->db());
     }
 
     private function lockService(): MonthLockService

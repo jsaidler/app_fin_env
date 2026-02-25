@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\CategoryRepositoryInterface;
+use App\Repository\EntryRepositoryInterface;
 use App\Repository\UserCategoryRepositoryInterface;
 use App\Util\Response;
 use App\Util\Validator;
@@ -12,11 +13,16 @@ class UserCategoryService
 {
     private CategoryRepositoryInterface $globalCategories;
     private UserCategoryRepositoryInterface $userCategories;
+    private EntryRepositoryInterface $entries;
 
-    public function __construct(CategoryRepositoryInterface $globalCategories, UserCategoryRepositoryInterface $userCategories)
-    {
+    public function __construct(
+        CategoryRepositoryInterface $globalCategories,
+        UserCategoryRepositoryInterface $userCategories,
+        EntryRepositoryInterface $entries
+    ) {
         $this->globalCategories = $globalCategories;
         $this->userCategories = $userCategories;
+        $this->entries = $entries;
     }
 
     public function listMergedForUser(int $userId): array
@@ -108,6 +114,18 @@ class UserCategoryService
 
     public function deleteForUser(int $id, int $userId): array
     {
+        $existing = $this->userCategories->findForUser($id, $userId);
+        if (!$existing) {
+            Response::json(['error' => 'Categoria do usuário não encontrada'], 404);
+        }
+
+        $global = $this->globalCategories->find((int)$existing->globalCategoryId);
+        if (!$global) {
+            Response::json(['error' => 'Categoria global vinculada não encontrada'], 404);
+        }
+
+        $this->entries->reassignCategoryForUser($userId, (string)$existing->name, (string)$global->name);
+
         $ok = $this->userCategories->deleteForUser($id, $userId);
         if (!$ok) {
             Response::json(['error' => 'Categoria do usuário não encontrada'], 404);
@@ -141,4 +159,3 @@ class UserCategoryService
         }
     }
 }
-

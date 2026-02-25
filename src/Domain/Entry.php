@@ -10,6 +10,9 @@ class Entry
     public string $type; // in|out
     public float $amount;
     public string $category;
+    public ?int $accountId = null;
+    public string $accountName = '';
+    public string $accountType = '';
     public string $description;
     public string $date;
     public ?string $attachmentPath;
@@ -28,6 +31,9 @@ class Entry
         $e->type = $data['type'];
         $e->amount = (float) $data['amount'];
         $e->category = $data['category'];
+        $e->accountId = array_key_exists('account_id', $data) && $data['account_id'] !== null ? (int)$data['account_id'] : null;
+        $e->accountName = (string)($data['account_name'] ?? '');
+        $e->accountType = (string)($data['account_type'] ?? '');
         $e->description = $data['description'] ?? '';
         $e->date = $data['date'];
         $e->attachmentPath = $data['attachment_path'] ?? null;
@@ -48,6 +54,9 @@ class Entry
             'type' => $this->type,
             'amount' => $this->amount,
             'category' => $this->category,
+            'account_id' => $this->accountId,
+            'account_name' => $this->accountName,
+            'account_type' => $this->accountType,
             'description' => $this->description,
             'date' => $this->date,
             'attachment_path' => $this->attachmentPath,
