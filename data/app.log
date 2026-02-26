@@ -3458,3 +3458,4 @@
 {"time":"2026-02-26T00:49:15-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
 {"time":"2026-02-26T00:49:32-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
 {"time":"2026-02-26T00:55:58-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}
+{"time":"2026-02-26T00:59:14-03:00","level":"WARNING","message":"Not found","context":{"status":404,"path":"\/.well-known\/appspecific\/com.chrome.devtools.json","payload":{"error":"Not found"}}}

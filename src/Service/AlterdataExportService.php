@@ -67,9 +67,14 @@ class AlterdataExportService
             $users[$user->id] = $user;
         }
 
-        $cats = [];
+        $catsById = [];
+        $catsByKey = [];
         foreach ($this->categories->listAll() as $cat) {
-            $cats[$this->normalizeCategoryKey((string)$cat->name)] = $cat;
+            $id = (int)($cat->id ?? 0);
+            if ($id > 0) {
+                $catsById[$id] = $cat;
+            }
+            $catsByKey[$this->normalizeCategoryKey((string)$cat->name)] = $cat;
         }
 
         $userCatMap = [];
@@ -93,27 +98,12 @@ class AlterdataExportService
             }
             $catKey = $this->normalizeCategoryKey((string)$entry->category);
             $userCat = $userCatMap[$entry->userId][$catKey] ?? null;
-            if (!$userCat && isset($userCatMap[$entry->userId])) {
-                $closestUserKey = $this->closestCategoryKey($catKey, array_keys($userCatMap[$entry->userId]));
-                if ($closestUserKey !== null) {
-                    $userCat = $userCatMap[$entry->userId][$closestUserKey] ?? null;
-                }
-            }
             $cat = null;
             if ($userCat) {
-                $cat = $this->categories->find((int)$userCat->globalCategoryId);
+                $cat = $catsById[(int)$userCat->globalCategoryId] ?? null;
             }
             if (!$cat) {
-                $cat = $cats[$catKey] ?? null;
-            }
-            if ((!$cat || trim((string)$cat->alterdataAuto) === '') && $cats) {
-                $closestGlobalKey = $this->closestCategoryKey($catKey, array_keys($cats));
-                if ($closestGlobalKey !== null) {
-                    $candidate = $cats[$closestGlobalKey] ?? null;
-                    if ($candidate && trim((string)$candidate->alterdataAuto) !== '') {
-                        $cat = $candidate;
-                    }
-                }
+                $cat = $catsByKey[$catKey] ?? null;
             }
 
             $lineValues = [];
