@@ -54,9 +54,11 @@ class EntryService
         if ($closed) {
             $payload['needs_review'] = 1;
             $payload['reviewed_at'] = null;
+            $payload['valid_amount'] = 0.0;
         } else {
             $payload['needs_review'] = 0;
             $payload['reviewed_at'] = date('c');
+            $payload['valid_amount'] = null;
         }
         $entry = $this->entries->create($userId, $payload);
         if ($closed) {
@@ -83,6 +85,9 @@ class EntryService
         if ($closed) {
             $payload['needs_review'] = 1;
             $payload['reviewed_at'] = null;
+            if (!array_key_exists('valid_amount', $payload)) {
+                $payload['valid_amount'] = $existing->validAmount !== null ? $existing->validAmount : $existing->amount;
+            }
         }
         $entry = $this->entries->update($id, $userId, $payload);
         if ($closed && $entry) {
@@ -106,6 +111,7 @@ class EntryService
                 'deleted_type' => 'soft',
                 'needs_review' => 1,
                 'reviewed_at' => null,
+                'valid_amount' => $entry->validAmount !== null ? $entry->validAmount : $entry->amount,
                 'last_modified_by_user_id' => $modifiedByUserId && $modifiedByUserId > 0 ? $modifiedByUserId : $userId,
             ]);
             $ok = (bool)$deleted;

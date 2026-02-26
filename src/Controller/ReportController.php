@@ -70,6 +70,7 @@ class ReportController extends BaseController
             'start' => $_GET['start'] ?? null,
             'end' => $_GET['end'] ?? null,
             'type' => $_GET['type'] ?? null,
+            'entry_type' => $_GET['entry_type'] ?? null,
             'q' => $_GET['q'] ?? null,
             'categories' => $categories,
         ];

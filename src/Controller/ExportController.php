@@ -10,6 +10,7 @@ use App\Repository\Sqlite\SqliteUserRepository;
 use App\Service\AlterdataExportService;
 use App\Service\AdminActivityLogService;
 use App\Service\ExportService;
+use App\Service\MonthLockService;
 use App\Util\Response;
 
 class ExportController extends BaseController
@@ -35,6 +36,9 @@ class ExportController extends BaseController
     {
         $adminId = $this->requireAdmin();
         $month = $_GET['month'] ?? '';
+        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+            Response::json(['error' => 'Informe um mês válido para exportação.', 'error_code' => 'invalid_month'], 422);
+        }
         $type = $_GET['type'] ?? 'all';
         $userIds = [];
         if (isset($_GET['user_ids'])) {
@@ -55,6 +59,86 @@ class ExportController extends BaseController
             if ($id > 0) $userIds[] = $id;
         }
         $userIds = array_values(array_unique($userIds));
+
+        // Exportação mensal só pode ocorrer para competência fechada e sem pendências.
+        $monthEntries = $this->entryRepo()->listAll([
+            'month' => $month,
+            'include_deleted' => true,
+        ]);
+        $selectedMap = $userIds ? array_flip($userIds) : null;
+        $scopedEntries = array_values(array_filter($monthEntries, static function ($entry) use ($selectedMap): bool {
+            if (!empty($entry->deletedAt)) {
+                return false;
+            }
+            if ($selectedMap !== null && !isset($selectedMap[(int)$entry->userId])) {
+                return false;
+            }
+            return true;
+        }));
+
+        $targetUserIds = [];
+        foreach ($scopedEntries as $entry) {
+            $uid = (int)$entry->userId;
+            if ($uid > 0) {
+                $targetUserIds[$uid] = true;
+            }
+        }
+        $targetUserIds = array_values(array_map('intval', array_keys($targetUserIds)));
+
+        if ($targetUserIds) {
+            $usersById = [];
+            foreach ($this->userRepo()->listAll() as $user) {
+                $usersById[(int)$user->id] = $user;
+            }
+
+            $pendingByUser = [];
+            foreach ($scopedEntries as $entry) {
+                if (empty($entry->needsReview)) {
+                    continue;
+                }
+                $uid = (int)$entry->userId;
+                $pendingByUser[$uid] = (int)($pendingByUser[$uid] ?? 0) + 1;
+            }
+            if ($pendingByUser) {
+                $labels = [];
+                foreach ($pendingByUser as $uid => $qty) {
+                    $user = $usersById[$uid] ?? null;
+                    $name = trim((string)($user?->name ?? $user?->email ?? ('Usuário #' . $uid)));
+                    $labels[] = $name . ' (' . $qty . ')';
+                }
+                Response::json([
+                    'error' => 'Existem pendências no mês selecionado. Aprove/reprove os lançamentos pendentes antes de fechar/exportar.',
+                    'error_code' => 'month_has_pending_entries',
+                    'month' => $month,
+                    'user_ids' => $targetUserIds,
+                    'pending_users' => $labels,
+                    'pending_count' => array_sum($pendingByUser),
+                ], 422);
+            }
+
+            $notClosed = [];
+            $lockService = $this->lockService();
+            foreach ($targetUserIds as $uid) {
+                if (!$lockService->isClosedForUser($month, $uid)) {
+                    $notClosed[] = $uid;
+                }
+            }
+            if ($notClosed) {
+                $labels = [];
+                foreach ($notClosed as $uid) {
+                    $user = $usersById[$uid] ?? null;
+                    $labels[] = trim((string)($user?->name ?? $user?->email ?? ('Usuário #' . $uid)));
+                }
+                Response::json([
+                    'error' => 'Mês não fechado para os usuários selecionados. Faça o fechamento antes de exportar.',
+                    'error_code' => 'month_not_closed',
+                    'month' => $month,
+                    'user_ids' => $notClosed,
+                    'users' => $labels,
+                ], 422);
+            }
+        }
+
         $service = new AlterdataExportService($this->entryRepo(), $this->userRepo(), $this->categoryRepo(), $this->userCategoryRepo());
         $result = $service->exportResult([
             'month' => $month,
@@ -86,7 +170,7 @@ class ExportController extends BaseController
         return new SqliteEntryRepository($this->db());
     }
 
-    private function userRepo()
+    protected function userRepo()
     {
         return new SqliteUserRepository($this->db());
     }
@@ -99,6 +183,11 @@ class ExportController extends BaseController
     private function userCategoryRepo()
     {
         return new SqliteUserCategoryRepository($this->db());
+    }
+
+    private function lockService(): MonthLockService
+    {
+        return new MonthLockService($this->db());
     }
 
     private function normalizeRange(?string $start, ?string $end): array

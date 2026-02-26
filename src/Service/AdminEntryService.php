@@ -57,7 +57,7 @@ class AdminEntryService
         }
         $userId = (int)($input['user_id'] ?? $entry->userId);
         $user = $this->users->findById($userId);
-        if (!$user || $user->role === 'admin') {
+        if (!$user) {
             Response::json(['error' => 'Usuario invalido'], 422);
         }
         $merged = array_merge($entry->toArray(), $input);
@@ -67,6 +67,7 @@ class AdminEntryService
         }
         $merged['needs_review'] = 0;
         $merged['reviewed_at'] = date('c');
+        $merged['valid_amount'] = null;
         if (!empty($input['admin_user_id'])) {
             $merged['last_modified_by_user_id'] = (int)$input['admin_user_id'];
         }
@@ -81,7 +82,7 @@ class AdminEntryService
             Response::json(['error' => 'Usuario invalido'], 422);
         }
         $user = $this->users->findById($userId);
-        if (!$user || $user->role === 'admin') {
+        if (!$user) {
             Response::json(['error' => 'Usuario invalido'], 422);
         }
         $this->assertValid($input, $userId);
@@ -90,6 +91,7 @@ class AdminEntryService
         }
         $input['needs_review'] = 0;
         $input['reviewed_at'] = date('c');
+        $input['valid_amount'] = null;
         if (!empty($input['admin_user_id'])) {
             $input['last_modified_by_user_id'] = (int)$input['admin_user_id'];
         }
@@ -134,6 +136,7 @@ class AdminEntryService
             $payload = $entry->toArray();
             $payload['needs_review'] = 0;
             $payload['reviewed_at'] = date('c');
+            $payload['valid_amount'] = null;
             $payload['last_modified_by_user_id'] = $adminUserId;
             return (bool)$this->entries->updateAdmin($id, $payload);
         }
@@ -149,6 +152,7 @@ class AdminEntryService
         $payload = $entry->toArray();
         $payload['needs_review'] = 0;
         $payload['reviewed_at'] = date('c');
+        $payload['valid_amount'] = null;
         if ($entry->deletedAt) {
             $payload['deleted_at'] = null;
             $payload['deleted_type'] = null;

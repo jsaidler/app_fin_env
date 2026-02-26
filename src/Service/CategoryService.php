@@ -25,9 +25,12 @@ class CategoryService
     {
         $name = trim($input['name'] ?? '');
         $type = $input['type'] ?? '';
-        $alterdataAuto = isset($input['alterdata_auto']) ? trim((string)$input['alterdata_auto']) : null;
+        $alterdataAuto = isset($input['alterdata_auto']) ? trim((string)$input['alterdata_auto']) : '';
         if (!Validator::nonEmpty($name) || !in_array($type, ['in', 'out'], true)) {
             Response::json(['error' => 'Dados de categoria invalidos'], 422);
+        }
+        if (!Validator::nonEmpty($alterdataAuto)) {
+            Response::json(['error' => 'Codigo Alterdata obrigatorio para categoria global'], 422);
         }
         $cat = $this->categories->create($name, $type, $alterdataAuto);
         if ($modifiedByUserId && $modifiedByUserId > 0) {
@@ -40,6 +43,10 @@ class CategoryService
 
     public function update(int $id, array $input, ?int $modifiedByUserId = null): array
     {
+        $existing = $this->categories->find($id);
+        if (!$existing) {
+            Response::json(['error' => 'Categoria nao encontrada'], 404);
+        }
         $data = [];
         if (isset($input['name'])) {
             if (!Validator::nonEmpty($input['name'])) {
@@ -54,7 +61,17 @@ class CategoryService
             $data['type'] = $input['type'];
         }
         if (array_key_exists('alterdata_auto', $input)) {
-            $data['alterdata_auto'] = trim((string)$input['alterdata_auto']);
+            $nextAlterdata = trim((string)$input['alterdata_auto']);
+            if (!Validator::nonEmpty($nextAlterdata)) {
+                Response::json(['error' => 'Codigo Alterdata obrigatorio para categoria global'], 422);
+            }
+            $data['alterdata_auto'] = $nextAlterdata;
+        }
+        $effectiveAlterdata = array_key_exists('alterdata_auto', $data)
+            ? (string)$data['alterdata_auto']
+            : trim((string)$existing->alterdataAuto);
+        if (!Validator::nonEmpty($effectiveAlterdata)) {
+            Response::json(['error' => 'Codigo Alterdata obrigatorio para categoria global'], 422);
         }
         if ($modifiedByUserId && $modifiedByUserId > 0) {
             $data['last_modified_by_user_id'] = (int)$modifiedByUserId;

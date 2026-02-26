@@ -68,13 +68,13 @@ class AlterdataExportService
 
         $cats = [];
         foreach ($this->categories->listAll() as $cat) {
-            $cats[strtolower($cat->name)] = $cat;
+            $cats[$this->normalizeCategoryKey((string)$cat->name)] = $cat;
         }
 
         $userCatMap = [];
         foreach ($this->userCategories->listAll() as $userCategory) {
             $uid = (int)$userCategory->userId;
-            $key = strtolower((string)$userCategory->name);
+            $key = $this->normalizeCategoryKey((string)$userCategory->name);
             if (!isset($userCatMap[$uid])) {
                 $userCatMap[$uid] = [];
             }
@@ -94,14 +94,29 @@ class AlterdataExportService
                 $missingUsers[$user->id] = $user->name ?: ('ID ' . $user->id);
                 continue;
             }
-            $catKey = strtolower($entry->category);
+            $catKey = $this->normalizeCategoryKey((string)$entry->category);
             $userCat = $userCatMap[$entry->userId][$catKey] ?? null;
+            if (!$userCat && isset($userCatMap[$entry->userId])) {
+                $closestUserKey = $this->closestCategoryKey($catKey, array_keys($userCatMap[$entry->userId]));
+                if ($closestUserKey !== null) {
+                    $userCat = $userCatMap[$entry->userId][$closestUserKey] ?? null;
+                }
+            }
             $cat = null;
             if ($userCat) {
                 $cat = $this->categories->find((int)$userCat->globalCategoryId);
             }
             if (!$cat) {
                 $cat = $cats[$catKey] ?? null;
+            }
+            if ((!$cat || trim((string)$cat->alterdataAuto) === '') && $cats) {
+                $closestGlobalKey = $this->closestCategoryKey($catKey, array_keys($cats));
+                if ($closestGlobalKey !== null) {
+                    $candidate = $cats[$closestGlobalKey] ?? null;
+                    if ($candidate && trim((string)$candidate->alterdataAuto) !== '') {
+                        $cat = $candidate;
+                    }
+                }
             }
             if (!$cat || $cat->alterdataAuto === '') {
                 $missingCats[$entry->category] = $entry->category;
@@ -150,5 +165,42 @@ class AlterdataExportService
     private function formatAmount(float $amount): string
     {
         return number_format($amount, 2, '.', '');
+    }
+
+    private function normalizeCategoryKey(string $value): string
+    {
+        $normalized = trim($value);
+        $normalized = function_exists('mb_strtolower')
+            ? mb_strtolower($normalized, 'UTF-8')
+            : strtolower($normalized);
+        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
+        if (is_string($converted) && $converted !== '') {
+            $normalized = strtolower($converted);
+        }
+        $normalized = preg_replace('/[^a-z0-9]+/', '', $normalized) ?? '';
+        return $normalized;
+    }
+
+    private function closestCategoryKey(string $needle, array $candidates): ?string
+    {
+        $needle = trim($needle);
+        if ($needle === '' || !$candidates) {
+            return null;
+        }
+        $bestKey = null;
+        $bestDistance = PHP_INT_MAX;
+        foreach ($candidates as $candidate) {
+            $candidate = trim((string)$candidate);
+            if ($candidate === '') {
+                continue;
+            }
+            $distance = levenshtein($needle, $candidate);
+            if ($distance < $bestDistance) {
+                $bestDistance = $distance;
+                $bestKey = $candidate;
+            }
+        }
+        // Tolerância baixa para corrigir pequenas variações de encoding/acentuação.
+        return ($bestKey !== null && $bestDistance <= 2) ? $bestKey : null;
     }
 }

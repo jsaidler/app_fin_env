@@ -24,7 +24,21 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         $service = new AdminService($this->userRepo(), $this->entryRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
-        Response::json($service->listUsers());
+        $rows = $service->listUsers();
+        $pendingsByUser = $this->buildUsersPendingMap(array_map(static fn(array $row): int => (int)($row['id'] ?? 0), $rows));
+        foreach ($rows as &$row) {
+            $uid = (int)($row['id'] ?? 0);
+            $pending = $pendingsByUser[$uid] ?? [
+                'close' => ['has_pending' => false, 'count' => 0],
+                'export' => ['has_pending' => false, 'count' => 0],
+            ];
+            $row['pending'] = $pending;
+            $row['has_pending_close'] = (bool)($pending['close']['has_pending'] ?? false);
+            $row['has_pending_export'] = (bool)($pending['export']['has_pending'] ?? false);
+            $row['has_pending_any'] = $row['has_pending_close'] || $row['has_pending_export'];
+        }
+        unset($row);
+        Response::json($rows);
     }
 
     public function createUser(): void
@@ -93,7 +107,7 @@ class AdminController extends BaseController
         if ($id <= 0) {
             Response::json(['error' => 'Categoria invalida'], 422);
         }
-        $category = $this->categoryRepo()->findById($id);
+        $category = $this->categoryRepo()->find($id);
         if (!$category) {
             Response::json(['error' => 'Categoria nao encontrada'], 404);
         }
@@ -497,6 +511,94 @@ class AdminController extends BaseController
     protected function lockService(): MonthLockService
     {
         return new MonthLockService($this->db());
+    }
+
+    private function buildUsersPendingMap(array $userIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $userIds), static fn(int $id): bool => $id > 0)));
+        if (!$ids) {
+            return [];
+        }
+        $pdo = $this->db();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $closePending = [];
+        $stmtClose = $pdo->prepare(
+            "SELECT user_id, COUNT(*) AS qty
+               FROM entries
+              WHERE needs_review = 1
+                AND deleted_at IS NULL
+                AND user_id IN ($placeholders)
+              GROUP BY user_id"
+        );
+        $stmtClose->execute($ids);
+        foreach ($stmtClose->fetchAll() as $row) {
+            $uid = (int)($row['user_id'] ?? 0);
+            $closePending[$uid] = (int)($row['qty'] ?? 0);
+        }
+
+        $exportMissingCategory = [];
+        $stmtExport = $pdo->prepare(
+            "SELECT e.user_id AS user_id, COUNT(*) AS qty
+               FROM entries e
+          LEFT JOIN user_categories uc
+                 ON uc.user_id = e.user_id
+                AND lower(uc.name) = lower(e.category)
+          LEFT JOIN categories c_global
+                 ON c_global.id = uc.global_category_id
+          LEFT JOIN categories c_direct
+                 ON lower(c_direct.name) = lower(e.category)
+              WHERE e.deleted_at IS NULL
+                AND e.needs_review = 0
+                AND e.user_id IN ($placeholders)
+                AND COALESCE(NULLIF(c_global.alterdata_auto, ''), NULLIF(c_direct.alterdata_auto, '')) IS NULL
+              GROUP BY e.user_id"
+        );
+        $stmtExport->execute($ids);
+        foreach ($stmtExport->fetchAll() as $row) {
+            $uid = (int)($row['user_id'] ?? 0);
+            $exportMissingCategory[$uid] = (int)($row['qty'] ?? 0);
+        }
+
+        $hasExportableEntries = [];
+        $stmtExportable = $pdo->prepare(
+            "SELECT user_id, COUNT(*) AS qty
+               FROM entries
+              WHERE deleted_at IS NULL
+                AND needs_review = 0
+                AND user_id IN ($placeholders)
+              GROUP BY user_id"
+        );
+        $stmtExportable->execute($ids);
+        foreach ($stmtExportable->fetchAll() as $row) {
+            $uid = (int)($row['user_id'] ?? 0);
+            $hasExportableEntries[$uid] = (int)($row['qty'] ?? 0) > 0;
+        }
+
+        $users = [];
+        foreach ($this->userRepo()->listAll() as $user) {
+            $users[(int)$user->id] = $user;
+        }
+
+        $result = [];
+        foreach ($ids as $uid) {
+            $closeQty = (int)($closePending[$uid] ?? 0);
+            $missingCategoryQty = (int)($exportMissingCategory[$uid] ?? 0);
+            $hasExportable = (bool)($hasExportableEntries[$uid] ?? false);
+            $missingAlterdata = $hasExportable && trim((string)($users[$uid]->alterdataCode ?? '')) === '';
+            $exportQty = $missingCategoryQty + ($missingAlterdata ? 1 : 0);
+            $result[$uid] = [
+                'close' => [
+                    'has_pending' => $closeQty > 0,
+                    'count' => $closeQty,
+                ],
+                'export' => [
+                    'has_pending' => $exportQty > 0,
+                    'count' => $exportQty,
+                ],
+            ];
+        }
+        return $result;
     }
 
     private function normalizeRange(?string $start, ?string $end): array

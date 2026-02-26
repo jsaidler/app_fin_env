@@ -35,6 +35,11 @@ const adminUsersModal = document.getElementById("admin-users-modal");
 const closeAdminUsersModalBtn = document.getElementById("close-admin-users-modal");
 const cancelAdminUsersModalBtn = document.getElementById("cancel-admin-users-modal");
 const openAdminUserEditorNewBtn = document.getElementById("open-admin-user-editor-new");
+const adminPendingEntriesBadgeEl = document.getElementById("admin-pending-entries-badge");
+const adminPendingEntriesModal = document.getElementById("admin-pending-entries-modal");
+const closeAdminPendingEntriesModalBtn = document.getElementById("close-admin-pending-entries-modal");
+const cancelAdminPendingEntriesModalBtn = document.getElementById("cancel-admin-pending-entries-modal");
+const adminPendingEntriesListEl = document.getElementById("admin-pending-entries-list");
 const adminImpersonateModal = document.getElementById("admin-impersonate-modal");
 const closeAdminImpersonateModalBtn = document.getElementById("close-admin-impersonate-modal");
 const cancelAdminImpersonateModalBtn = document.getElementById("cancel-admin-impersonate-modal");
@@ -332,8 +337,11 @@ let selectedRecurrenceStartDateISO = "";
 let selectedRecurrenceFrequencyValue = "monthly";
 let savingEntry = false;
 let editingEntryId = null;
+let editingEntryUserId = 0;
 let editingEntryAttachmentPath = "";
 let editingEntryDeleted = false;
+let editingEntryPending = false;
+let editingEntryTypeFallback = "";
 let entriesSearchTerm = "";
 let searchDebounceTimer = null;
 let loadedEntriesIndex = new Map();
@@ -369,6 +377,7 @@ let editingAdminCategoryId = 0;
 let editingAdminUserId = 0;
 let adminUsersCache = [];
 let adminCategoriesCache = [];
+let adminPendingEntriesCache = [];
 let selectedAdminCategoryType = "out";
 let selectedAdminUserRole = "user";
 let selectedAdminImpersonateUserId = 0;
@@ -454,14 +463,40 @@ function setStoredAuthToken(token) {
   }
 }
 
-function authHeaders(extra = {}) {
-  const token = getStoredAuthToken();
+function authHeaders(extra = {}, options = {}) {
+  const path = String(options?.path || "");
+  const preferAdmin = Boolean(options?.preferAdmin) || path.startsWith("/api/admin/");
+  const useImpersonationAdminToken = Boolean(
+    preferAdmin
+    && Boolean(currentProfile?.impersonation?.active)
+    && String(currentProfile?.role || "") !== "admin"
+  );
+  const adminToken = useImpersonationAdminToken ? getImpersonationAdminToken() : "";
+  const token = adminToken || getStoredAuthToken();
   const headers = { ...extra };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
     headers["X-Auth-Token"] = token;
   }
   return headers;
+}
+
+function adminAuthHeaders(extra = {}) {
+  return authHeaders(extra, { preferAdmin: true });
+}
+
+function getImpersonationAdminToken() {
+  try {
+    return String(localStorage.getItem(IMPERSONATION_ADMIN_TOKEN_KEY) || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function canApprovePendingEntry() {
+  if (String(currentProfile?.role || "") === "admin") return true;
+  if (!Boolean(currentProfile?.impersonation?.active)) return false;
+  return Boolean(getImpersonationAdminToken());
 }
 
 function showInfo(message) {
@@ -944,6 +979,12 @@ function entryTypeFromSelectedCategory() {
   return String(category?.type || "");
 }
 
+function currentEntryTypeForValidation() {
+  const fromCategory = entryTypeFromSelectedCategory();
+  if (fromCategory === "in" || fromCategory === "out") return fromCategory;
+  return String(editingEntryTypeFallback || "");
+}
+
 function parseMoneyInput(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (!digits) return 0;
@@ -999,10 +1040,20 @@ function setEntryTheme(type) {
 function setSaveButtonVisualState(state = "idle") {
   if (!saveEntryBtn) return;
   const isDisabled = state === "disabled" || state === "saving";
+  const adminPendingMode = Boolean(
+    editingEntryId
+    && editingEntryPending
+    && !editingEntryDeleted
+    && canApprovePendingEntry()
+  );
   saveEntryBtn.disabled = isDisabled;
   saveEntryBtn.classList.toggle("is-disabled", state === "disabled");
   saveEntryBtn.classList.toggle("is-saving", state === "saving");
-  saveEntryBtn.textContent = state === "saving" ? "Salvando..." : "Salvar";
+  if (state === "saving") {
+    saveEntryBtn.textContent = adminPendingMode ? "Aprovando..." : "Salvando...";
+    return;
+  }
+  saveEntryBtn.textContent = adminPendingMode ? "APROVAR" : "Salvar";
 }
 
 function setEntryModalMode(mode = "create") {
@@ -1451,7 +1502,7 @@ async function closeEntryRecurrenceSheet() {
 
 function isEntryFormValid() {
   if (editingEntryDeleted) return false;
-  const type = entryTypeFromSelectedCategory();
+  const type = currentEntryTypeForValidation();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
   const accountId = Number(selectedAccountId || 0);
@@ -1475,6 +1526,10 @@ function updateSaveState() {
   updateEntryFlowUi();
   if (savingEntry) {
     setSaveButtonVisualState("saving");
+    return;
+  }
+  if (editingEntryId && editingEntryPending && !editingEntryDeleted && canApprovePendingEntry()) {
+    setSaveButtonVisualState(isEntryFormValid() ? "idle" : "disabled");
     return;
   }
   if (!hasEntryMinimumRequiredData()) {
@@ -2064,12 +2119,15 @@ function rowTemplate(item, mode) {
   const category = escapeHtml(item.category || "Sem categoria");
   if (mode === "entry") {
     const chipTone = item.type === "in" ? "entry-chip--in" : "entry-chip--out";
+    const isPending = Number(item?.needs_review || 0) === 1 || String(item?.status || "") === "pending";
+    const pendingChip = isPending ? '<span class="entry-chip entry-chip--pending">Pendente</span>' : "";
     const entryId = Number(item.id || 0);
     return `
       <button type="button" class="entry-row entry-row--button" data-entry-id="${entryId}" aria-label="Editar lan\u00e7amento ${title}">
         <div class="entry-row__title">${title}</div>
         <div class="entry-row__chips">
           <span class="entry-chip ${chipTone}">${category}</span>
+          ${pendingChip}
         </div>
         <div class="entry-row__value ${amountClass}">${money.format(signed)}</div>
       </button>
@@ -2247,6 +2305,7 @@ async function openEntryEditor(entryId) {
   await loadAccounts(true);
   resetEntryForm();
   editingEntryId = Number(entry.id || 0);
+  editingEntryUserId = Number(entry.user_id || 0);
   editingEntryAttachmentPath = String(entry.attachment_path || "");
   const deletedAtRaw = entry?.deleted_at;
   const deletedAtText = typeof deletedAtRaw === "string" ? deletedAtRaw.trim().toLowerCase() : "";
@@ -2254,6 +2313,8 @@ async function openEntryEditor(entryId) {
   const status = String(entry?.status || "").toLowerCase();
   const hasDeletedStatus = status === "deleted_soft" || status === "deleted_hard";
   editingEntryDeleted = hasDeletedAt || hasDeletedStatus;
+  editingEntryPending = Number(entry?.needs_review || 0) === 1 || status === "pending";
+  editingEntryTypeFallback = String(entry?.type || "");
   if (entryAmountInput) entryAmountInput.value = formatMoneyInput(Number(entry.amount || 0));
   selectedCategoryValue = String(entry.category || "");
   if (selectedCategoryEl) {
@@ -3804,7 +3865,7 @@ async function saveRecurrence() {
     const response = await fetch(endpoint, {
       method,
       credentials: "same-origin",
-      headers: authHeaders({
+      headers: adminAuthHeaders({
         "Content-Type": "application/json",
         Accept: "application/json",
       }),
@@ -4231,8 +4292,11 @@ async function uploadAttachment(file) {
 function resetEntryForm() {
   if (entryTypeInput) entryTypeInput.value = "";
   editingEntryId = null;
+  editingEntryUserId = 0;
   editingEntryAttachmentPath = "";
   editingEntryDeleted = false;
+  editingEntryPending = false;
+  editingEntryTypeFallback = "";
   setEntryModalMode("create");
   setEntryTheme("neutral");
   if (entryAmountInput) entryAmountInput.value = formatMoneyInput(0);
@@ -4289,7 +4353,7 @@ async function closeEntryModal() {
 }
 
 async function createEntry() {
-  const type = entryTypeFromSelectedCategory();
+  const type = currentEntryTypeForValidation();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
   const accountId = Number(selectedAccountId || 0);
@@ -4374,6 +4438,113 @@ async function createEntry() {
   }
 }
 
+async function approvePendingEntry() {
+  if (!editingEntryId) return;
+  if (!canApprovePendingEntry()) {
+    showError("Aprovação disponível apenas para administrador.");
+    return;
+  }
+  const type = currentEntryTypeForValidation();
+  const amount = parseMoneyInput(entryAmountInput?.value || "");
+  const category = String(selectedCategoryValue || "").trim();
+  const accountId = Number(selectedAccountId || 0);
+  const date = String(selectedDateISO || "").slice(0, 10).trim();
+  const description = String(entryDescriptionInput?.value || "").trim();
+
+  if (!["in", "out"].includes(type)) {
+    showError("Selecione uma categoria válida antes de aprovar.");
+    return;
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    showError("Informe um valor válido antes de aprovar.");
+    return;
+  }
+  if (!category) {
+    showError("Categoria é obrigatória para aprovar.");
+    return;
+  }
+  if (accountId <= 0) {
+    showError("Conta/cartão é obrigatória para aprovar.");
+    return;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    showError("Data inválida para aprovar.");
+    return;
+  }
+
+  savingEntry = true;
+  setSaveButtonVisualState("saving");
+  try {
+    const usingImpersonationAdminToken = Boolean(
+      Boolean(currentProfile?.impersonation?.active)
+      && String(currentProfile?.role || "") !== "admin"
+    );
+    const adminToken = usingImpersonationAdminToken ? getImpersonationAdminToken() : "";
+    if (usingImpersonationAdminToken && !adminToken) {
+      showError("Token do administrador não encontrado para aprovar em personificação.");
+      return;
+    }
+    const headers = usingImpersonationAdminToken
+      ? {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${adminToken}`,
+          "X-Auth-Token": adminToken,
+        }
+      : authHeaders({
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        });
+
+    const attachmentPath = selectedAttachmentFile
+      ? await uploadAttachment(selectedAttachmentFile)
+      : editingEntryAttachmentPath;
+
+    const response = await fetch(`/api/admin/entries/${editingEntryId}`, {
+      method: "PUT",
+      credentials: "same-origin",
+      headers,
+      body: JSON.stringify({
+        user_id: Number(editingEntryUserId || 0),
+        type,
+        amount,
+        category,
+        account_id: accountId,
+        date,
+        description,
+        attachment_path: attachmentPath || null,
+      }),
+    });
+
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      showError(data?.error || "N\u00e3o foi poss\u00edvel aprovar o lançamento.");
+      return;
+    }
+
+    await closeEntryModal();
+    showInfo("Lan\u00e7amento aprovado com sucesso.");
+    await loadDashboard();
+    showTab("lancamentos");
+  } catch {
+    showError("Falha de rede ao aprovar o lan\u00e7amento.");
+  } finally {
+    savingEntry = false;
+    updateSaveState();
+  }
+}
+
 async function restoreEntry() {
   if (!editingEntryId) return;
   try {
@@ -4449,6 +4620,16 @@ function setupEntryModal() {
   });
 
   saveEntryBtn?.addEventListener("click", () => {
+    const isAdminPending = Boolean(
+      editingEntryId
+      && editingEntryPending
+      && !editingEntryDeleted
+      && canApprovePendingEntry()
+    );
+    if (isAdminPending) {
+      void approvePendingEntry();
+      return;
+    }
     void createEntry();
   });
 
@@ -4831,7 +5012,7 @@ async function authFetch(path) {
   return fetch(path, {
     method: "GET",
     credentials: "same-origin",
-    headers: authHeaders({ Accept: "application/json" }),
+    headers: authHeaders({ Accept: "application/json" }, { path }),
   });
 }
 
@@ -5436,6 +5617,75 @@ async function fetchAdminUsers() {
   return adminUsersCache;
 }
 
+async function fetchAdminPendingEntries() {
+  const response = await authFetch("/api/admin/entries?needs_review=1");
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  const payload = await safeJson(response, []);
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar lançamentos pendentes."));
+    return [];
+  }
+  adminPendingEntriesCache = Array.isArray(payload) ? payload : [];
+  return adminPendingEntriesCache;
+}
+
+function syncAdminPendingEntriesBadge(count) {
+  if (!adminPendingEntriesBadgeEl) return;
+  const qty = Number(count || 0);
+  const shouldHide = !Number.isFinite(qty) || qty <= 0;
+  adminPendingEntriesBadgeEl.hidden = shouldHide;
+  adminPendingEntriesBadgeEl.textContent = shouldHide ? "" : String(Math.max(0, qty));
+}
+
+function renderAdminPendingEntriesList(items, users) {
+  if (!adminPendingEntriesListEl) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    adminPendingEntriesListEl.innerHTML = '<p class="category-empty">Nenhuma pendência encontrada.</p>';
+    return;
+  }
+
+  const userMap = new Map((Array.isArray(users) ? users : []).map((row) => [Number(row?.id || 0), row]));
+  const grouped = new Map();
+  rows.forEach((row) => {
+    const uid = Number(row?.user_id || 0);
+    if (!grouped.has(uid)) grouped.set(uid, []);
+    grouped.get(uid).push(row);
+  });
+
+  const html = Array.from(grouped.entries()).map(([uid, entries]) => {
+    const user = userMap.get(uid);
+    const userName = escapeHtml(String(user?.name || user?.email || `Usuário #${uid}`));
+    const countText = entries.length === 1 ? "1 pendência" : `${entries.length} pendências`;
+    const entriesHtml = entries.map((entry) => {
+      const id = Number(entry?.id || 0);
+      const type = String(entry?.type || "") === "in" ? "in" : "out";
+      const icon = type === "in" ? "arrow_downward" : "arrow_upward";
+      const title = escapeHtml(String(entry?.description || entry?.category || "Lançamento"));
+      const meta = escapeHtml(`${String(entry?.category || "Sem categoria")} · ${formatIsoDate(String(entry?.date || "").slice(0, 10)) || "--"}`);
+      const amount = Number(entry?.amount || 0);
+      const signed = type === "out" ? -Math.abs(amount) : Math.abs(amount);
+      return `
+        <button type="button" class="category-option category-option--pending-entry is-${type}" data-admin-pending-entry-id="${id}">
+          <span class="category-option__lead"><span class="material-symbols-rounded">${icon}</span></span>
+          <span class="category-option__text">${title} · ${meta} · ${escapeHtml(money.format(signed))}</span>
+        </button>
+      `;
+    }).join("");
+    return `
+      <section class="category-group">
+        <h4 class="category-group__title">${userName} · ${countText}</h4>
+        <div class="category-group__items">${entriesHtml}</div>
+      </section>
+    `;
+  }).join("");
+
+  adminPendingEntriesListEl.innerHTML = html;
+}
+
 async function fetchAdminCategories() {
   const response = await authFetch("/api/admin/categories");
   if (response.status === 401) {
@@ -5562,6 +5812,10 @@ async function saveAdminCategory() {
     showError("Informe o nome da categoria global.");
     return;
   }
+  if (!alterdataAuto) {
+    showError("Código Alterdata é obrigatório para categoria global.");
+    return;
+  }
   if (saveAdminCategoryModalBtn) saveAdminCategoryModalBtn.disabled = true;
   try {
     const endpoint = editingAdminCategoryId > 0 ? `/api/admin/categories/${editingAdminCategoryId}` : "/api/admin/categories";
@@ -5569,7 +5823,7 @@ async function saveAdminCategory() {
     const response = await fetch(endpoint, {
       method,
       credentials: "same-origin",
-      headers: authHeaders({
+      headers: adminAuthHeaders({
         "Content-Type": "application/json",
         Accept: "application/json",
       }),
@@ -5585,18 +5839,10 @@ async function saveAdminCategory() {
       return;
     }
     showInfo(editingAdminCategoryId > 0 ? "Categoria global atualizada." : "Categoria global criada.");
-    const savedId = editingAdminCategoryId;
     resetAdminCategoryForm();
     const items = await fetchAdminCategories();
     renderAdminCategoriesList(items);
-    if (savedId > 0) {
-      editingAdminCategoryId = savedId;
-      const stats = await fetchAdminCategoryStats(savedId);
-      renderAdminCategoryStats(stats);
-      if (deleteAdminCategoryModalBtn) deleteAdminCategoryModalBtn.hidden = false;
-    } else {
-      await closeAdminCategoryEditorModal();
-    }
+    await closeAdminCategoryEditorModal();
   } catch {
     showError("Falha de rede ao salvar categoria global.");
   } finally {
@@ -5616,7 +5862,7 @@ async function deleteAdminCategory(id) {
   const response = await fetch(`/api/admin/categories/${id}`, {
     method: "DELETE",
     credentials: "same-origin",
-    headers: authHeaders({ Accept: "application/json" }),
+    headers: adminAuthHeaders({ Accept: "application/json" }),
   });
   const payload = await safeJson(response, {});
   if (!response.ok) {
@@ -5634,6 +5880,24 @@ async function openAdminUsersModal() {
   const items = await fetchAdminUsers();
   renderAdminUsersList(items);
   await adminUsersModal?.present();
+}
+
+async function openAdminPendingEntriesModal() {
+  const [users, entries] = await Promise.all([
+    adminUsersCache.length ? Promise.resolve(adminUsersCache) : fetchAdminUsers(),
+    fetchAdminPendingEntries(),
+  ]);
+  syncAdminPendingEntriesBadge(entries.length);
+  renderAdminPendingEntriesList(entries, users);
+  await adminPendingEntriesModal?.present();
+}
+
+async function closeAdminPendingEntriesModal() {
+  try {
+    await adminPendingEntriesModal?.dismiss();
+  } catch {
+    // no-op
+  }
 }
 
 async function closeAdminUsersModal() {
@@ -5702,7 +5966,7 @@ async function saveAdminUser() {
     const response = await fetch(endpoint, {
       method,
       credentials: "same-origin",
-      headers: authHeaders({
+      headers: adminAuthHeaders({
         "Content-Type": "application/json",
         Accept: "application/json",
       }),
@@ -5714,20 +5978,13 @@ async function saveAdminUser() {
       return;
     }
     showInfo(editingAdminUserId > 0 ? "Usuário atualizado." : "Usuário criado.");
-    const savedId = editingAdminUserId;
     resetAdminUserForm();
     const users = await fetchAdminUsers();
     renderAdminUsersList(users);
     renderAdminUsersCheckboxes(users);
     renderAdminExportUsersList(users);
     syncAdminExportLabels();
-    if (savedId > 0) {
-      editingAdminUserId = savedId;
-      const stats = await fetchAdminUserStats(savedId);
-      renderAdminUserStats(stats);
-    } else {
-      await closeAdminUserEditorModal();
-    }
+    await closeAdminUserEditorModal();
   } catch {
     showError("Falha de rede ao salvar usuário.");
   } finally {
@@ -5748,7 +6005,7 @@ async function impersonateAdminUser(userId) {
     const response = await fetch(`/api/admin/users/${id}/impersonate`, {
       method: "POST",
       credentials: "same-origin",
-      headers: authHeaders({ Accept: "application/json" }),
+      headers: adminAuthHeaders({ Accept: "application/json" }),
     });
     const payload = await safeJson(response, {});
     if (!response.ok) {
@@ -5791,7 +6048,7 @@ async function deleteAdminUser(id) {
   const response = await fetch(`/api/admin/users/${id}`, {
     method: "DELETE",
     credentials: "same-origin",
-    headers: authHeaders({ Accept: "application/json" }),
+    headers: adminAuthHeaders({ Accept: "application/json" }),
   });
   const payload = await safeJson(response, {});
   if (!response.ok) {
@@ -5829,11 +6086,15 @@ async function stopImpersonation() {
   await loadDashboard();
 }
 
-async function openAdminCloseMonthModal() {
+async function openAdminCloseMonthModal(options = {}) {
   const users = adminUsersCache.length ? adminUsersCache : await fetchAdminUsers();
   const history = await fetchAdminCloseMonthHistory();
-  selectedAdminCloseMonth = normalizeMonthValue(selectedAdminCloseMonth || monthRange()) || monthRange();
-  selectedAdminCloseMonthUserKeys = ["all"];
+  const monthOverride = normalizeMonthValue(String(options?.month || ""));
+  const userKeysOverride = Array.isArray(options?.userKeys)
+    ? options.userKeys.map((value) => String(value || "")).filter((value) => value.length > 0)
+    : [];
+  selectedAdminCloseMonth = monthOverride || normalizeMonthValue(selectedAdminCloseMonth || monthRange()) || monthRange();
+  selectedAdminCloseMonthUserKeys = userKeysOverride.length ? userKeysOverride : ["all"];
   renderAdminUsersCheckboxes(users);
   renderAdminCloseMonthHistory(history);
   syncAdminCloseMonthLabel();
@@ -5868,7 +6129,7 @@ async function submitAdminCloseMonth() {
     const response = await fetch("/api/admin/close-month", {
       method: "POST",
       credentials: "same-origin",
-      headers: authHeaders({
+      headers: adminAuthHeaders({
         "Content-Type": "application/json",
         Accept: "application/json",
       }),
@@ -5930,10 +6191,26 @@ async function submitAdminExport() {
     const response = await fetch(`/api/admin/export/alterdata?${query.toString()}`, {
       method: "GET",
       credentials: "same-origin",
-      headers: authHeaders({ Accept: "text/plain" }),
+      headers: adminAuthHeaders({ Accept: "text/plain" }),
     });
     if (!response.ok) {
       const payload = await safeJson(response, {});
+      const errorCode = String(payload?.error_code || "").trim();
+      if (errorCode === "month_not_closed") {
+        const blockedIds = Array.isArray(payload?.user_ids)
+          ? payload.user_ids.map((value) => Number(value)).filter((id) => id > 0)
+          : userIds;
+        selectedAdminCloseMonth = normalizeMonthValue(String(payload?.month || month || "")) || monthRange();
+        selectedAdminCloseMonthUserKeys = blockedIds.length ? blockedIds.map((id) => String(id)) : ["all"];
+        await closeAdminExportModal();
+        await openAdminCloseMonthModal({
+          month: selectedAdminCloseMonth,
+          userKeys: selectedAdminCloseMonthUserKeys,
+        });
+      } else if (errorCode === "month_has_pending_entries") {
+        await closeAdminExportModal();
+        await openAdminPendingEntriesModal();
+      }
       showError(String(payload?.error || "Não foi possível exportar o arquivo Alterdata."));
       return;
     }
@@ -6098,6 +6375,13 @@ async function loadDashboard() {
     syncAdminAreaAccess();
     syncImpersonationBanner();
     syncDashMenuUserSummary();
+    if (String(currentProfile?.role || "") === "admin" || Boolean(currentProfile?.impersonation?.active)) {
+      void fetchAdminPendingEntries().then((items) => {
+        syncAdminPendingEntriesBadge(Array.isArray(items) ? items.length : 0);
+      });
+    } else {
+      syncAdminPendingEntriesBadge(0);
+    }
 
     const [monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes] = await Promise.all([
       authFetch(`/api/reports/aggregate?start=${month}&end=${month}`),
@@ -6249,6 +6533,10 @@ adminActionButtons.forEach((button) => {
       void openAdminUsersModal();
       return;
     }
+    if (action === "pending-entries") {
+      void openAdminPendingEntriesModal();
+      return;
+    }
     if (action === "impersonate-user") {
       void openAdminImpersonateModal();
       return;
@@ -6362,6 +6650,12 @@ closeAdminUsersModalBtn?.addEventListener("click", () => {
 cancelAdminUsersModalBtn?.addEventListener("click", () => {
   void closeAdminUsersModal();
 });
+closeAdminPendingEntriesModalBtn?.addEventListener("click", () => {
+  void closeAdminPendingEntriesModal();
+});
+cancelAdminPendingEntriesModalBtn?.addEventListener("click", () => {
+  void closeAdminPendingEntriesModal();
+});
 closeAdminImpersonateModalBtn?.addEventListener("click", () => {
   void closeAdminImpersonateModal();
 });
@@ -6412,6 +6706,19 @@ adminUsersListEl?.addEventListener("click", (event) => {
   if (deleteAdminUserModalBtn) deleteAdminUserModalBtn.hidden = false;
   void openAdminUserEditorModal();
   void fetchAdminUserStats(id).then(renderAdminUserStats);
+});
+
+adminPendingEntriesListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const button = target.closest("[data-admin-pending-entry-id]");
+  if (!button) return;
+  const id = Number(button.getAttribute("data-admin-pending-entry-id") || 0);
+  if (id <= 0) return;
+  const item = adminPendingEntriesCache.find((entry) => Number(entry?.id || 0) === id);
+  if (!item) return;
+  loadedEntriesIndex.set(id, item);
+  void closeAdminPendingEntriesModal().then(() => openEntryEditor(id));
 });
 
 adminImpersonateListEl?.addEventListener("click", (event) => {
@@ -6593,6 +6900,13 @@ adminUsersModal?.addEventListener("ionModalDidDismiss", () => {
   refreshPickerLayerState();
 });
 adminUsersModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+adminPendingEntriesModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminPendingEntriesModal?.addEventListener("ionModalDidPresent", () => {
   refreshPickerLayerState();
 });
 

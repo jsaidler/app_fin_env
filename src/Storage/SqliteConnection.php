@@ -219,6 +219,7 @@ class SqliteConnection
         self::ensureColumn($pdo, 'entries', 'account_id', 'INTEGER');
         self::ensureColumn($pdo, 'entries', 'needs_review', 'INTEGER NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'entries', 'reviewed_at', 'TEXT');
+        self::ensureColumn($pdo, 'entries', 'valid_amount', 'REAL');
         self::ensureColumn($pdo, 'entries', 'recurrence_id', 'INTEGER');
         self::ensureColumn($pdo, 'entries', 'last_modified_by_user_id', 'INTEGER');
         self::ensureColumn($pdo, 'entries', 'last_modified_at', 'TEXT');

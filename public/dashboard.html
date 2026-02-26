@@ -211,6 +211,13 @@
                 <span class="material-symbols-rounded">chevron_right</span>
               </span>
             </button>
+            <button type="button" class="entry-picker-row" data-admin-action="pending-entries">
+              <span class="entry-picker-row__label">Lançamentos pendentes <span id="admin-pending-entries-badge" class="admin-action-badge" hidden>0</span></span>
+              <span class="entry-picker-row__value-wrap">
+                <span class="entry-picker-row__value">Revisar e aprovar pendências</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </span>
+            </button>
             <button type="button" class="entry-picker-row" data-admin-action="impersonate-user">
               <span class="entry-picker-row__label">Personificar usuário</span>
               <span class="entry-picker-row__value-wrap">
@@ -443,7 +450,7 @@
               <span id="selected-admin-category-type" class="entry-picker-row__value">Saída</span>
               <span class="material-symbols-rounded">chevron_right</span>
             </button>
-            <p class="entry-stage__title">Código Alterdata (opcional)</p>
+            <p class="entry-stage__title">Código Alterdata</p>
             <ion-item class="entry-text-field entry-text-field--no-label">
               <ion-input id="admin-category-alterdata" type="text" placeholder="Ex.: 1.01.001"></ion-input>
             </ion-item>
@@ -689,6 +696,29 @@
       </div>
     </ion-modal>
 
+    <ion-modal id="admin-pending-entries-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Lançamentos Pendentes</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-pending-entries-modal" aria-label="Fechar lançamentos pendentes">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-pending-entries-list" class="category-list"></div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-pending-entries-modal">Fechar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
     <ion-modal id="admin-close-month-date-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
@@ -767,6 +797,34 @@
       <div class="entry-content ion-padding">
         <div id="admin-export-user-list" class="category-list"></div>
       </div>
+    </ion-modal>
+
+    <ion-modal id="admin-history-detail-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Detalhes do histórico</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-history-detail-modal" aria-label="Fechar detalhes do histórico">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Detalhes do histórico administrativo">
+            <p id="admin-history-detail-title" class="entry-stage__title">Histórico</p>
+            <div id="admin-history-detail-list" class="settings-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-history-detail-modal">Fechar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
     </ion-modal>
 
     <ion-modal id="entry-modal" class="sheet-modal entry-sheet">
@@ -1432,8 +1490,23 @@
           </div>
 
           <section class="filters-block" aria-label="Tipo de lançamento">
+            <p class="entry-stage__title">Situação</p>
+            <ion-segment id="entries-filter-status" value="all" mode="md" scrollable="true">
+              <ion-segment-button value="all">
+                <ion-label>Todos</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="pending">
+                <ion-label>Pendentes</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="deleted">
+                <ion-label>Excluídos</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+          </section>
+
+          <section class="filters-block" aria-label="Tipo de lançamento">
             <p class="entry-stage__title">Tipo</p>
-            <ion-segment id="entries-filter-type" value="all" mode="md">
+            <ion-segment id="entries-filter-type" value="all" mode="md" scrollable="true">
               <ion-segment-button value="all">
                 <ion-label>Todos</ion-label>
               </ion-segment-button>
@@ -1442,9 +1515,6 @@
               </ion-segment-button>
               <ion-segment-button value="out">
                 <ion-label>Saída</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="deleted">
-                <ion-label>Excluídos</ion-label>
               </ion-segment-button>
             </ion-segment>
           </section>

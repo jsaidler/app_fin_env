@@ -142,31 +142,36 @@ class ReportService
     public function entriesGroupsReport(int $userId, array $filters): array
     {
         $typeFilter = trim((string)($filters['type'] ?? ''));
+        $pendingOnly = $typeFilter === 'pending';
         $deletedOnly = $typeFilter === 'deleted' || !empty($filters['deleted_only']);
         $entries = $this->entries->listByUser($userId, $deletedOnly);
         if ($deletedOnly) {
             $entries = array_values(array_filter($entries, fn($e) => !empty($e->deletedAt)));
         }
         $filtered = $this->filterEntries($entries, $filters);
-        $approvedFiltered = $this->approvedEntries($filtered);
+        $groupEntriesFiltered = $filtered;
 
-        // Totais por nível independentes de filtros comuns.
-        // No modo "deleted", o escopo-base são todos os excluídos.
-        $approvedAll = $deletedOnly ? $approvedFiltered : $this->approvedEntries($entries);
+        // Totais por nÃ­vel independentes de filtros comuns.
+        // No modo "deleted", o escopo-base sÃ£o todos os excluÃ­dos.
+        $groupEntriesAll = $deletedOnly
+            ? $groupEntriesFiltered
+            : ($pendingOnly
+                ? array_values(array_filter($entries, fn($e) => empty($e->deletedAt) && !empty($e->needsReview)))
+                : array_values(array_filter($entries, fn($e) => empty($e->deletedAt))));
 
-        $groupedFiltered = $this->groupedByYearMonth($approvedFiltered);
-        $groupedAllTotals = $this->groupedByYearMonth($approvedAll);
+        $groupedFiltered = $this->groupedByYearMonth($groupEntriesFiltered);
+        $groupedAllTotals = $this->groupedByYearMonth($groupEntriesAll);
         $grouped = $this->mergeGroupTotals($groupedFiltered, $groupedAllTotals);
 
         return [
-            'totals' => $this->totals($approvedAll),
-            'count' => count($approvedFiltered),
+            'totals' => $this->totals($groupEntriesAll),
+            'count' => count($groupEntriesFiltered),
             'groups' => $grouped,
         ];
     }
 
     /**
-     * Mantém estrutura/entries filtrados, mas troca totais de ano/mês/dia pelos totais-base do período.
+     * MantÃ©m estrutura/entries filtrados, mas troca totais de ano/mÃªs/dia pelos totais-base do perÃ­odo.
      *
      * @param array<int, array<string, mixed>> $filtered
      * @param array<int, array<string, mixed>> $base
@@ -249,14 +254,30 @@ class ReportService
     private function filterEntries(array $entries, array $filters): array
     {
         $type = $filters['type'] ?? null;
-        if ($type === 'all' || $type === '' || $type === 'deleted') {
+        $pendingOnly = $type === 'pending';
+        $entryType = trim((string)($filters['entry_type'] ?? ''));
+        if ($entryType !== 'in' && $entryType !== 'out') {
+            $entryType = '';
+        }
+        if ($type === 'all' || $type === '' || $type === 'deleted' || $type === 'pending') {
             $type = null;
+        }
+        if ($entryType !== '') {
+            $type = $entryType;
         }
         $includeDeleted = (bool)($filters['include_deleted'] ?? false);
         $deletedOnly = (bool)($filters['deleted_only'] ?? false) || (($filters['type'] ?? null) === 'deleted');
 
         if ($deletedOnly) {
-            return array_values(array_filter($entries, fn($e) => !empty($e->deletedAt)));
+            return array_values(array_filter($entries, function ($e) use ($type) {
+                if (empty($e->deletedAt)) {
+                    return false;
+                }
+                if ($type && $e->type !== $type) {
+                    return false;
+                }
+                return true;
+            }));
         }
         $categories = [];
         if (!empty($filters['categories']) && is_array($filters['categories'])) {
@@ -274,11 +295,14 @@ class ReportService
         $query = $query !== '' ? $this->lower($query) : null;
         [$start, $end] = $this->normalizeRange($filters);
 
-        return array_values(array_filter($entries, function ($e) use ($type, $categories, $query, $start, $end, $includeDeleted, $deletedOnly) {
+        return array_values(array_filter($entries, function ($e) use ($type, $pendingOnly, $categories, $query, $start, $end, $includeDeleted, $deletedOnly) {
             if (!$includeDeleted && !$deletedOnly && !empty($e->deletedAt)) {
                 return false;
             }
             if ($deletedOnly && empty($e->deletedAt)) {
+                return false;
+            }
+            if ($pendingOnly && empty($e->needsReview)) {
                 return false;
             }
             if ($type && $e->type !== $type) {
@@ -380,7 +404,7 @@ class ReportService
 
     private function accumulateEntryTotals(array &$totals, object $entry): void
     {
-        $amount = (float)abs((float)$entry->amount);
+        $amount = (float)abs($this->effectiveAmount($entry));
         if ($entry->type === 'in') {
             $totals['in'] += $amount;
             $totals['balance'] += $amount;
@@ -498,10 +522,11 @@ class ReportService
         $totalIn = 0;
         $totalOut = 0;
         foreach ($entries as $entry) {
+            $amount = $this->effectiveAmount($entry);
             if ($entry->type === 'in') {
-                $totalIn += $entry->amount;
+                $totalIn += $amount;
             } else {
-                $totalOut += $entry->amount;
+                $totalOut += $amount;
             }
         }
         return [
@@ -644,7 +669,7 @@ class ReportService
         foreach ($entries as $entry) {
             $name = trim((string)($entry->accountName ?? ''));
             if ($name === '') {
-                $name = 'Sem conta/cartão';
+                $name = 'Sem conta/cartÃ£o';
             }
             $accountId = (int)($entry->accountId ?? 0);
             $key = ($accountId > 0 ? $accountId . ':' : 'name:') . strtolower($name);
@@ -730,5 +755,16 @@ class ReportService
     private function lower(string $value): string
     {
         return function_exists('mb_strtolower') ? mb_strtolower($value) : strtolower($value);
+    }
+
+    private function effectiveAmount(object $entry): float
+    {
+        if (!empty($entry->needsReview)) {
+            if (isset($entry->validAmount) && $entry->validAmount !== null) {
+                return (float)$entry->validAmount;
+            }
+            return (float)$entry->amount;
+        }
+        return (float)$entry->amount;
     }
 }

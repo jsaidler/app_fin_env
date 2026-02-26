@@ -22,6 +22,7 @@ class Entry
     public ?string $deletedType = null;
     public bool $needsReview = false;
     public ?string $reviewedAt = null;
+    public ?float $validAmount = null;
     public ?int $recurrenceId = null;
     public ?int $lastModifiedByUserId = null;
     public ?string $lastModifiedAt = null;
@@ -46,6 +47,9 @@ class Entry
         $e->deletedType = $data['deleted_type'] ?? null;
         $e->needsReview = !empty($data['needs_review']);
         $e->reviewedAt = $data['reviewed_at'] ?? null;
+        $e->validAmount = array_key_exists('valid_amount', $data) && $data['valid_amount'] !== null
+            ? (float)$data['valid_amount']
+            : null;
         $e->recurrenceId = array_key_exists('recurrence_id', $data) && $data['recurrence_id'] !== null ? (int)$data['recurrence_id'] : null;
         $e->lastModifiedByUserId = array_key_exists('last_modified_by_user_id', $data) && $data['last_modified_by_user_id'] !== null
             ? (int)$data['last_modified_by_user_id']
@@ -74,6 +78,7 @@ class Entry
             'deleted_type' => $this->deletedType,
             'needs_review' => $this->needsReview ? 1 : 0,
             'reviewed_at' => $this->reviewedAt,
+            'valid_amount' => $this->validAmount,
             'recurrence_id' => $this->recurrenceId,
             'last_modified_by_user_id' => $this->lastModifiedByUserId,
             'last_modified_at' => $this->lastModifiedAt,
