@@ -276,6 +276,7 @@ ion-content::part(scroll) {
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   padding: 0 16px 6px;
   position: relative;
   z-index: 13;
@@ -304,7 +305,7 @@ ion-content::part(scroll) {
   justify-content: center;
   line-height: 1;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: pan-x;
 }
 
 .dash-tab::before {
@@ -2270,6 +2271,10 @@ ion-fab.fab-safe {
 
 .sheet-modal .toolbar-actions {
   display: none !important;
+}
+
+.support-sheet .toolbar-actions {
+  display: flex !important;
 }
 
 .entry-title {

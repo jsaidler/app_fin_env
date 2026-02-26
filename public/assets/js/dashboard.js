@@ -374,6 +374,44 @@ const recurrenceDetailNextAmountEl = document.getElementById("recurrence-detail-
 const recurrenceDetailNextMetaEl = document.getElementById("recurrence-detail-next-meta");
 const recurrenceDetailListEl = document.getElementById("recurrence-detail-list");
 const editRecurrenceFromDetailBtn = document.getElementById("edit-recurrence-from-detail");
+const infiniteListTargets = [
+  { el: entriesList, selector: ".entry-day", chunkSize: 20 },
+  { el: reviewList, selector: ":scope > .row", chunkSize: 24 },
+  { el: nextList, selector: ":scope > .row", chunkSize: 24 },
+  { el: categoriesListScreen, selector: ":scope > .cat-row", chunkSize: 24 },
+  { el: accountsListScreen, selector: ":scope > .cat-row", chunkSize: 24 },
+  { el: recurrencesListScreen, selector: ".entry-day", chunkSize: 20 },
+  { el: categoryListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
+  { el: accountListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
+  { el: entryRecurrenceListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: userCategoryIconListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: userCategoryGlobalListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
+  { el: userAccountIconListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: recurrenceCategoryListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
+  { el: recurrenceAccountListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
+  { el: recurrenceFrequencyListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: supportMessagesEl, selector: ":scope > .support-msg", chunkSize: 24 },
+  { el: supportThreadListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: supportAttachListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: supportEntityListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: notificationsListEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
+  { el: adminCategoriesListEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
+  { el: adminUsersListEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
+  { el: adminImpersonateListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminPendingEntriesListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 20 },
+  { el: adminCloseMonthUsersEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminCloseMonthHistoryEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
+  { el: adminExportUserListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminExportHistoryEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
+  { el: adminCategoryTypeListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminUserRoleListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminExportTypeListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminAlterdataConfigListEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
+  { el: adminAlterdataSourceListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminAlterdataFieldListEl, selector: ":scope > .category-option", chunkSize: 24 },
+];
+const infiniteListState = new WeakMap();
+const infiniteListObservers = [];
 let selectedDateISO = "";
 let selectedCategoryValue = "";
 let selectedAccountId = 0;
@@ -911,6 +949,138 @@ function setupTabDragScroll() {
   tabNavWrap.addEventListener("pointercancel", stopDragging);
   tabNavWrap.addEventListener("lostpointercapture", stopDragging);
   tabNavWrap.addEventListener("scroll", syncTabPill, { passive: true });
+
+  let touchDragging = false;
+  let touchLockedX = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartScroll = 0;
+
+  tabNavWrap.addEventListener("touchstart", (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchDragging = true;
+    touchLockedX = false;
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartScroll = tabNavWrap.scrollLeft;
+  }, { passive: true });
+
+  tabNavWrap.addEventListener("touchmove", (event) => {
+    if (!touchDragging) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    if (!touchLockedX) {
+      if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
+      touchLockedX = true;
+    }
+    event.preventDefault();
+    tabNavWrap.scrollLeft = touchStartScroll - deltaX;
+  }, { passive: false });
+
+  tabNavWrap.addEventListener("touchend", () => {
+    touchDragging = false;
+    touchLockedX = false;
+  }, { passive: true });
+
+  tabNavWrap.addEventListener("touchcancel", () => {
+    touchDragging = false;
+    touchLockedX = false;
+  }, { passive: true });
+}
+
+function destroyInfiniteListState(container) {
+  if (!container) return;
+  const state = infiniteListState.get(container);
+  if (!state) return;
+  if (state?.observer) state.observer.disconnect();
+  if (state?.sentinel && state.sentinel.parentNode === container) {
+    state.sentinel.remove();
+  }
+  (state.items || []).forEach((item) => {
+    if (!(item instanceof HTMLElement)) return;
+    if (item.dataset.infHidden === "1") {
+      item.style.display = "";
+      delete item.dataset.infHidden;
+    }
+  });
+  infiniteListState.delete(container);
+}
+
+function applyInfiniteList(container, selector = ":scope > *", chunkSize = 24) {
+  if (!container) return;
+  destroyInfiniteListState(container);
+  const items = Array.from(container.querySelectorAll(selector))
+    .filter((node) => node instanceof HTMLElement && !node.hasAttribute("hidden"));
+  if (items.length <= chunkSize) return;
+
+  const shown = Math.max(1, Math.min(chunkSize, items.length));
+  for (let idx = shown; idx < items.length; idx += 1) {
+    const item = items[idx];
+    if (!(item instanceof HTMLElement)) continue;
+    item.style.display = "none";
+    item.dataset.infHidden = "1";
+  }
+
+  const sentinel = document.createElement("div");
+  sentinel.className = "list-infinite-sentinel";
+  sentinel.setAttribute("aria-hidden", "true");
+  container.appendChild(sentinel);
+
+  const state = {
+    items,
+    shown,
+    chunkSize: Math.max(1, chunkSize),
+    sentinel,
+    observer: null,
+  };
+
+  const revealNextChunk = () => {
+    if (!state.items.length) return;
+    const nextShown = Math.min(state.items.length, state.shown + state.chunkSize);
+    for (let idx = state.shown; idx < nextShown; idx += 1) {
+      const item = state.items[idx];
+      if (!(item instanceof HTMLElement)) continue;
+      item.style.display = "";
+      delete item.dataset.infHidden;
+    }
+    state.shown = nextShown;
+    if (state.shown >= state.items.length) {
+      if (state.observer) state.observer.disconnect();
+      if (state.sentinel.parentNode === container) state.sentinel.remove();
+      infiniteListState.delete(container);
+    }
+  };
+
+  state.observer = new IntersectionObserver((entries) => {
+    if (entries.some((entry) => entry.isIntersecting)) {
+      revealNextChunk();
+    }
+  }, {
+    root: null,
+    rootMargin: "0px 0px 220px 0px",
+    threshold: 0.01,
+  });
+  state.observer.observe(sentinel);
+  infiniteListState.set(container, state);
+}
+
+function initInfiniteLists() {
+  infiniteListObservers.forEach((observer) => observer.disconnect());
+  infiniteListObservers.length = 0;
+  infiniteListTargets.forEach((target) => {
+    const container = target?.el;
+    if (!container) return;
+    const apply = () => applyInfiniteList(container, String(target.selector || ":scope > *"), Number(target.chunkSize || 24));
+    const observer = new MutationObserver(() => {
+      window.requestAnimationFrame(apply);
+    });
+    observer.observe(container, { childList: true });
+    infiniteListObservers.push(observer);
+    apply();
+  });
 }
 
 function setupTabNav() {
@@ -1232,7 +1402,7 @@ function syncDashMenuUserSummary() {
   const email = String(currentProfile?.email || "-");
   const role = adminUserRoleLabel(String(currentProfile?.role || "user"));
   const alterdata = String(currentProfile?.alterdataCode || "").trim();
-  const meta = alterdata ? `${role} · Alterdata ${alterdata}` : role;
+  const meta = alterdata ? `${role} · ${alterdata}` : role;
   if (dashMenuUserNameEl) dashMenuUserNameEl.textContent = name;
   if (dashMenuUserEmailEl) dashMenuUserEmailEl.textContent = email;
   if (dashMenuUserMetaEl) dashMenuUserMetaEl.textContent = meta;
@@ -8564,6 +8734,7 @@ setupTabNav();
 setupEntryModal();
 setupRecurrenceInteractions();
 setupConfirmActionModal();
+initInfiniteLists();
 initEntryFilters();
 formatFilterPanel();
 setupEntriesInteractions();
