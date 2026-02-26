@@ -11,7 +11,7 @@ class SupportController extends BaseController
     public function threads(): void
     {
         $uid = $this->requireAuth();
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         $threads = $service->listThreadsForUser($uid);
         Response::json(['threads' => $threads]);
     }
@@ -24,7 +24,7 @@ class SupportController extends BaseController
         if ($subject === '') {
             Response::json(['error' => 'Assunto obrigatorio'], 422);
         }
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         $created = $service->createThread($uid, $subject, 'user');
         Response::json($created, 201);
     }
@@ -36,7 +36,7 @@ class SupportController extends BaseController
         if ($threadId <= 0) {
             Response::json(['error' => 'Atendimento invalido'], 422);
         }
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         $thread = $service->findThread($threadId);
         if (!$thread || (int)$thread['user_id'] !== $uid) {
             Response::json(['error' => 'Atendimento invalido'], 404);
@@ -63,7 +63,7 @@ class SupportController extends BaseController
             Response::json(['error' => 'Anexo invalido'], 422);
         }
         $attachmentMeta = $this->normalizeAttachmentMeta($uid, $attachmentType, $attachment, $attachmentRefType, $attachmentRefId, $attachmentTitle);
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         $thread = $service->findThread($threadId);
         if (!$thread || (int)$thread['user_id'] !== $uid) {
             Response::json(['error' => 'Atendimento invalido'], 404);
@@ -80,9 +80,9 @@ class SupportController extends BaseController
         int $attachmentRefId,
         string $attachmentTitle
     ): array {
-        $allowedTypes = ['file', 'screenshot', 'audio', 'entry', 'category', 'account', 'recurrence'];
+        $allowedTypes = ['file', 'screenshot', 'audio', 'entry', 'category', 'category_global', 'account', 'recurrence'];
         $type = in_array($attachmentType, $allowedTypes, true) ? $attachmentType : '';
-        $refType = in_array($attachmentRefType, ['entry', 'category', 'account', 'recurrence'], true) ? $attachmentRefType : '';
+        $refType = in_array($attachmentRefType, ['entry', 'category', 'category_global', 'account', 'recurrence'], true) ? $attachmentRefType : '';
         $refId = $attachmentRefId > 0 ? $attachmentRefId : 0;
 
         if ($type === 'audio' && $attachmentPath === '') {
@@ -91,7 +91,7 @@ class SupportController extends BaseController
         if (($type === 'file' || $type === 'screenshot') && $attachmentPath === '') {
             Response::json(['error' => 'Anexo de arquivo inválido'], 422);
         }
-        if (in_array($type, ['entry', 'category', 'account', 'recurrence'], true)) {
+        if (in_array($type, ['entry', 'category', 'category_global', 'account', 'recurrence'], true)) {
             if ($refType === '') {
                 $refType = $type;
             }
@@ -126,6 +126,15 @@ class SupportController extends BaseController
             'account' => ['table' => 'user_accounts', 'user_col' => 'user_id'],
             'recurrence' => ['table' => 'recurrences', 'user_col' => 'user_id'],
         ];
+        if ($refType === 'category_global') {
+            $stmt = $pdo->prepare('SELECT id FROM categories WHERE id = :id LIMIT 1');
+            $stmt->execute(['id' => $refId]);
+            $exists = (int)($stmt->fetchColumn() ?: 0);
+            if ($exists <= 0) {
+                Response::json(['error' => 'Referência inválida para este usuário'], 422);
+            }
+            return;
+        }
         if (!isset($map[$refType])) {
             Response::json(['error' => 'Referência inválida'], 422);
         }

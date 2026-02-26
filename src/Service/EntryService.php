@@ -123,9 +123,6 @@ class EntryService
             ]);
             $ok = (bool)$deleted;
         }
-        if ($ok && $hard && $entry->attachmentPath) {
-            $this->deleteAttachment($entry->attachmentPath);
-        }
         if ($ok && $isClosed) {
             $this->notifyAdmin($userId, $entry, 'deleted');
         }

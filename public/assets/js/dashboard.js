@@ -5481,11 +5481,13 @@ function syncSupportAttachmentPreview() {
   if (!supportAttachmentDraft) {
     supportAttachmentPreviewEl.hidden = true;
     supportAttachmentTitleEl.textContent = "";
+    supportModal?.classList.remove("is-attachment-open");
     return;
   }
   const title = String(supportAttachmentDraft?.title || "").trim() || "Anexo";
   supportAttachmentTitleEl.textContent = title;
   supportAttachmentPreviewEl.hidden = false;
+  supportModal?.classList.add("is-attachment-open");
 }
 
 function clearSupportAttachmentDraft() {
@@ -5631,7 +5633,7 @@ function supportMessageAttachmentHtml(item) {
     `;
   }
 
-  if ((refType === "entry" || refType === "category" || refType === "account" || refType === "recurrence") && refId > 0) {
+  if ((refType === "entry" || refType === "category" || refType === "category_global" || refType === "account" || refType === "recurrence") && refId > 0) {
     return `
       <div class="support-msg__attach">
         <span class="support-msg__attach-title">${escapeHtml(title || "Referência")}</span>
@@ -5785,6 +5787,8 @@ async function closeSupportAttachModal() {
 function supportEntityRowsByType(type) {
   if (type === "entry") {
     return (dashboardEntriesCache || []).map((row) => ({
+      key: `entry:${Number(row?.id || 0)}`,
+      refType: "entry",
       id: Number(row?.id || 0),
       title: String(row?.description || row?.category || `Lançamento #${row?.id || ""}`),
       meta: `${formatIsoDate(String(row?.date || "").slice(0, 10)) || "--"} · ${money.format(Number(row?.amount || 0))}`,
@@ -5793,7 +5797,8 @@ function supportEntityRowsByType(type) {
   if (type === "category") {
     const allCategories = Array.isArray(categories) ? categories : [];
     const userCategories = allCategories.filter((row) => String(row?.scope || "global") === "user");
-    const source = userCategories.length ? userCategories : allCategories;
+    const globalCategories = allCategories.filter((row) => String(row?.scope || "global") === "global");
+    const source = [...userCategories, ...globalCategories];
     const entriesByCategory = (Array.isArray(dashboardEntriesCache) ? dashboardEntriesCache : [])
       .reduce((acc, row) => {
         const name = String(row?.category || "").trim();
@@ -5803,6 +5808,8 @@ function supportEntityRowsByType(type) {
       }, new Map());
     return source
       .map((row) => ({
+        key: `${String(row?.scope || "global") === "global" ? "category_global" : "category"}:${Number(row?.id || 0)}`,
+        refType: String(row?.scope || "global") === "global" ? "category_global" : "category",
         id: Number(row?.id || 0),
         title: String(row?.name || "").trim(),
         meta: `${Number(entriesByCategory.get(String(row?.name || "").trim()) || 0)} lançamento${Number(entriesByCategory.get(String(row?.name || "").trim()) || 0) === 1 ? "" : "s"}`,
@@ -5811,6 +5818,8 @@ function supportEntityRowsByType(type) {
   }
   if (type === "account") {
     return (accounts || []).map((row) => ({
+      key: `account:${Number(row?.id || 0)}`,
+      refType: "account",
       id: Number(row?.id || 0),
       title: String(row?.name || ""),
       meta: String(row?.type || ""),
@@ -5818,6 +5827,8 @@ function supportEntityRowsByType(type) {
   }
   if (type === "recurrence") {
     return (recurrences || []).map((row) => ({
+      key: `recurrence:${Number(row?.id || 0)}`,
+      refType: "recurrence",
       id: Number(row?.id || 0),
       title: String(row?.description || row?.category || `Recorrência #${row?.id || ""}`),
       meta: `${formatIsoDate(String(row?.next_run_date || row?.start_date || "").slice(0, 10)) || "--"} · ${money.format(Number(row?.amount || 0))}`,
@@ -5847,7 +5858,7 @@ function renderSupportEntityList() {
     return;
   }
   supportEntityListEl.innerHTML = rows.map((row) => `
-    <button type="button" class="category-option category-option--text-meta is-neutral" data-support-entity-id="${Number(row?.id || 0)}">
+    <button type="button" class="category-option category-option--text-meta is-neutral" data-support-entity-key="${escapeHtml(String(row?.key || `${supportEntityPickerType}:${Number(row?.id || 0)}`))}">
       <span class="category-option__text-wrap">
         <span class="category-option__text">${escapeHtml(String(row?.title || ""))}</span>
         <span class="category-option__meta">${escapeHtml(String(row?.meta || ""))}</span>
@@ -5858,24 +5869,70 @@ function renderSupportEntityList() {
 
 async function openSupportEntityModal(type) {
   supportEntityPickerType = String(type || "");
-  if (supportEntityPickerType === "entry" && !dashboardEntriesCache.length) {
-    const response = await authFetch("/api/entries");
-    const payload = await safeJson(response, []);
-    if (Array.isArray(payload)) dashboardEntriesCache = payload;
+  const thread = supportCurrentThread();
+  const targetUserId = Number(thread?.user_id || 0);
+  const canUseAdminThreadContext = targetUserId > 0
+    && (String(currentProfile?.role || "") === "admin" || Boolean(getImpersonationAdminToken()));
+  const hasThreadContext = targetUserId > 0;
+  if (supportEntityPickerType === "entry") {
+    if (!hasThreadContext) {
+      dashboardEntriesCache = [];
+    } else {
+      const endpoint = canUseAdminThreadContext
+        ? `/api/admin/entries?user_id=${targetUserId}`
+        : "/api/entries";
+      const response = await authFetch(endpoint);
+      const payload = await safeJson(response, []);
+      dashboardEntriesCache = Array.isArray(payload) ? payload : [];
+    }
   }
-  if (supportEntityPickerType === "category" && !categories.length) {
-    await loadCategories();
+  if (supportEntityPickerType === "category") {
+    if (!hasThreadContext) {
+      categories = [];
+    } else {
+      const categoryEndpoint = canUseAdminThreadContext
+        ? `/api/admin/users/${targetUserId}/categories`
+        : "/api/categories";
+      const categoryResponse = await authFetch(categoryEndpoint);
+      const categoryPayload = await safeJson(categoryResponse, []);
+      categories = Array.isArray(categoryPayload) ? categoryPayload : [];
+    }
   }
-  if (supportEntityPickerType === "category" && !dashboardEntriesCache.length) {
-    const response = await authFetch("/api/entries");
-    const payload = await safeJson(response, []);
-    if (Array.isArray(payload)) dashboardEntriesCache = payload;
+  if (supportEntityPickerType === "category") {
+    if (!hasThreadContext) {
+      dashboardEntriesCache = [];
+    } else {
+      const endpoint = canUseAdminThreadContext
+        ? `/api/admin/entries?user_id=${targetUserId}`
+        : "/api/entries";
+      const response = await authFetch(endpoint);
+      const payload = await safeJson(response, []);
+      if (Array.isArray(payload)) dashboardEntriesCache = payload;
+    }
   }
-  if (supportEntityPickerType === "account" && !accounts.length) {
-    await loadAccounts(true);
+  if (supportEntityPickerType === "account") {
+    if (!hasThreadContext) {
+      accounts = [];
+    } else {
+      const endpoint = canUseAdminThreadContext
+        ? `/api/admin/users/${targetUserId}/accounts?include_inactive=1`
+        : "/api/accounts?include_inactive=1";
+      const response = await authFetch(endpoint);
+      const payload = await safeJson(response, []);
+      accounts = Array.isArray(payload) ? payload : [];
+    }
   }
-  if (supportEntityPickerType === "recurrence" && !recurrences.length) {
-    await loadRecurrences();
+  if (supportEntityPickerType === "recurrence") {
+    if (!hasThreadContext) {
+      recurrences = [];
+    } else {
+      const endpoint = canUseAdminThreadContext
+        ? `/api/admin/users/${targetUserId}/recurrences`
+        : "/api/recurrences";
+      const response = await authFetch(endpoint);
+      const payload = await safeJson(response, []);
+      recurrences = Array.isArray(payload) ? payload : [];
+    }
   }
   supportEntityPickerRows = supportEntityRowsByType(supportEntityPickerType);
   if (supportEntitySearchInput) supportEntitySearchInput.value = "";
@@ -5998,12 +6055,14 @@ async function openSupportEntityReference(refType, refId) {
   const type = String(refType || "");
   const id = Number(refId || 0);
   if (!type || id <= 0) return;
+  let temporaryImpersonation = false;
   if (isSupportAdminMode()) {
     const thread = supportCurrentThread();
     const targetUserId = Number(thread?.user_id || 0);
     if (targetUserId > 0) {
-      await impersonateAdminUser(targetUserId);
+      await impersonateAdminUser(targetUserId, { silent: true });
       if (isSupportAdminMode()) return;
+      temporaryImpersonation = true;
     }
   }
   if (type === "entry") {
@@ -6017,6 +6076,7 @@ async function openSupportEntityReference(refType, refId) {
         });
       }
     }
+    if (temporaryImpersonation) bindTemporaryImpersonationEnd(entryModal);
     await openEntryEditor(id);
     return;
   }
@@ -6024,23 +6084,40 @@ async function openSupportEntityReference(refType, refId) {
     const row = (categories || []).find((item) => Number(item?.id || 0) === id);
     if (row) {
       if (String(row?.scope || "global") === "user") {
+        if (temporaryImpersonation) bindTemporaryImpersonationEnd(userCategoryModal);
         await openUserCategoryEditModal(row);
       } else {
         const categoryName = String(row?.name || "").trim();
-        if (categoryName) await openCategoryDetailModal(categoryName);
+        if (categoryName) {
+          if (temporaryImpersonation) bindTemporaryImpersonationEnd(categoryDetailModal);
+          await openCategoryDetailModal(categoryName);
+        }
       }
+    }
+    return;
+  }
+  if (type === "category_global") {
+    const row = (categories || []).find((item) => Number(item?.id || 0) === id && String(item?.scope || "global") === "global");
+    const categoryName = String(row?.name || "").trim();
+    if (categoryName) {
+      if (temporaryImpersonation) bindTemporaryImpersonationEnd(categoryDetailModal);
+      await openCategoryDetailModal(categoryName);
     }
     return;
   }
   if (type === "account") {
     const row = (accounts || []).find((item) => Number(item?.id || 0) === id);
-    if (row) await openUserAccountEditModal(row);
+    if (row) {
+      if (temporaryImpersonation) bindTemporaryImpersonationEnd(userAccountModal);
+      await openUserAccountEditModal(row);
+    }
     return;
   }
   if (type === "recurrence") {
     if (!(recurrences || []).some((item) => Number(item?.id || 0) === id)) {
       await loadRecurrences();
     }
+    if (temporaryImpersonation) bindTemporaryImpersonationEnd(recurrenceModal);
     await openRecurrenceEditor(id);
   }
 }
@@ -7068,12 +7145,13 @@ async function saveAdminUser() {
   }
 }
 
-async function impersonateAdminUser(userId) {
+async function impersonateAdminUser(userId, options = {}) {
   const id = Number(userId || 0);
   if (id <= 0) return;
+  const silent = Boolean(options?.silent);
   const currentToken = getStoredAuthToken();
   if (!currentToken) {
-    showError("Sessão inválida para personificação.");
+    if (!silent) showError("Sessão inválida para personificação.");
     return;
   }
   if (saveAdminImpersonateModalBtn) saveAdminImpersonateModalBtn.disabled = true;
@@ -7085,12 +7163,12 @@ async function impersonateAdminUser(userId) {
     });
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível iniciar personificação."));
+      if (!silent) showError(String(payload?.error || "Não foi possível iniciar personificação."));
       return;
     }
     const nextToken = String(payload?.token || "");
     if (!nextToken) {
-      showError("Token de personificação inválido.");
+      if (!silent) showError("Token de personificação inválido.");
       return;
     }
     try {
@@ -7100,13 +7178,13 @@ async function impersonateAdminUser(userId) {
     }
     setStoredAuthToken(nextToken);
     const userName = String(payload?.user?.name || payload?.user?.email || "usuário");
-    showInfo(`Personificação iniciada: ${userName}.`);
+    if (!silent) showInfo(`Personificação iniciada: ${userName}.`);
     await closeAdminImpersonateModal();
     await closeAdminUserEditorModal();
     await closeAdminUsersModal();
     await loadDashboard();
   } catch {
-    showError("Falha de rede ao iniciar personificação.");
+    if (!silent) showError("Falha de rede ao iniciar personificação.");
   } finally {
     if (saveAdminImpersonateModalBtn) saveAdminImpersonateModalBtn.disabled = false;
   }
@@ -7141,7 +7219,8 @@ async function deleteAdminUser(id) {
   await closeAdminUserEditorModal();
 }
 
-async function stopImpersonation() {
+async function stopImpersonation(options = {}) {
+  const silent = Boolean(options?.silent);
   let adminToken = "";
   try {
     adminToken = String(localStorage.getItem(IMPERSONATION_ADMIN_TOKEN_KEY) || "");
@@ -7149,7 +7228,7 @@ async function stopImpersonation() {
     adminToken = "";
   }
   if (!adminToken) {
-    showError("Token do administrador não encontrado para encerrar personificação.");
+    if (!silent) showError("Token do administrador não encontrado para encerrar personificação.");
     return;
   }
   setStoredAuthToken(adminToken);
@@ -7158,8 +7237,19 @@ async function stopImpersonation() {
   } catch {
     // ignore storage errors
   }
-  showInfo("Personificação encerrada.");
+  if (!silent) showInfo("Personificação encerrada.");
   await loadDashboard();
+}
+
+function bindTemporaryImpersonationEnd(modalEl) {
+  if (!modalEl) return;
+  const handler = () => {
+    void (async () => {
+      if (!Boolean(currentProfile?.impersonation?.active)) return;
+      await stopImpersonation({ silent: true });
+    })();
+  };
+  modalEl.addEventListener("ionModalDidDismiss", handler, { once: true });
 }
 
 async function openAdminCloseMonthModal(options = {}) {
@@ -7897,14 +7987,16 @@ supportEntitySearchInput?.addEventListener("ionInput", () => {
 supportEntityListEl?.addEventListener("click", (event) => {
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (!target) return;
-  const btn = target.closest("[data-support-entity-id]");
+  const btn = target.closest("[data-support-entity-key]");
   if (!btn) return;
-  const id = Number(btn.getAttribute("data-support-entity-id") || 0);
-  if (id <= 0) return;
-  const row = supportEntityPickerRows.find((item) => Number(item?.id || 0) === id);
+  const key = String(btn.getAttribute("data-support-entity-key") || "").trim();
+  if (!key) return;
+  const row = supportEntityPickerRows.find((item) => String(item?.key || "") === key);
+  const id = Number(row?.id || 0);
+  if (!row || id <= 0) return;
   supportAttachmentDraft = {
-    type: supportEntityPickerType,
-    ref_type: supportEntityPickerType,
+    type: String(row?.refType || supportEntityPickerType),
+    ref_type: String(row?.refType || supportEntityPickerType),
     ref_id: id,
     title: String(row?.title || "Referência"),
   };
@@ -8306,6 +8398,7 @@ notificationsModal?.addEventListener("ionModalDidPresent", () => {
 });
 
 supportModal?.addEventListener("ionModalDidDismiss", () => {
+  supportModal.classList.remove("is-attachment-open");
   refreshPickerLayerState();
 });
 supportModal?.addEventListener("ionModalDidPresent", () => {

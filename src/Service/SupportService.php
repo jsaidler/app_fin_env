@@ -8,26 +8,32 @@ use PDO;
 class SupportService
 {
     private PDO $pdo;
+    private ?string $uploadDir;
+    private bool $retentionCleanupRan = false;
 
-    public function __construct(PDO $pdo)
+    public function __construct(PDO $pdo, ?string $uploadDir = null)
     {
         $this->pdo = $pdo;
+        $this->uploadDir = $uploadDir ? rtrim($uploadDir, DIRECTORY_SEPARATOR . '/\\') : null;
     }
 
     public function listThreads(): array
     {
+        $this->cleanupExpiredThreads();
         $this->bootstrapLegacyThreads();
         return $this->listThreadsInternal(null, 'user');
     }
 
     public function listThreadsForUser(int $userId): array
     {
+        $this->cleanupExpiredThreads();
         $this->bootstrapLegacyThreads();
         return $this->listThreadsInternal($userId, 'admin');
     }
 
     public function findThread(int $threadId): ?array
     {
+        $this->cleanupExpiredThreads();
         $stmt = $this->pdo->prepare('SELECT t.id, t.user_id, t.subject, t.entry_id, t.created_by_role, t.created_at, t.updated_at, t.closed_at,
             u.name, u.email
             FROM support_threads t
@@ -80,6 +86,7 @@ class SupportService
 
     public function createThread(int $userId, string $subject, string $role, ?int $entryId = null): array
     {
+        $this->cleanupExpiredThreads();
         $subject = trim($subject);
         if ($entryId) {
             $existing = $this->findThreadForEntry($userId, $entryId);
@@ -113,6 +120,7 @@ class SupportService
 
     public function listMessages(int $threadId, ?string $markReadRole = null): array
     {
+        $this->cleanupExpiredThreads();
         if ($markReadRole) {
             $stmt = $this->pdo->prepare('UPDATE support_messages SET read_at = :read_at WHERE thread_id = :tid AND sender_role = :role AND read_at IS NULL');
             $stmt->execute([
@@ -148,6 +156,7 @@ class SupportService
 
     public function sendMessage(int $threadId, int $userId, string $role, string $message, ?string $attachmentPath = null, array $attachmentMeta = []): array
     {
+        $this->cleanupExpiredThreads();
         $attachmentType = trim((string)($attachmentMeta['type'] ?? ''));
         $attachmentRefType = trim((string)($attachmentMeta['ref_type'] ?? ''));
         $attachmentRefId = isset($attachmentMeta['ref_id']) ? (int)$attachmentMeta['ref_id'] : null;
@@ -282,6 +291,116 @@ class SupportService
                     'uid' => $uid,
                 ]);
             }
+        }
+    }
+
+    private function cleanupExpiredThreads(): void
+    {
+        if ($this->retentionCleanupRan) {
+            return;
+        }
+        $this->retentionCleanupRan = true;
+
+        $cutoffIso = date('c', time() - (30 * 24 * 60 * 60));
+        $stmt = $this->pdo->prepare(
+            'SELECT id
+               FROM support_threads
+              WHERE COALESCE(updated_at, created_at) < :cutoff'
+        );
+        $stmt->execute(['cutoff' => $cutoffIso]);
+        $threadIds = array_values(array_filter(array_map(
+            static fn($row): int => (int)($row['id'] ?? 0),
+            $stmt->fetchAll() ?: []
+        ), static fn(int $id): bool => $id > 0));
+
+        if (!$threadIds) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($threadIds), '?'));
+        $attachmentsStmt = $this->pdo->prepare(
+            "SELECT DISTINCT attachment_path
+               FROM support_messages
+              WHERE thread_id IN ({$placeholders})
+                AND attachment_path IS NOT NULL
+                AND trim(attachment_path) <> ''
+                AND (
+                    attachment_type IN ('file', 'screenshot', 'audio')
+                    OR attachment_type IS NULL
+                    OR trim(attachment_type) = ''
+                )
+                AND (attachment_ref_type IS NULL OR trim(attachment_ref_type) = '')
+                AND (attachment_ref_id IS NULL OR attachment_ref_id = 0)"
+        );
+        $attachmentsStmt->execute($threadIds);
+        $attachmentPaths = array_values(array_filter(array_map(
+            static fn($row): string => trim((string)($row['attachment_path'] ?? '')),
+            $attachmentsStmt->fetchAll() ?: []
+        ), static fn(string $path): bool => $path !== ''));
+
+        $this->pdo->beginTransaction();
+        try {
+            $deleteMessages = $this->pdo->prepare("DELETE FROM support_messages WHERE thread_id IN ({$placeholders})");
+            $deleteMessages->execute($threadIds);
+            $deleteThreads = $this->pdo->prepare("DELETE FROM support_threads WHERE id IN ({$placeholders})");
+            $deleteThreads->execute($threadIds);
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        foreach ($attachmentPaths as $path) {
+            if ($this->isAttachmentReferencedByEntries($path)) {
+                continue;
+            }
+            $this->deleteAttachmentFile($path);
+        }
+    }
+
+    private function isAttachmentReferencedByEntries(string $path): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(1) FROM entries WHERE attachment_path = :path');
+        $stmt->execute(['path' => $path]);
+        return (int)($stmt->fetchColumn() ?: 0) > 0;
+    }
+
+    private function deleteAttachmentFile(string $relativePath): void
+    {
+        $relative = trim(str_replace('\\', '/', $relativePath), '/');
+        if ($relative === '') {
+            return;
+        }
+
+        $candidates = [];
+        $bases = array_values(array_filter([
+            $this->uploadDir,
+            sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'caixa-uploads',
+            dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'uploads',
+        ]));
+
+        foreach ($bases as $base) {
+            $normalizedBase = rtrim($base, DIRECTORY_SEPARATOR . '/');
+            $primary = $normalizedBase . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $candidates[] = $primary;
+            if (!str_contains($relative, '/uploads/')) {
+                $parts = explode('/', $relative, 2);
+                if (count($parts) === 2) {
+                    $candidates[] = $normalizedBase
+                        . DIRECTORY_SEPARATOR . $parts[0]
+                        . DIRECTORY_SEPARATOR . 'uploads'
+                        . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $parts[1]);
+                }
+            }
+        }
+
+        foreach (array_unique($candidates) as $filePath) {
+            if (!is_file($filePath)) {
+                continue;
+            }
+            @unlink($filePath);
         }
     }
 }

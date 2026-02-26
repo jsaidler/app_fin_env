@@ -108,9 +108,6 @@ class AdminEntryService
         $month = substr($entry->date, 0, 7);
         $isClosed = $this->locks && $this->locks->isClosedForUser($month, $entry->userId);
         $hard = !$isClosed;
-        if ($hard && $entry->attachmentPath) {
-            $this->deleteAttachment($entry->attachmentPath);
-        }
         // Admin mantém lixeira compartilhada: registros fechados ficam como soft delete
         $payload = $entry->toArray();
         $payload['deleted_at'] = date('c');

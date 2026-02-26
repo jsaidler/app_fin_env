@@ -5,7 +5,9 @@ namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteCategoryRepository;
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteRecurrenceRepository;
 use App\Repository\Sqlite\SqliteUserAccountRepository;
+use App\Repository\Sqlite\SqliteUserCategoryRepository;
 use App\Repository\Sqlite\SqliteUserRepository;
 use App\Service\AdminEntryService;
 use App\Service\AdminActivityLogService;
@@ -14,8 +16,11 @@ use App\Service\AdminNotificationService;
 use App\Service\AlterdataExportConfigService;
 use App\Service\CategoryService;
 use App\Service\MonthLockService;
+use App\Service\RecurrenceService;
 use App\Service\ReportService;
 use App\Service\SupportService;
+use App\Service\UserAccountService;
+use App\Service\UserCategoryService;
 use App\Util\Response;
 use App\Util\Token;
 
@@ -40,6 +45,52 @@ class AdminController extends BaseController
         }
         unset($row);
         Response::json($rows);
+    }
+
+    public function userCategories(array $params): void
+    {
+        $this->requireAdmin();
+        $userId = (int)($params['id'] ?? 0);
+        if ($userId <= 0) {
+            Response::json(['error' => 'Usuario invalido'], 422);
+        }
+        $user = $this->userRepo()->findById($userId);
+        if (!$user) {
+            Response::json(['error' => 'Usuario nao encontrado'], 404);
+        }
+        $service = new UserCategoryService($this->categoryRepo(), new SqliteUserCategoryRepository($this->db()), $this->entryRepo());
+        Response::json($service->listMergedForUser($userId));
+    }
+
+    public function userAccounts(array $params): void
+    {
+        $this->requireAdmin();
+        $userId = (int)($params['id'] ?? 0);
+        if ($userId <= 0) {
+            Response::json(['error' => 'Usuario invalido'], 422);
+        }
+        $user = $this->userRepo()->findById($userId);
+        if (!$user) {
+            Response::json(['error' => 'Usuario nao encontrado'], 404);
+        }
+        $includeInactive = isset($_GET['include_inactive']) && (string)$_GET['include_inactive'] === '1';
+        $service = new UserAccountService($this->accountRepo(), $this->entryRepo());
+        Response::json($service->listForUser($userId, $includeInactive));
+    }
+
+    public function userRecurrences(array $params): void
+    {
+        $this->requireAdmin();
+        $userId = (int)($params['id'] ?? 0);
+        if ($userId <= 0) {
+            Response::json(['error' => 'Usuario invalido'], 422);
+        }
+        $user = $this->userRepo()->findById($userId);
+        if (!$user) {
+            Response::json(['error' => 'Usuario nao encontrado'], 404);
+        }
+        $service = new RecurrenceService($this->recurrenceRepo(), $this->entryRepo(), $this->accountRepo());
+        Response::json($service->listForUser($userId));
     }
 
     public function createUser(): void
@@ -361,7 +412,7 @@ class AdminController extends BaseController
     public function supportThreads(): void
     {
         $this->requireAdmin();
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         Response::json(['threads' => $service->listThreads()]);
     }
 
@@ -391,7 +442,7 @@ class AdminController extends BaseController
         if ($subject === '') {
             Response::json(['error' => 'Assunto obrigatorio'], 422);
         }
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         $thread = $service->createThread($userId, $subject, 'admin', $entryId ?: null);
         Response::json($thread, 201);
     }
@@ -403,7 +454,7 @@ class AdminController extends BaseController
         if ($threadId <= 0) {
             Response::json(['error' => 'Atendimento invalido'], 422);
         }
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         $thread = $service->findThread($threadId);
         if (!$thread) {
             Response::json(['error' => 'Atendimento invalido'], 404);
@@ -426,7 +477,7 @@ class AdminController extends BaseController
         if ($threadId <= 0 || ($message === '' && $attachment === '' && $attachmentRefId <= 0)) {
             Response::json(['error' => 'Dados invalidos'], 422);
         }
-        $service = new SupportService($this->db());
+        $service = new SupportService($this->db(), $this->config['paths']['uploads'] ?? null);
         $thread = $service->findThread($threadId);
         if (!$thread) {
             Response::json(['error' => 'Atendimento invalido'], 404);
@@ -532,6 +583,11 @@ class AdminController extends BaseController
     protected function accountRepo()
     {
         return new SqliteUserAccountRepository($this->db());
+    }
+
+    protected function recurrenceRepo()
+    {
+        return new SqliteRecurrenceRepository($this->db());
     }
 
     protected function lockService(): MonthLockService
@@ -660,9 +716,9 @@ class AdminController extends BaseController
         int $attachmentRefId,
         string $attachmentTitle
     ): array {
-        $allowedTypes = ['file', 'screenshot', 'audio', 'entry', 'category', 'account', 'recurrence'];
+        $allowedTypes = ['file', 'screenshot', 'audio', 'entry', 'category', 'category_global', 'account', 'recurrence'];
         $type = in_array($attachmentType, $allowedTypes, true) ? $attachmentType : '';
-        $refType = in_array($attachmentRefType, ['entry', 'category', 'account', 'recurrence'], true) ? $attachmentRefType : '';
+        $refType = in_array($attachmentRefType, ['entry', 'category', 'category_global', 'account', 'recurrence'], true) ? $attachmentRefType : '';
         $refId = $attachmentRefId > 0 ? $attachmentRefId : 0;
 
         if ($type === 'audio' && $attachmentPath === '') {
@@ -671,7 +727,7 @@ class AdminController extends BaseController
         if (($type === 'file' || $type === 'screenshot') && $attachmentPath === '') {
             Response::json(['error' => 'Anexo de arquivo inválido'], 422);
         }
-        if (in_array($type, ['entry', 'category', 'account', 'recurrence'], true)) {
+        if (in_array($type, ['entry', 'category', 'category_global', 'account', 'recurrence'], true)) {
             if ($refType === '') {
                 $refType = $type;
             }
@@ -706,6 +762,15 @@ class AdminController extends BaseController
             'account' => ['table' => 'user_accounts', 'user_col' => 'user_id'],
             'recurrence' => ['table' => 'recurrences', 'user_col' => 'user_id'],
         ];
+        if ($refType === 'category_global') {
+            $stmt = $pdo->prepare('SELECT id FROM categories WHERE id = :id LIMIT 1');
+            $stmt->execute(['id' => $refId]);
+            $exists = (int)($stmt->fetchColumn() ?: 0);
+            if ($exists <= 0) {
+                Response::json(['error' => 'Referência inválida para este usuário'], 422);
+            }
+            return;
+        }
         if (!isset($map[$refType])) {
             Response::json(['error' => 'Referência inválida'], 422);
         }

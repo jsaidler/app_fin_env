@@ -3232,15 +3232,19 @@ ion-input.amount-input {
 }
 
 .support-sheet::part(content) {
-  --height: auto;
+  --height: min(92vh, 860px);
   max-height: calc(100vh - (var(--safe-top) + 12px));
+  display: flex;
+  flex-direction: column;
 }
 
 .support-chat-content {
-  display: grid;
-  grid-template-rows: auto auto minmax(220px, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 .support-messages {
@@ -3249,10 +3253,12 @@ ion-input.amount-input {
   border-radius: 0;
   padding: 0;
   overflow-y: auto;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  min-height: 220px;
-  max-height: 50vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
 }
 
 .support-msg {
@@ -3325,6 +3331,7 @@ ion-input.amount-input {
 }
 
 .support-chat-actions {
+  z-index: 30;
   border-top: 1px solid var(--cp-line);
   background: var(--cp-canvas);
 }
