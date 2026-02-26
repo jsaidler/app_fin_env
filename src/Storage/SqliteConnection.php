@@ -188,6 +188,10 @@ class SqliteConnection
         )');
         self::ensureColumn($pdo, 'support_messages', 'thread_id', 'INTEGER');
         self::ensureColumn($pdo, 'support_messages', 'attachment_path', 'TEXT');
+        self::ensureColumn($pdo, 'support_messages', 'attachment_type', 'TEXT');
+        self::ensureColumn($pdo, 'support_messages', 'attachment_ref_type', 'TEXT');
+        self::ensureColumn($pdo, 'support_messages', 'attachment_ref_id', 'INTEGER');
+        self::ensureColumn($pdo, 'support_messages', 'attachment_title', 'TEXT');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_support_messages_user ON support_messages(user_id)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_support_messages_thread ON support_messages(thread_id)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_support_messages_read ON support_messages(read_at)');

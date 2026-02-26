@@ -29,8 +29,9 @@
       <ion-toolbar class="dash-topbar">
         <div class="brand-shell">
           <div class="brand-top-actions">
-            <ion-button fill="clear" class="brand-top-btn" aria-label="Mensagens">
+            <ion-button id="dash-support-btn" fill="clear" class="brand-top-btn" aria-label="Mensagens">
               <span class="material-symbols-rounded">chat_bubble</span>
+              <span id="dash-support-badge" class="top-icon-badge" hidden>0</span>
             </ion-button>
             <img class="brand-logo" src="/assets/img/logo-mono-white-app.webp" alt="Envisione Assessoria Contábil" />
             <ion-button id="dash-menu-btn" fill="clear" class="brand-top-btn" aria-label="Opções">
@@ -285,6 +286,7 @@
           <ion-item button id="dash-notifications-menu">
             <span class="dash-menu-list__icon material-symbols-rounded" slot="start">notifications</span>
             <ion-label>Notificações</ion-label>
+            <span id="dash-notifications-badge" class="menu-item-badge" hidden>0</span>
             <span class="dash-menu-list__trail material-symbols-rounded" slot="end">chevron_right</span>
           </ion-item>
           <ion-item button id="dash-profile-menu">
@@ -329,6 +331,106 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div id="notifications-list" class="settings-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="support-modal" class="sheet-modal support-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Mensageiro</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-support-modal" aria-label="Fechar mensageiro">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding support-chat-content">
+        <button id="open-support-thread-picker" type="button" class="entry-picker-row" aria-expanded="false">
+          <span class="entry-picker-row__label">Conversa</span>
+          <span id="selected-support-thread" class="entry-picker-row__value is-placeholder">Selecionar conversa</span>
+          <span class="material-symbols-rounded">chevron_right</span>
+        </button>
+        <div id="support-thread-empty" class="settings-empty" hidden>
+          <p class="settings-empty__title">Sem conversa ativa</p>
+          <p class="settings-empty__text">Inicie uma conversa com o suporte para enviar mensagens.</p>
+        </div>
+        <div id="support-messages" class="support-messages" role="log" aria-live="polite"></div>
+      </div>
+      <ion-footer class="entry-actions support-chat-actions">
+        <ion-toolbar>
+          <div id="support-attachment-preview" class="support-attachment-preview" hidden>
+            <div id="support-attachment-title" class="support-attachment-preview__title">Anexo</div>
+            <button id="clear-support-attachment" type="button" class="support-attachment-preview__clear">Remover</button>
+          </div>
+          <div class="support-composer">
+            <button id="open-support-attach-modal" type="button" class="support-composer__icon" aria-label="Anexar">
+              <span class="material-symbols-rounded">add_circle</span>
+            </button>
+            <ion-item class="entry-text-field entry-text-field--no-label support-composer__field">
+              <ion-textarea id="support-message-input" auto-grow="true" rows="1" maxlength="1200" placeholder="Mensagem"></ion-textarea>
+            </ion-item>
+            <span id="support-recording-indicator" class="support-recording-indicator" hidden>00:00</span>
+            <button id="support-record-audio" type="button" class="support-composer__icon" aria-label="Gravar áudio">
+              <span class="material-symbols-rounded">mic</span>
+            </button>
+            <button id="support-send-message" type="button" class="support-composer__send" aria-label="Enviar mensagem">
+              <span class="material-symbols-rounded">send</span>
+            </button>
+          </div>
+          <input id="support-attachment-file" type="file" hidden accept="image/*" />
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="support-thread-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Conversas</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-support-thread-modal" aria-label="Fechar conversas">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="support-thread-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="support-attach-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Anexar</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-support-attach-modal" aria-label="Fechar anexos">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="support-attach-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="support-entity-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title id="support-entity-modal-title" class="entry-title">Selecionar item</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-support-entity-modal" aria-label="Fechar seleção de item">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-item class="entry-text-field entry-text-field--no-label">
+          <ion-input id="support-entity-search" type="search" placeholder="Buscar"></ion-input>
+        </ion-item>
+        <div id="support-entity-list" class="category-list"></div>
       </div>
     </ion-modal>
 
@@ -1717,4 +1819,3 @@
   <script type="module" src="/assets/js/dashboard.js"></script>
 </body>
 </html>
-

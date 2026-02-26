@@ -7,6 +7,8 @@ const infoEl = document.getElementById("dash-info");
 const logoutBtn = document.getElementById("dash-logout-menu");
 const refreshBtn = document.getElementById("dash-refresh-menu");
 const notificationsMenuBtn = document.getElementById("dash-notifications-menu");
+const supportTopBadgeEl = document.getElementById("dash-support-badge");
+const notificationsMenuBadgeEl = document.getElementById("dash-notifications-badge");
 const profileMenuBtn = document.getElementById("dash-profile-menu");
 const passwordMenuBtn = document.getElementById("dash-password-menu");
 const adminMenuBtn = document.getElementById("dash-admin-menu");
@@ -202,6 +204,33 @@ const passwordConfirmInput = document.getElementById("password-confirm");
 const impersonationBannerEl = document.getElementById("impersonation-banner");
 const impersonationBannerTextEl = document.getElementById("impersonation-banner-text");
 const stopImpersonationBtn = document.getElementById("stop-impersonation-btn");
+const supportMenuBtn = document.getElementById("dash-support-btn");
+const supportModal = document.getElementById("support-modal");
+const closeSupportModalBtn = document.getElementById("close-support-modal");
+const openSupportThreadPickerBtn = document.getElementById("open-support-thread-picker");
+const selectedSupportThreadEl = document.getElementById("selected-support-thread");
+const supportThreadEmptyEl = document.getElementById("support-thread-empty");
+const supportMessagesEl = document.getElementById("support-messages");
+const supportMessageInput = document.getElementById("support-message-input");
+const openSupportAttachModalBtn = document.getElementById("open-support-attach-modal");
+const supportRecordAudioBtn = document.getElementById("support-record-audio");
+const supportRecordingIndicatorEl = document.getElementById("support-recording-indicator");
+const supportSendMessageBtn = document.getElementById("support-send-message");
+const supportAttachmentFileInput = document.getElementById("support-attachment-file");
+const supportAttachmentPreviewEl = document.getElementById("support-attachment-preview");
+const supportAttachmentTitleEl = document.getElementById("support-attachment-title");
+const clearSupportAttachmentBtn = document.getElementById("clear-support-attachment");
+const supportThreadModal = document.getElementById("support-thread-modal");
+const closeSupportThreadModalBtn = document.getElementById("close-support-thread-modal");
+const supportThreadListEl = document.getElementById("support-thread-list");
+const supportAttachModal = document.getElementById("support-attach-modal");
+const closeSupportAttachModalBtn = document.getElementById("close-support-attach-modal");
+const supportAttachListEl = document.getElementById("support-attach-list");
+const supportEntityModal = document.getElementById("support-entity-modal");
+const closeSupportEntityModalBtn = document.getElementById("close-support-entity-modal");
+const supportEntityModalTitleEl = document.getElementById("support-entity-modal-title");
+const supportEntitySearchInput = document.getElementById("support-entity-search");
+const supportEntityListEl = document.getElementById("support-entity-list");
 
 const entryModal = document.getElementById("entry-modal");
 const openEntryBtn = document.getElementById("open-entry");
@@ -395,7 +424,7 @@ let confirmActionResolver = null;
 let confirmActionConfirmRole = "destructive";
 let editingRecurrenceId = 0;
 let recurrenceEditorHistoryToken = 0;
-let currentProfile = { name: "", email: "", role: "", alterdataCode: "", impersonation: { active: false, admin: null } };
+let currentProfile = { id: 0, name: "", email: "", role: "", alterdataCode: "", impersonation: { active: false, admin: null } };
 let editingAdminCategoryId = 0;
 let editingAdminUserId = 0;
 let adminUsersCache = [];
@@ -414,6 +443,15 @@ let adminAlterdataAllowedFields = {};
 let editingAdminAlterdataColumn = "";
 let selectedAdminAlterdataSourceScope = "entry";
 let selectedAdminAlterdataSourceField = "date";
+let supportThreadsCache = [];
+let selectedSupportThreadId = 0;
+let supportMessagesCache = [];
+let notificationsCache = [];
+let supportAttachmentDraft = null;
+let supportEntityPickerType = "";
+let supportEntityPickerRows = [];
+let supportRecording = null;
+let supportRecordingTimer = null;
 const ADMIN_ALTERDATA_COLUMNS_META = [
   { column: "A", description: "Código do lançamento automático" },
   { column: "B", description: "Conta débito" },
@@ -3015,8 +3053,98 @@ function buildCategoryMonthlyBars(categoryName) {
 }
 
 function signedEntryAmount(entry) {
-  const amount = Number(entry?.amount || 0);
+  const amount = Number(effectiveEntryAmount(entry));
   return entry?.type === "out" ? -1 * amount : amount;
+}
+
+function effectiveEntryAmount(entry) {
+  const isPending = Number(entry?.needs_review ?? entry?.needsReview ?? 0) === 1;
+  if (isPending) {
+    const valid = entry?.valid_amount ?? entry?.validAmount;
+    if (valid !== null && valid !== undefined && valid !== "") {
+      const parsedValid = Number(valid);
+      if (Number.isFinite(parsedValid)) return parsedValid;
+    }
+  }
+  const raw = Number(entry?.amount || 0);
+  return Number.isFinite(raw) ? raw : 0;
+}
+
+function buildMonthAggregateFromEntries(entries, monthKey) {
+  const rows = (Array.isArray(entries) ? entries : []).filter((entry) => {
+    const date = String(entry?.date || "").slice(0, 7);
+    const deleted = Number(entry?.deleted || 0) === 1 || Boolean(entry?.deleted_at || entry?.deletedAt);
+    return !deleted && date === monthKey;
+  });
+
+  const byCategoryMap = new Map();
+  const byAccountMap = new Map();
+
+  rows.forEach((entry) => {
+    const type = String(entry?.type || "out") === "in" ? "in" : "out";
+    const amount = Math.abs(Number(effectiveEntryAmount(entry)) || 0);
+
+    const categoryName = String(entry?.category || "").trim() || "Sem categoria";
+    if (!byCategoryMap.has(categoryName)) {
+      byCategoryMap.set(categoryName, { name: categoryName, in: 0, out: 0 });
+    }
+    const category = byCategoryMap.get(categoryName);
+    category[type] += amount;
+
+    const accountName = String(entry?.account_name || entry?.accountName || "").trim() || "Sem conta/cartão";
+    const accountType = String(entry?.account_type || entry?.accountType || "bank");
+    const accountId = Number(entry?.account_id || entry?.accountId || 0);
+    const accountKey = `${accountId > 0 ? accountId : "name"}:${normalizeText(accountName)}`;
+    if (!byAccountMap.has(accountKey)) {
+      byAccountMap.set(accountKey, {
+        id: accountId,
+        name: accountName,
+        type: accountType,
+        in: 0,
+        out: 0,
+        initial_balance: 0,
+      });
+    }
+    const account = byAccountMap.get(accountKey);
+    account[type] += amount;
+  });
+
+  const byCategory = Array.from(byCategoryMap.values());
+  const byAccount = Array.from(byAccountMap.values());
+
+  const categoryTotal = byCategory.reduce((acc, item) => acc + Number(item.in || 0) + Number(item.out || 0), 0);
+  byCategory.forEach((item) => {
+    const total = Number(item.in || 0) + Number(item.out || 0);
+    item.share = categoryTotal > 0 ? Math.round((total / categoryTotal) * 100) : 0;
+    item.balance = Number(item.in || 0) - Number(item.out || 0);
+  });
+  byCategory.sort((a, b) => ((Number(b.in || 0) + Number(b.out || 0)) - (Number(a.in || 0) + Number(a.out || 0))));
+
+  const accountTotal = byAccount.reduce((acc, item) => acc + Number(item.in || 0) + Number(item.out || 0), 0);
+  byAccount.forEach((item) => {
+    const total = Number(item.in || 0) + Number(item.out || 0);
+    item.share = accountTotal > 0 ? Math.round((total / accountTotal) * 100) : 0;
+    item.balance = Number(item.initial_balance || 0) + Number(item.in || 0) - Number(item.out || 0);
+  });
+  byAccount.sort((a, b) => ((Number(b.in || 0) + Number(b.out || 0)) - (Number(a.in || 0) + Number(a.out || 0))));
+
+  return { by_category: byCategory, by_account: byAccount };
+}
+
+function extractEntriesFromGroups(groups) {
+  const result = [];
+  const years = Array.isArray(groups) ? groups : [];
+  years.forEach((yearNode) => {
+    const months = Array.isArray(yearNode?.months) ? yearNode.months : [];
+    months.forEach((monthNode) => {
+      const days = Array.isArray(monthNode?.days) ? monthNode.days : [];
+      days.forEach((dayNode) => {
+        const entries = Array.isArray(dayNode?.entries) ? dayNode.entries : [];
+        entries.forEach((entry) => result.push(entry));
+      });
+    });
+  });
+  return result;
 }
 
 function buildCategoryEntriesHierarchy(categoryName) {
@@ -5178,9 +5306,23 @@ function pushUserNotification({ title, message = "", source = "system" }) {
   writeUserNotifications(list);
 }
 
+function setSupportAndNotificationBadges(count) {
+  const safeCount = Math.max(0, Number(count || 0));
+  const text = safeCount > 99 ? "99+" : String(safeCount);
+  if (supportTopBadgeEl) {
+    supportTopBadgeEl.hidden = safeCount <= 0;
+    supportTopBadgeEl.textContent = text;
+  }
+  if (notificationsMenuBadgeEl) {
+    notificationsMenuBadgeEl.hidden = safeCount <= 0;
+    notificationsMenuBadgeEl.textContent = text;
+  }
+}
+
 function renderNotifications(items) {
   if (!notificationsListEl) return;
   const rows = Array.isArray(items) ? items : [];
+  notificationsCache = rows;
   if (!rows.length) {
     notificationsListEl.innerHTML = `
       <div class="settings-empty">
@@ -5191,20 +5333,20 @@ function renderNotifications(items) {
     return;
   }
   notificationsListEl.innerHTML = rows
-    .map((item) => {
+    .map((item, index) => {
       const title = escapeHtml(String(item?.title || "Notificação"));
       const message = escapeHtml(String(item?.message || ""));
       const source = escapeHtml(String(item?.source || "sistema"));
       const dateText = escapeHtml(formatIsoDate(String(item?.created_at || "").slice(0, 10)) || "--");
       return `
-        <article class="settings-item">
+        <button type="button" class="settings-item settings-item--action" data-notification-index="${index}">
           <div class="settings-item__head">
             <h4 class="settings-item__title">${title}</h4>
             <span class="settings-item__date">${dateText}</span>
           </div>
           ${message ? `<p class="settings-item__text">${message}</p>` : ""}
           <p class="settings-item__meta">${source}</p>
-        </article>
+        </button>
       `;
     })
     .join("");
@@ -5213,16 +5355,23 @@ function renderNotifications(items) {
 async function loadNotifications() {
   const localItems = readUserNotifications();
   try {
-    const response = await authFetch("/api/support/threads");
+    const supportEndpoint = isSupportAdminMode() ? "/api/admin/support/threads" : "/api/support/threads";
+    const response = await authFetch(supportEndpoint);
     if (response.status === 401) {
       window.location.href = "/";
       return [];
     }
-    if (!response.ok) return localItems;
+    if (!response.ok) {
+      setSupportAndNotificationBadges(0);
+      return localItems;
+    }
     const payload = await safeJson(response, {});
     const threads = Array.isArray(payload?.threads) ? payload.threads : [];
+    const unreadTotal = threads.reduce((acc, thread) => acc + Number(thread?.unread_count || 0), 0);
+    setSupportAndNotificationBadges(unreadTotal);
+    const counterpartRole = isSupportAdminMode() ? "user" : "admin";
     const supportItems = threads
-      .filter((thread) => Number(thread?.unread_count || 0) > 0 || String(thread?.last_sender_role || "") === "admin")
+      .filter((thread) => Number(thread?.unread_count || 0) > 0 || String(thread?.last_sender_role || "") === counterpartRole)
       .map((thread) => {
         const createdAt = String(thread?.last_at || thread?.updated_at || thread?.created_at || "");
         return {
@@ -5231,11 +5380,18 @@ async function loadNotifications() {
           message: String(thread?.last_message || thread?.subject || "Você recebeu uma nova mensagem."),
           source: "suporte",
           created_at: createdAt || new Date().toISOString(),
+          action: {
+            type: "support",
+            thread_id: Number(thread?.id || 0),
+            ref_type: String(thread?.last_attachment_ref_type || ""),
+            ref_id: Number(thread?.last_attachment_ref_id || 0),
+          },
         };
       });
     const merged = [...supportItems, ...localItems].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     return merged.slice(0, 80);
   } catch {
+    setSupportAndNotificationBadges(0);
     return localItems;
   }
 }
@@ -5262,6 +5418,682 @@ async function closeNotificationsModal() {
     await notificationsModal?.dismiss();
   } catch {
     // no-op
+  }
+}
+
+async function handleNotificationSelection(item) {
+  const actionType = String(item?.action?.type || "");
+  if (actionType === "support") {
+    const threadId = Number(item?.action?.thread_id || 0);
+    const refType = String(item?.action?.ref_type || "");
+    const refId = Number(item?.action?.ref_id || 0);
+    await closeNotificationsModal();
+    await openSupportModal({
+      threadId,
+      focusRefType: refType,
+      focusRefId: refId,
+    });
+    return;
+  }
+  await closeNotificationsModal();
+}
+
+function isSupportAdminMode() {
+  return String(currentProfile?.role || "") === "admin" && !Boolean(currentProfile?.impersonation?.active);
+}
+
+function supportCurrentThread() {
+  return supportThreadsCache.find((item) => Number(item?.id || 0) === Number(selectedSupportThreadId || 0)) || null;
+}
+
+function formatSupportTime(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "--:--";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatSupportThreadLabel(thread) {
+  const subject = String(thread?.subject || "").trim();
+  const userName = String(thread?.user_name || thread?.user_email || "").trim();
+  if (isSupportAdminMode()) {
+    if (subject && userName) return `${userName} · ${subject}`;
+    return userName || subject || "Conversa";
+  }
+  return subject || "Atendimento";
+}
+
+function syncSupportThreadLabel() {
+  if (!selectedSupportThreadEl) return;
+  const current = supportCurrentThread();
+  if (!current) {
+    selectedSupportThreadEl.textContent = "Selecionar conversa";
+    selectedSupportThreadEl.classList.add("is-placeholder");
+    return;
+  }
+  selectedSupportThreadEl.textContent = formatSupportThreadLabel(current);
+  selectedSupportThreadEl.classList.remove("is-placeholder");
+}
+
+function syncSupportAttachmentPreview() {
+  if (!supportAttachmentPreviewEl || !supportAttachmentTitleEl) return;
+  if (!supportAttachmentDraft) {
+    supportAttachmentPreviewEl.hidden = true;
+    supportAttachmentTitleEl.textContent = "";
+    return;
+  }
+  const title = String(supportAttachmentDraft?.title || "").trim() || "Anexo";
+  supportAttachmentTitleEl.textContent = title;
+  supportAttachmentPreviewEl.hidden = false;
+}
+
+function clearSupportAttachmentDraft() {
+  supportAttachmentDraft = null;
+  if (supportAttachmentFileInput) {
+    supportAttachmentFileInput.value = "";
+  }
+  syncSupportAttachmentPreview();
+}
+
+function formatDurationSeconds(totalSeconds) {
+  const safe = Math.max(0, Number(totalSeconds || 0));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function stopSupportRecordingIndicator() {
+  if (supportRecordingTimer) {
+    window.clearInterval(supportRecordingTimer);
+    supportRecordingTimer = null;
+  }
+  if (supportRecordingIndicatorEl) {
+    supportRecordingIndicatorEl.hidden = true;
+    supportRecordingIndicatorEl.textContent = "00:00";
+  }
+}
+
+function startSupportRecordingIndicator(startedAtMs) {
+  if (!supportRecordingIndicatorEl) return;
+  const render = () => {
+    const elapsed = Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+    supportRecordingIndicatorEl.textContent = formatDurationSeconds(elapsed);
+    supportRecordingIndicatorEl.hidden = false;
+  };
+  render();
+  if (supportRecordingTimer) {
+    window.clearInterval(supportRecordingTimer);
+  }
+  supportRecordingTimer = window.setInterval(render, 1000);
+}
+
+async function fetchSupportThreads() {
+  const endpoint = isSupportAdminMode() ? "/api/admin/support/threads" : "/api/support/threads";
+  const response = await authFetch(endpoint);
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  if (!response.ok) {
+    const payload = await safeJson(response, {});
+    showError(String(payload?.error || "Não foi possível carregar conversas."));
+    return [];
+  }
+  const payload = await safeJson(response, {});
+  return Array.isArray(payload?.threads) ? payload.threads : [];
+}
+
+async function ensureSupportThreadForUser() {
+  if (isSupportAdminMode()) return;
+  if (supportThreadsCache.length > 0) return;
+  const response = await fetch("/api/support/threads", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    }),
+    body: JSON.stringify({ subject: "Atendimento" }),
+  });
+  if (!response.ok && response.status !== 409) {
+    const payload = await safeJson(response, {});
+    showError(String(payload?.error || "Não foi possível iniciar atendimento."));
+  }
+}
+
+function renderSupportThreadList() {
+  if (!supportThreadListEl) return;
+  if (!supportThreadsCache.length) {
+    supportThreadListEl.innerHTML = `<p class="category-empty">Nenhuma conversa encontrada.</p>`;
+    return;
+  }
+  supportThreadListEl.innerHTML = supportThreadsCache.map((thread) => {
+    const id = Number(thread?.id || 0);
+    const selected = id > 0 && id === Number(selectedSupportThreadId || 0);
+    const unread = Number(thread?.unread_count || 0);
+    const lastText = String(thread?.last_message || "").trim();
+    const when = formatSupportTime(String(thread?.last_at || thread?.updated_at || thread?.created_at || ""));
+    return `
+      <button type="button" class="category-option category-option--text-meta is-neutral" data-support-thread-id="${id}"${selected ? ' aria-current="true"' : ""}>
+        <span class="category-option__text-wrap">
+          <span class="category-option__text">${escapeHtml(formatSupportThreadLabel(thread))}</span>
+          <span class="category-option__meta">${escapeHtml(lastText || "Sem mensagens")} · ${escapeHtml(when)}</span>
+        </span>
+        ${unread > 0 ? `<span class="admin-action-badge">${unread}</span>` : ""}
+      </button>
+    `;
+  }).join("");
+}
+
+async function fetchSupportMessages(threadId) {
+  const endpoint = isSupportAdminMode()
+    ? `/api/admin/support/messages?thread_id=${encodeURIComponent(String(threadId))}`
+    : `/api/support/messages?thread_id=${encodeURIComponent(String(threadId))}`;
+  const response = await authFetch(endpoint);
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  if (!response.ok) {
+    const payload = await safeJson(response, {});
+    showError(String(payload?.error || "Não foi possível carregar mensagens."));
+    return [];
+  }
+  const payload = await safeJson(response, {});
+  return Array.isArray(payload?.messages) ? payload.messages : [];
+}
+
+function supportMessageAttachmentHtml(item) {
+  const type = String(item?.attachment_type || "").trim();
+  const path = String(item?.attachment_path || "").trim();
+  const refType = String(item?.attachment_ref_type || "").trim();
+  const refId = Number(item?.attachment_ref_id || 0);
+  const title = String(item?.attachment_title || "").trim();
+  if (!type && !path && (!refType || refId <= 0)) return "";
+
+  if (type === "audio" && path) {
+    const src = `/uploads/${encodeURI(path)}`;
+    return `
+      <div class="support-msg__attach">
+        <span class="support-msg__attach-title">${escapeHtml(title || "Áudio")}</span>
+        <audio controls preload="none" src="${escapeHtml(src)}"></audio>
+      </div>
+    `;
+  }
+
+  if ((type === "file" || type === "screenshot") && path) {
+    return `
+      <div class="support-msg__attach">
+        <span class="support-msg__attach-title">${escapeHtml(title || "Arquivo")}</span>
+        <button type="button" class="support-msg__attach-action" data-support-open-path="${encodeURIComponent(path)}">Abrir anexo</button>
+      </div>
+    `;
+  }
+
+  if ((refType === "entry" || refType === "category" || refType === "account" || refType === "recurrence") && refId > 0) {
+    return `
+      <div class="support-msg__attach">
+        <span class="support-msg__attach-title">${escapeHtml(title || "Referência")}</span>
+        <button type="button" class="support-msg__attach-action" data-support-open-ref-type="${escapeHtml(refType)}" data-support-open-ref-id="${refId}">
+          Abrir anexo
+        </button>
+      </div>
+    `;
+  }
+  return "";
+}
+
+function renderSupportMessages() {
+  if (!supportMessagesEl || !supportThreadEmptyEl) return;
+  const current = supportCurrentThread();
+  if (!current) {
+    supportThreadEmptyEl.hidden = false;
+    supportMessagesEl.innerHTML = "";
+    return;
+  }
+  supportThreadEmptyEl.hidden = true;
+  if (!supportMessagesCache.length) {
+    supportMessagesEl.innerHTML = `<p class="category-empty">Nenhuma mensagem nesta conversa.</p>`;
+    return;
+  }
+  const mineRole = isSupportAdminMode() ? "admin" : "user";
+  supportMessagesEl.innerHTML = supportMessagesCache.map((item) => {
+    const mine = String(item?.sender_role || "") === mineRole;
+    const cls = mine ? "support-msg support-msg--mine" : "support-msg support-msg--other";
+    const text = String(item?.message || "").trim();
+    const attach = supportMessageAttachmentHtml(item);
+    const time = formatSupportTime(String(item?.created_at || ""));
+    return `
+      <article class="${cls}">
+        ${text ? `<div class="support-msg__text">${escapeHtml(text)}</div>` : ""}
+        ${attach}
+        <div class="support-msg__meta">${escapeHtml(time)}</div>
+      </article>
+    `;
+  }).join("");
+  supportMessagesEl.scrollTop = supportMessagesEl.scrollHeight;
+}
+
+async function loadSupportMessages() {
+  const current = supportCurrentThread();
+  if (!current) {
+    supportMessagesCache = [];
+    renderSupportMessages();
+    return;
+  }
+  supportMessagesCache = await fetchSupportMessages(Number(current.id || 0));
+  renderSupportMessages();
+}
+
+async function loadSupportThreadsAndMessages() {
+  supportThreadsCache = await fetchSupportThreads();
+  if (!supportThreadsCache.length) {
+    await ensureSupportThreadForUser();
+    supportThreadsCache = await fetchSupportThreads();
+  }
+  if (!supportThreadsCache.length) {
+    selectedSupportThreadId = 0;
+  } else if (!supportThreadsCache.some((row) => Number(row?.id || 0) === Number(selectedSupportThreadId || 0))) {
+    selectedSupportThreadId = Number(supportThreadsCache[0]?.id || 0);
+  }
+  const unreadTotal = supportThreadsCache.reduce((acc, thread) => acc + Number(thread?.unread_count || 0), 0);
+  setSupportAndNotificationBadges(unreadTotal);
+  syncSupportThreadLabel();
+  renderSupportThreadList();
+  await loadSupportMessages();
+}
+
+async function openSupportModal(options = {}) {
+  clearSupportAttachmentDraft();
+  if (supportMessageInput) supportMessageInput.value = "";
+  const preferredThreadId = Number(options?.threadId || 0);
+  if (preferredThreadId > 0) {
+    selectedSupportThreadId = preferredThreadId;
+  }
+  await loadSupportThreadsAndMessages();
+  await supportModal?.present();
+  const focusRefType = String(options?.focusRefType || "");
+  const focusRefId = Number(options?.focusRefId || 0);
+  if (focusRefType && focusRefId > 0) {
+    await openSupportEntityReference(focusRefType, focusRefId);
+  }
+}
+
+async function closeSupportModal() {
+  if (supportRecording?.recorder) {
+    try {
+      supportRecording.recorder.stop();
+    } catch {
+      // no-op
+    }
+  }
+  stopSupportRecordingIndicator();
+  try {
+    await supportModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openSupportThreadModal() {
+  renderSupportThreadList();
+  await supportThreadModal?.present();
+}
+
+async function closeSupportThreadModal() {
+  try {
+    await supportThreadModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+function supportAttachOptions() {
+  return [
+    { key: "file", label: "Imagem / Captura de tela", icon: "image" },
+    { key: "entry", label: "Lançamento", icon: "receipt_long" },
+    { key: "category", label: "Categoria", icon: "category" },
+    { key: "account", label: "Conta / Cartão", icon: "account_balance_wallet" },
+    { key: "recurrence", label: "Recorrência", icon: "event_repeat" },
+  ];
+}
+
+function renderSupportAttachList() {
+  if (!supportAttachListEl) return;
+  supportAttachListEl.innerHTML = supportAttachOptions().map((item) => `
+    <button type="button" class="category-option is-neutral" data-support-attach-key="${escapeHtml(item.key)}">
+      <span class="category-option__lead"><span class="material-symbols-rounded">${escapeHtml(item.icon)}</span></span>
+      <span class="category-option__text">${escapeHtml(item.label)}</span>
+    </button>
+  `).join("");
+}
+
+async function openSupportAttachModal() {
+  renderSupportAttachList();
+  await supportAttachModal?.present();
+}
+
+async function closeSupportAttachModal() {
+  try {
+    await supportAttachModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+function supportEntityRowsByType(type) {
+  if (type === "entry") {
+    return (dashboardEntriesCache || []).map((row) => ({
+      id: Number(row?.id || 0),
+      title: String(row?.description || row?.category || `Lançamento #${row?.id || ""}`),
+      meta: `${formatIsoDate(String(row?.date || "").slice(0, 10)) || "--"} · ${money.format(Number(row?.amount || 0))}`,
+    })).filter((row) => row.id > 0);
+  }
+  if (type === "category") {
+    const allCategories = Array.isArray(categories) ? categories : [];
+    const userCategories = allCategories.filter((row) => String(row?.scope || "global") === "user");
+    const source = userCategories.length ? userCategories : allCategories;
+    const entriesByCategory = (Array.isArray(dashboardEntriesCache) ? dashboardEntriesCache : [])
+      .reduce((acc, row) => {
+        const name = String(row?.category || "").trim();
+        if (!name) return acc;
+        acc.set(name, (acc.get(name) || 0) + 1);
+        return acc;
+      }, new Map());
+    return source
+      .map((row) => ({
+        id: Number(row?.id || 0),
+        title: String(row?.name || "").trim(),
+        meta: `${Number(entriesByCategory.get(String(row?.name || "").trim()) || 0)} lançamento${Number(entriesByCategory.get(String(row?.name || "").trim()) || 0) === 1 ? "" : "s"}`,
+      }))
+      .filter((row) => row.id > 0 && row.title);
+  }
+  if (type === "account") {
+    return (accounts || []).map((row) => ({
+      id: Number(row?.id || 0),
+      title: String(row?.name || ""),
+      meta: String(row?.type || ""),
+    })).filter((row) => row.id > 0);
+  }
+  if (type === "recurrence") {
+    return (recurrences || []).map((row) => ({
+      id: Number(row?.id || 0),
+      title: String(row?.description || row?.category || `Recorrência #${row?.id || ""}`),
+      meta: `${formatIsoDate(String(row?.next_run_date || row?.start_date || "").slice(0, 10)) || "--"} · ${money.format(Number(row?.amount || 0))}`,
+    })).filter((row) => row.id > 0);
+  }
+  return [];
+}
+
+function supportEntityTitle(type) {
+  return ({
+    entry: "Selecionar lançamento",
+    category: "Selecionar categoria",
+    account: "Selecionar conta/cartão",
+    recurrence: "Selecionar recorrência",
+  })[type] || "Selecionar item";
+}
+
+function renderSupportEntityList() {
+  if (!supportEntityListEl) return;
+  const query = normalizeText(supportEntitySearchInput?.value || "");
+  const rows = supportEntityPickerRows.filter((row) => {
+    const text = normalizeText(`${row?.title || ""} ${row?.meta || ""}`);
+    return text.includes(query);
+  });
+  if (!rows.length) {
+    supportEntityListEl.innerHTML = `<p class="category-empty">Nenhum item encontrado.</p>`;
+    return;
+  }
+  supportEntityListEl.innerHTML = rows.map((row) => `
+    <button type="button" class="category-option category-option--text-meta is-neutral" data-support-entity-id="${Number(row?.id || 0)}">
+      <span class="category-option__text-wrap">
+        <span class="category-option__text">${escapeHtml(String(row?.title || ""))}</span>
+        <span class="category-option__meta">${escapeHtml(String(row?.meta || ""))}</span>
+      </span>
+    </button>
+  `).join("");
+}
+
+async function openSupportEntityModal(type) {
+  supportEntityPickerType = String(type || "");
+  if (supportEntityPickerType === "entry" && !dashboardEntriesCache.length) {
+    const response = await authFetch("/api/entries");
+    const payload = await safeJson(response, []);
+    if (Array.isArray(payload)) dashboardEntriesCache = payload;
+  }
+  if (supportEntityPickerType === "category" && !categories.length) {
+    await loadCategories();
+  }
+  if (supportEntityPickerType === "category" && !dashboardEntriesCache.length) {
+    const response = await authFetch("/api/entries");
+    const payload = await safeJson(response, []);
+    if (Array.isArray(payload)) dashboardEntriesCache = payload;
+  }
+  if (supportEntityPickerType === "account" && !accounts.length) {
+    await loadAccounts(true);
+  }
+  if (supportEntityPickerType === "recurrence" && !recurrences.length) {
+    await loadRecurrences();
+  }
+  supportEntityPickerRows = supportEntityRowsByType(supportEntityPickerType);
+  if (supportEntitySearchInput) supportEntitySearchInput.value = "";
+  if (supportEntityModalTitleEl) supportEntityModalTitleEl.textContent = supportEntityTitle(supportEntityPickerType);
+  renderSupportEntityList();
+  await supportEntityModal?.present();
+}
+
+async function closeSupportEntityModal() {
+  try {
+    await supportEntityModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function uploadSupportAttachment(file, explicitType = "") {
+  if (!file) return null;
+  const formData = new FormData();
+  formData.append("file", file);
+  const thread = supportCurrentThread();
+  if (isSupportAdminMode() && thread && Number(thread?.user_id || 0) > 0) {
+    formData.append("user_id", String(Number(thread.user_id)));
+  }
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: authHeaders({}, { path: "/api/upload" }),
+    body: formData,
+  });
+  if (response.status === 401) {
+    window.location.href = "/";
+    return null;
+  }
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível enviar anexo."));
+    return null;
+  }
+  const filePath = String(payload?.file || "").trim();
+  if (!filePath) return null;
+  const mime = String(file.type || "").toLowerCase();
+  const type = explicitType
+    || (mime.startsWith("audio/") ? "audio" : (mime.startsWith("image/") ? "screenshot" : "file"));
+  return {
+    type,
+    path: filePath,
+    title: String(file.name || "Anexo"),
+  };
+}
+
+async function toggleSupportAudioRecording() {
+  if (!supportRecordAudioBtn) return;
+  if (supportRecording?.recorder) {
+    supportRecording.recorder.stop();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder === "undefined") {
+    showError("Seu navegador não suporta gravação de áudio.");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let recorder;
+    try {
+      recorder = new MediaRecorder(stream, { audioBitsPerSecond: 16000 });
+    } catch {
+      recorder = new MediaRecorder(stream);
+    }
+    const chunks = [];
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data && event.data.size > 0) chunks.push(event.data);
+    });
+    recorder.addEventListener("stop", async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      supportRecordAudioBtn.classList.remove("is-recording");
+      stopSupportRecordingIndicator();
+      supportRecording = null;
+      if (!chunks.length) return;
+      const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+      const ext = String((recorder.mimeType || "audio/webm").split("/")[1] || "webm").split(";")[0];
+      const file = new File([blob], `audio-${Date.now()}.${ext}`, { type: recorder.mimeType || "audio/webm" });
+      const uploaded = await uploadSupportAttachment(file, "audio");
+      if (!uploaded) return;
+      supportAttachmentDraft = {
+        type: "audio",
+        path: uploaded.path,
+        title: "Áudio",
+      };
+      syncSupportAttachmentPreview();
+    });
+    recorder.start();
+    const startedAt = Date.now();
+    supportRecording = { recorder, startedAt };
+    supportRecordAudioBtn.classList.add("is-recording");
+    startSupportRecordingIndicator(startedAt);
+  } catch {
+    stopSupportRecordingIndicator();
+    showError("Não foi possível acessar o microfone.");
+  }
+}
+
+async function openSupportAttachmentPath(path) {
+  const clean = String(path || "").trim();
+  if (!clean) return;
+  const ext = clean.split(".").pop()?.toLowerCase() || "";
+  const src = `/uploads/${encodeURI(clean)}`;
+  if (ext === "pdf") {
+    await openAttachmentViewer(src, true);
+    return;
+  }
+  if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) {
+    await openAttachmentViewer(src, false);
+    return;
+  }
+  window.open(src, "_blank", "noopener,noreferrer");
+}
+
+async function openSupportEntityReference(refType, refId) {
+  const type = String(refType || "");
+  const id = Number(refId || 0);
+  if (!type || id <= 0) return;
+  if (isSupportAdminMode()) {
+    const thread = supportCurrentThread();
+    const targetUserId = Number(thread?.user_id || 0);
+    if (targetUserId > 0) {
+      await impersonateAdminUser(targetUserId);
+      if (isSupportAdminMode()) return;
+    }
+  }
+  if (type === "entry") {
+    if (!loadedEntriesIndex.has(id)) {
+      const entriesRes = await authFetch("/api/entries?include_deleted=1");
+      const entriesPayload = await safeJson(entriesRes, []);
+      if (Array.isArray(entriesPayload)) {
+        entriesPayload.forEach((row) => {
+          const rowId = Number(row?.id || 0);
+          if (rowId > 0) loadedEntriesIndex.set(rowId, row);
+        });
+      }
+    }
+    await openEntryEditor(id);
+    return;
+  }
+  if (type === "category") {
+    const row = (categories || []).find((item) => Number(item?.id || 0) === id);
+    if (row) {
+      if (String(row?.scope || "global") === "user") {
+        await openUserCategoryEditModal(row);
+      } else {
+        const categoryName = String(row?.name || "").trim();
+        if (categoryName) await openCategoryDetailModal(categoryName);
+      }
+    }
+    return;
+  }
+  if (type === "account") {
+    const row = (accounts || []).find((item) => Number(item?.id || 0) === id);
+    if (row) await openUserAccountEditModal(row);
+    return;
+  }
+  if (type === "recurrence") {
+    if (!(recurrences || []).some((item) => Number(item?.id || 0) === id)) {
+      await loadRecurrences();
+    }
+    await openRecurrenceEditor(id);
+  }
+}
+
+async function submitSupportMessage() {
+  const thread = supportCurrentThread();
+  if (!thread) {
+    showError("Selecione uma conversa.");
+    return;
+  }
+  const message = String(supportMessageInput?.value || "").trim();
+  const draft = supportAttachmentDraft;
+  if (!message && !draft) {
+    showError("Digite uma mensagem ou anexe algo.");
+    return;
+  }
+  if (supportSendMessageBtn) supportSendMessageBtn.disabled = true;
+  try {
+    const endpoint = isSupportAdminMode() ? "/api/admin/support/messages" : "/api/support/messages";
+    const body = {
+      thread_id: Number(thread.id || 0),
+      message,
+    };
+    if (draft?.path) body.attachment_path = String(draft.path);
+    if (draft?.type) body.attachment_type = String(draft.type);
+    if (draft?.ref_type) body.attachment_ref_type = String(draft.ref_type);
+    if (draft?.ref_id) body.attachment_ref_id = Number(draft.ref_id || 0);
+    if (draft?.title) body.attachment_title = String(draft.title);
+    const response = await fetch(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }, { path: endpoint }),
+      body: JSON.stringify(body),
+    });
+    if (response.status === 401) {
+      window.location.href = "/";
+      return;
+    }
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível enviar a mensagem."));
+      return;
+    }
+    if (supportMessageInput) supportMessageInput.value = "";
+    clearSupportAttachmentDraft();
+    await loadSupportThreadsAndMessages();
+  } catch {
+    showError("Falha de rede ao enviar mensagem.");
+  } finally {
+    if (supportSendMessageBtn) supportSendMessageBtn.disabled = false;
   }
 }
 
@@ -6733,6 +7565,7 @@ async function loadDashboard() {
       ? profile.impersonation
       : { active: false };
     currentProfile = {
+      id: Number(profile?.id || 0),
       name: String(profile?.name || ""),
       email: String(profile?.email || ""),
       role: String(profile?.role || ""),
@@ -6753,6 +7586,7 @@ async function loadDashboard() {
     syncAdminAreaAccess();
     syncImpersonationBanner();
     syncDashMenuUserSummary();
+    void loadNotifications();
     if (String(currentProfile?.role || "") === "admin" || Boolean(currentProfile?.impersonation?.active)) {
       void fetchAdminPendingEntries().then((items) => {
         syncAdminPendingEntriesBadge(Array.isArray(items) ? items.length : 0);
@@ -6787,8 +7621,18 @@ async function loadDashboard() {
     ]);
 
     dashboardEntriesCache = Array.isArray(entries) ? entries : [];
+    const monthAggSafe = (monthAgg && typeof monthAgg === "object") ? monthAgg : {};
+    const prevMonthAggSafe = (prevMonthAgg && typeof prevMonthAgg === "object") ? prevMonthAgg : {};
+    const monthAggEmpty = !Array.isArray(monthAggSafe.by_category) || monthAggSafe.by_category.length === 0;
+    const prevMonthAggEmpty = !Array.isArray(prevMonthAggSafe.by_category) || prevMonthAggSafe.by_category.length === 0;
+    if (monthAggEmpty || !Array.isArray(monthAggSafe.by_account) || monthAggSafe.by_account.length === 0) {
+      Object.assign(monthAggSafe, buildMonthAggregateFromEntries(dashboardEntriesCache, month));
+    }
+    if (prevMonthAggEmpty || !Array.isArray(prevMonthAggSafe.by_account) || prevMonthAggSafe.by_account.length === 0) {
+      Object.assign(prevMonthAggSafe, buildMonthAggregateFromEntries(dashboardEntriesCache, prevMonth));
+    }
 
-    const totals = monthAgg?.totals || {};
+    const totals = monthAggSafe?.totals || {};
     const balance = Number(totals.balance || 0);
     const totalIn = Number(totals.in || 0);
     const totalOut = Number(totals.out || 0);
@@ -6806,6 +7650,10 @@ async function loadDashboard() {
     if (trendLine) trendLine.setAttribute("points", polylinePoints(summary?.last_12_months || []));
 
     const entryGroups = Array.isArray(groupedPayload?.groups) ? groupedPayload.groups : [];
+    const groupedEntries = extractEntriesFromGroups(entryGroups);
+    if (groupedEntries.length) {
+      Object.assign(monthAggSafe, buildMonthAggregateFromEntries(groupedEntries, month));
+    }
     renderEntriesGroupedFromServer(entriesList, entryGroups, "Nenhum lan\u00e7amento encontrado.");
     if (entriesMetaEl) {
       const count = Number(groupedPayload?.count || 0);
@@ -6827,9 +7675,9 @@ async function loadDashboard() {
             .slice(0, 3)
         : [];
       renderRows(nextList, nextEntries, "next", "Nenhum lan\u00e7amento futuro.");
-      renderCategories(monthAgg?.by_category || []);
-      renderCategoriesTab(monthAgg || {}, prevMonthAgg || {});
-      renderAccountsTab(monthAgg || {}, prevMonthAgg || {});
+      renderCategories(monthAggSafe?.by_category || []);
+      renderCategoriesTab(monthAggSafe || {}, prevMonthAggSafe || {});
+      renderAccountsTab(monthAggSafe || {}, prevMonthAggSafe || {});
       renderTopSummaryForTab(activeTabName());
     } catch (sectionError) {
       console.error("Erro ao renderizar se\u00e7\u00f5es secund\u00e1rias do dashboard:", sectionError);
@@ -6888,6 +7736,10 @@ notificationsMenuBtn?.addEventListener("click", () => {
   void openNotificationsModal();
 });
 
+supportMenuBtn?.addEventListener("click", () => {
+  void openSupportModal();
+});
+
 profileMenuBtn?.addEventListener("click", () => {
   void openProfileModal();
 });
@@ -6939,6 +7791,143 @@ adminActionButtons.forEach((button) => {
 
 closeNotificationsModalBtn?.addEventListener("click", () => {
   void closeNotificationsModal();
+});
+
+notificationsListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-notification-index]");
+  if (!btn) return;
+  const index = Number(btn.getAttribute("data-notification-index") || -1);
+  if (index < 0) return;
+  const item = notificationsCache[index];
+  if (!item) return;
+  void handleNotificationSelection(item);
+});
+
+closeSupportModalBtn?.addEventListener("click", () => {
+  void closeSupportModal();
+});
+
+openSupportThreadPickerBtn?.addEventListener("click", () => {
+  void openSupportThreadModal();
+});
+
+closeSupportThreadModalBtn?.addEventListener("click", () => {
+  void closeSupportThreadModal();
+});
+
+supportThreadListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-support-thread-id]");
+  if (!btn) return;
+  const id = Number(btn.getAttribute("data-support-thread-id") || 0);
+  if (id <= 0) return;
+  selectedSupportThreadId = id;
+  syncSupportThreadLabel();
+  renderSupportThreadList();
+  void closeSupportThreadModal().then(() => loadSupportMessages());
+});
+
+openSupportAttachModalBtn?.addEventListener("click", () => {
+  void openSupportAttachModal();
+});
+
+closeSupportAttachModalBtn?.addEventListener("click", () => {
+  void closeSupportAttachModal();
+});
+
+supportAttachListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-support-attach-key]");
+  if (!btn) return;
+  const key = String(btn.getAttribute("data-support-attach-key") || "");
+  if (!key) return;
+  if (key === "file") {
+    if (supportAttachmentFileInput) supportAttachmentFileInput.click();
+    void closeSupportAttachModal();
+    return;
+  }
+  void closeSupportAttachModal().then(() => openSupportEntityModal(key));
+});
+
+supportAttachmentFileInput?.addEventListener("change", async () => {
+  const file = supportAttachmentFileInput.files?.[0];
+  if (!file) return;
+  const uploaded = await uploadSupportAttachment(file);
+  if (!uploaded) return;
+  supportAttachmentDraft = {
+    type: "screenshot",
+    path: String(uploaded.path || ""),
+    title: String(file.name || "Imagem"),
+  };
+  syncSupportAttachmentPreview();
+});
+
+clearSupportAttachmentBtn?.addEventListener("click", () => {
+  clearSupportAttachmentDraft();
+});
+
+supportRecordAudioBtn?.addEventListener("click", () => {
+  void toggleSupportAudioRecording();
+});
+
+supportSendMessageBtn?.addEventListener("click", () => {
+  void submitSupportMessage();
+});
+
+supportMessageInput?.addEventListener("keydown", (event) => {
+  if (!event || event.shiftKey) return;
+  if (event.key === "Enter") {
+    event.preventDefault();
+    void submitSupportMessage();
+  }
+});
+
+closeSupportEntityModalBtn?.addEventListener("click", () => {
+  void closeSupportEntityModal();
+});
+
+supportEntitySearchInput?.addEventListener("ionInput", () => {
+  renderSupportEntityList();
+});
+
+supportEntityListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-support-entity-id]");
+  if (!btn) return;
+  const id = Number(btn.getAttribute("data-support-entity-id") || 0);
+  if (id <= 0) return;
+  const row = supportEntityPickerRows.find((item) => Number(item?.id || 0) === id);
+  supportAttachmentDraft = {
+    type: supportEntityPickerType,
+    ref_type: supportEntityPickerType,
+    ref_id: id,
+    title: String(row?.title || "Referência"),
+  };
+  syncSupportAttachmentPreview();
+  void closeSupportEntityModal();
+});
+
+supportMessagesEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const pathBtn = target.closest("[data-support-open-path]");
+  if (pathBtn) {
+    const encoded = String(pathBtn.getAttribute("data-support-open-path") || "");
+    const path = encoded ? decodeURIComponent(encoded) : "";
+    void openSupportAttachmentPath(path);
+    return;
+  }
+  const refBtn = target.closest("[data-support-open-ref-type]");
+  if (!refBtn) return;
+  const refType = String(refBtn.getAttribute("data-support-open-ref-type") || "");
+  const refId = Number(refBtn.getAttribute("data-support-open-ref-id") || 0);
+  if (!refType || refId <= 0) return;
+  void openSupportEntityReference(refType, refId);
 });
 
 closeProfileModalBtn?.addEventListener("click", () => {
@@ -7313,6 +8302,34 @@ notificationsModal?.addEventListener("ionModalDidDismiss", () => {
   refreshPickerLayerState();
 });
 notificationsModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+supportModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+supportModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+supportThreadModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+supportThreadModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+supportAttachModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+supportAttachModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
+supportEntityModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+supportEntityModal?.addEventListener("ionModalDidPresent", () => {
   refreshPickerLayerState();
 });
 

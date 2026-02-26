@@ -419,7 +419,11 @@ class AdminController extends BaseController
         $threadId = (int)($input['thread_id'] ?? 0);
         $message = trim((string)($input['message'] ?? ''));
         $attachment = trim((string)($input['attachment_path'] ?? ''));
-        if ($threadId <= 0 || ($message === '' && $attachment === '')) {
+        $attachmentType = trim((string)($input['attachment_type'] ?? ''));
+        $attachmentRefType = trim((string)($input['attachment_ref_type'] ?? ''));
+        $attachmentRefId = isset($input['attachment_ref_id']) ? (int)$input['attachment_ref_id'] : 0;
+        $attachmentTitle = trim((string)($input['attachment_title'] ?? ''));
+        if ($threadId <= 0 || ($message === '' && $attachment === '' && $attachmentRefId <= 0)) {
             Response::json(['error' => 'Dados invalidos'], 422);
         }
         $service = new SupportService($this->db());
@@ -430,7 +434,9 @@ class AdminController extends BaseController
         if ($attachment && !str_starts_with($attachment, $thread['user_id'] . '/')) {
             Response::json(['error' => 'Anexo invalido'], 422);
         }
-        $created = $service->sendMessage($threadId, (int)$thread['user_id'], 'admin', $message, $attachment ?: null);
+        $targetUserId = (int)$thread['user_id'];
+        $attachmentMeta = $this->normalizeSupportAttachmentMeta($targetUserId, $attachmentType, $attachment, $attachmentRefType, $attachmentRefId, $attachmentTitle);
+        $created = $service->sendMessage($threadId, $targetUserId, 'admin', $message, $attachment ?: null, $attachmentMeta);
         Response::json($created, 201);
     }
 
@@ -644,5 +650,72 @@ class AdminController extends BaseController
             return $value;
         }
         return null;
+    }
+
+    private function normalizeSupportAttachmentMeta(
+        int $userId,
+        string $attachmentType,
+        string $attachmentPath,
+        string $attachmentRefType,
+        int $attachmentRefId,
+        string $attachmentTitle
+    ): array {
+        $allowedTypes = ['file', 'screenshot', 'audio', 'entry', 'category', 'account', 'recurrence'];
+        $type = in_array($attachmentType, $allowedTypes, true) ? $attachmentType : '';
+        $refType = in_array($attachmentRefType, ['entry', 'category', 'account', 'recurrence'], true) ? $attachmentRefType : '';
+        $refId = $attachmentRefId > 0 ? $attachmentRefId : 0;
+
+        if ($type === 'audio' && $attachmentPath === '') {
+            Response::json(['error' => 'Anexo de áudio inválido'], 422);
+        }
+        if (($type === 'file' || $type === 'screenshot') && $attachmentPath === '') {
+            Response::json(['error' => 'Anexo de arquivo inválido'], 422);
+        }
+        if (in_array($type, ['entry', 'category', 'account', 'recurrence'], true)) {
+            if ($refType === '') {
+                $refType = $type;
+            }
+            if ($refId <= 0) {
+                Response::json(['error' => 'Referência inválida'], 422);
+            }
+            $this->assertSupportReferenceOwnership($userId, $refType, $refId);
+        } elseif ($refType !== '' || $refId > 0) {
+            if ($refType === '' || $refId <= 0) {
+                Response::json(['error' => 'Referência inválida'], 422);
+            }
+            $this->assertSupportReferenceOwnership($userId, $refType, $refId);
+            if ($type === '') {
+                $type = $refType;
+            }
+        }
+
+        return [
+            'type' => $type !== '' ? $type : null,
+            'ref_type' => $refType !== '' ? $refType : null,
+            'ref_id' => $refId > 0 ? $refId : null,
+            'title' => $attachmentTitle !== '' ? $attachmentTitle : null,
+        ];
+    }
+
+    private function assertSupportReferenceOwnership(int $userId, string $refType, int $refId): void
+    {
+        $pdo = $this->db();
+        $map = [
+            'entry' => ['table' => 'entries', 'user_col' => 'user_id'],
+            'category' => ['table' => 'user_categories', 'user_col' => 'user_id'],
+            'account' => ['table' => 'user_accounts', 'user_col' => 'user_id'],
+            'recurrence' => ['table' => 'recurrences', 'user_col' => 'user_id'],
+        ];
+        if (!isset($map[$refType])) {
+            Response::json(['error' => 'Referência inválida'], 422);
+        }
+        $table = $map[$refType]['table'];
+        $userCol = $map[$refType]['user_col'];
+        $stmt = $pdo->prepare("SELECT id FROM {$table} WHERE id = :id AND {$userCol} = :uid LIMIT 1");
+        $stmt->execute(['id' => $refId, 'uid' => $userId]);
+        $exists = (int)($stmt->fetchColumn() ?: 0);
+        if ($exists <= 0) {
+            Response::json(['error' => 'Referência inválida para este usuário'], 422);
+        }
     }
 }

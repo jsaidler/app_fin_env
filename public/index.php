@@ -163,6 +163,13 @@ if (str_starts_with($requestPath, '/uploads/')) {
                 'webp' => 'image/webp',
                 'gif' => 'image/gif',
                 'pdf' => 'application/pdf',
+                'mp3' => 'audio/mpeg',
+                'm4a' => 'audio/mp4',
+                'webm' => 'audio/webm',
+                'ogg' => 'audio/ogg',
+                'wav' => 'audio/wav',
+                'aac' => 'audio/aac',
+                '3gp' => 'audio/3gpp',
             ][$ext] ?? 'application/octet-stream';
             header('Content-Type: ' . $mime);
             readfile($file);

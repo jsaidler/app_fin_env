@@ -121,7 +121,7 @@ class SupportService
                 'role' => $markReadRole,
             ]);
         }
-        $stmt = $this->pdo->prepare('SELECT m.id, m.thread_id, m.user_id, m.sender_role, m.message, m.attachment_path, m.created_at, m.read_at, u.name, u.email
+        $stmt = $this->pdo->prepare('SELECT m.id, m.thread_id, m.user_id, m.sender_role, m.message, m.attachment_path, m.attachment_type, m.attachment_ref_type, m.attachment_ref_id, m.attachment_title, m.created_at, m.read_at, u.name, u.email
             FROM support_messages m
             LEFT JOIN users u ON u.id = m.user_id
             WHERE m.thread_id = :tid
@@ -137,15 +137,30 @@ class SupportService
             'sender_role' => $row['sender_role'] ?? '',
             'message' => $row['message'] ?? '',
             'attachment_path' => $row['attachment_path'] ?? null,
+            'attachment_type' => $row['attachment_type'] ?? null,
+            'attachment_ref_type' => $row['attachment_ref_type'] ?? null,
+            'attachment_ref_id' => isset($row['attachment_ref_id']) && $row['attachment_ref_id'] !== null ? (int)$row['attachment_ref_id'] : null,
+            'attachment_title' => $row['attachment_title'] ?? null,
             'created_at' => $row['created_at'] ?? '',
             'read_at' => $row['read_at'] ?? null,
         ], $rows);
     }
 
-    public function sendMessage(int $threadId, int $userId, string $role, string $message, ?string $attachmentPath = null): array
+    public function sendMessage(int $threadId, int $userId, string $role, string $message, ?string $attachmentPath = null, array $attachmentMeta = []): array
     {
-        $stmt = $this->pdo->prepare('INSERT INTO support_messages (thread_id, user_id, sender_role, message, attachment_path, created_at, read_at)
-            VALUES (:tid, :uid, :role, :message, :attachment, :created, NULL)');
+        $attachmentType = trim((string)($attachmentMeta['type'] ?? ''));
+        $attachmentRefType = trim((string)($attachmentMeta['ref_type'] ?? ''));
+        $attachmentRefId = isset($attachmentMeta['ref_id']) ? (int)$attachmentMeta['ref_id'] : null;
+        if ($attachmentRefId !== null && $attachmentRefId <= 0) {
+            $attachmentRefId = null;
+        }
+        $attachmentTitle = trim((string)($attachmentMeta['title'] ?? ''));
+
+        $stmt = $this->pdo->prepare('INSERT INTO support_messages (
+                thread_id, user_id, sender_role, message, attachment_path, attachment_type, attachment_ref_type, attachment_ref_id, attachment_title, created_at, read_at
+            ) VALUES (
+                :tid, :uid, :role, :message, :attachment, :attachment_type, :attachment_ref_type, :attachment_ref_id, :attachment_title, :created, NULL
+            )');
         $now = date('c');
         $stmt->execute([
             'tid' => $threadId,
@@ -153,6 +168,10 @@ class SupportService
             'role' => $role,
             'message' => $message,
             'attachment' => $attachmentPath,
+            'attachment_type' => $attachmentType !== '' ? $attachmentType : null,
+            'attachment_ref_type' => $attachmentRefType !== '' ? $attachmentRefType : null,
+            'attachment_ref_id' => $attachmentRefId,
+            'attachment_title' => $attachmentTitle !== '' ? $attachmentTitle : null,
             'created' => $now,
         ]);
         $this->pdo->prepare('UPDATE support_threads SET updated_at = :updated WHERE id = :id')
@@ -168,6 +187,10 @@ class SupportService
             'sender_role' => $role,
             'message' => $message,
             'attachment_path' => $attachmentPath,
+            'attachment_type' => $attachmentType !== '' ? $attachmentType : null,
+            'attachment_ref_type' => $attachmentRefType !== '' ? $attachmentRefType : null,
+            'attachment_ref_id' => $attachmentRefId,
+            'attachment_title' => $attachmentTitle !== '' ? $attachmentTitle : null,
             'created_at' => $now,
             'read_at' => null,
         ];
@@ -187,7 +210,11 @@ class SupportService
                 SUM(CASE WHEN m.sender_role = :unread_role AND m.read_at IS NULL THEN 1 ELSE 0 END) AS unread_count,
                 (SELECT message FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_message,
                 (SELECT sender_role FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_sender_role,
-                (SELECT attachment_path FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_attachment
+                (SELECT attachment_path FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_attachment,
+                (SELECT attachment_type FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_attachment_type,
+                (SELECT attachment_ref_type FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_attachment_ref_type,
+                (SELECT attachment_ref_id FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_attachment_ref_id,
+                (SELECT attachment_title FROM support_messages sm WHERE sm.thread_id = t.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS last_attachment_title
             FROM support_threads t
             JOIN users u ON u.id = t.user_id
             LEFT JOIN support_messages m ON m.thread_id = t.id
@@ -212,6 +239,10 @@ class SupportService
             'last_message' => $row['last_message'] ?? '',
             'last_sender_role' => $row['last_sender_role'] ?? '',
             'last_attachment' => $row['last_attachment'] ?? null,
+            'last_attachment_type' => $row['last_attachment_type'] ?? null,
+            'last_attachment_ref_type' => $row['last_attachment_ref_type'] ?? null,
+            'last_attachment_ref_id' => isset($row['last_attachment_ref_id']) && $row['last_attachment_ref_id'] !== null ? (int)$row['last_attachment_ref_id'] : null,
+            'last_attachment_title' => $row['last_attachment_title'] ?? null,
             'unread_count' => (int)($row['unread_count'] ?? 0),
         ], $rows);
     }

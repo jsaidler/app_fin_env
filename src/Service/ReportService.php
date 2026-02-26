@@ -116,13 +116,13 @@ class ReportService
     {
         $entries = $this->entries->listByUser($userId);
         $filtered = $this->filterEntries($entries, $filters);
-        $approved = $this->approvedEntries($filtered);
+        $visible = array_values(array_filter($filtered, fn($e) => empty($e->deletedAt)));
         return [
-            'totals' => $this->totals($approved),
+            'totals' => $this->totals($visible),
             'pending' => $this->pendingTotals($filtered),
-            'by_day' => $this->dailySeries($approved),
-            'by_category' => $this->categorySummary($approved),
-            'by_account' => $this->accountSummary($approved, $userId),
+            'by_day' => $this->dailySeries($visible),
+            'by_category' => $this->categorySummary($visible),
+            'by_account' => $this->accountSummary($visible, $userId),
             'last_12_months' => $this->last12Months($entries),
         ];
     }
@@ -131,11 +131,11 @@ class ReportService
     {
         $entries = $this->entries->listByUser($userId);
         $filtered = $this->filterEntries($entries, $filters);
-        $approved = $this->approvedEntries($filtered);
+        $visible = array_values(array_filter($filtered, fn($e) => empty($e->deletedAt)));
         return [
-            'totals' => $this->totals($approved),
+            'totals' => $this->totals($visible),
             'pending' => $this->pendingTotals($filtered),
-            'insights' => $this->insights($approved),
+            'insights' => $this->insights($visible),
         ];
     }
 
@@ -596,10 +596,11 @@ class ReportService
             if (!isset($byDay[$day])) {
                 $byDay[$day] = ['label' => $day, 'in' => 0, 'out' => 0, 'total' => 0];
             }
+            $amount = $this->effectiveAmount($entry);
             if ($entry->type === 'in') {
-                $byDay[$day]['in'] += $entry->amount;
+                $byDay[$day]['in'] += $amount;
             } else {
-                $byDay[$day]['out'] += $entry->amount;
+                $byDay[$day]['out'] += $amount;
             }
             $byDay[$day]['total'] = $byDay[$day]['in'] - $byDay[$day]['out'];
         }
@@ -617,10 +618,11 @@ class ReportService
             if (!isset($map[$name])) {
                 $map[$name] = ['name' => $name, 'in' => 0, 'out' => 0];
             }
+            $amount = $this->effectiveAmount($entry);
             if ($entry->type === 'in') {
-                $map[$name]['in'] += $entry->amount;
+                $map[$name]['in'] += $amount;
             } else {
-                $map[$name]['out'] += $entry->amount;
+                $map[$name]['out'] += $amount;
             }
         }
         $items = array_values($map);
@@ -683,10 +685,11 @@ class ReportService
                     'initial_balance' => 0.0,
                 ];
             }
+            $amount = $this->effectiveAmount($entry);
             if ($entry->type === 'in') {
-                $map[$key]['in'] += $entry->amount;
+                $map[$key]['in'] += $amount;
             } else {
-                $map[$key]['out'] += $entry->amount;
+                $map[$key]['out'] += $amount;
             }
         }
         $items = array_values($map);

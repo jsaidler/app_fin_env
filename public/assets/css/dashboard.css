@@ -177,6 +177,7 @@ ion-content::part(scroll) {
   --padding-end: 4px;
   --min-height: 28px;
   margin: 0;
+  position: relative;
 }
 
 .brand-top-actions .brand-top-btn:first-child {
@@ -196,6 +197,29 @@ ion-content::part(scroll) {
   align-items: center;
   justify-content: center;
   line-height: 1;
+}
+
+.top-icon-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #f25f5f;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.top-icon-badge[hidden] {
+  display: none !important;
 }
 
 .brand-logo {
@@ -1974,6 +1998,26 @@ ion-content::part(scroll) {
   color: #8b9ab1;
 }
 
+.menu-item-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fff3e5;
+  color: #9a5b13;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: 6px;
+}
+
+.menu-item-badge[hidden] {
+  display: none !important;
+}
+
 .settings-list {
   display: grid;
   gap: 10px;
@@ -1981,6 +2025,20 @@ ion-content::part(scroll) {
 }
 
 .settings-item {
+  border: 1px solid #dde4ef;
+  border-radius: 12px;
+  background: #fbfcff;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.settings-item--action {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  appearance: none;
+  cursor: pointer;
   border: 1px solid #dde4ef;
   border-radius: 12px;
   background: #fbfcff;
@@ -2757,6 +2815,11 @@ ion-input.amount-input {
   border-radius: 10px;
 }
 
+.category-option--text-meta {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
 .category-option.is-in .category-option__text {
   color: #1f6a46;
 }
@@ -2801,6 +2864,23 @@ ion-input.amount-input {
   text-overflow: ellipsis;
   word-break: normal;
   overflow-wrap: normal;
+}
+
+.category-option__text-wrap {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.category-option__meta {
+  display: block;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7d8ca4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .category-option__lead-pending {
@@ -3149,6 +3229,221 @@ ion-input.amount-input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.support-sheet::part(content) {
+  --height: auto;
+  max-height: calc(100vh - (var(--safe-top) + 12px));
+}
+
+.support-chat-content {
+  display: grid;
+  grid-template-rows: auto auto minmax(220px, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.support-messages {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  min-height: 220px;
+  max-height: 50vh;
+}
+
+.support-msg {
+  max-width: 86%;
+  display: grid;
+  gap: 4px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
+.support-msg--mine {
+  justify-self: end;
+  background: #dcf8c6;
+  color: #19321f;
+  border-top-right-radius: 4px;
+}
+
+.support-msg--other {
+  justify-self: start;
+  background: #ffffff;
+  color: #1f315f;
+  border-top-left-radius: 4px;
+}
+
+.support-msg__text {
+  font-size: 14px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.support-msg__meta {
+  justify-self: end;
+  font-size: 11px;
+  color: #6f7785;
+}
+
+.support-msg__attach {
+  font-size: 13px;
+  color: #1f315f;
+  border: 1px solid #d2d8e4;
+  background: #f6f8fc;
+  border-radius: 10px;
+  padding: 8px 9px;
+  display: grid;
+  gap: 4px;
+}
+
+.support-msg__attach-title {
+  font-weight: 800;
+  color: #243a70;
+}
+
+.support-msg__attach-action {
+  border: 0;
+  background: transparent;
+  color: #005d97;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  padding: 0;
+}
+
+.support-chat-actions ion-toolbar {
+  --background: var(--cp-canvas);
+  --padding-top: 6px;
+  --padding-bottom: calc(6px + var(--safe-bottom));
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+.support-chat-actions {
+  border-top: 1px solid var(--cp-line);
+  background: var(--cp-canvas);
+}
+
+.support-attachment-preview {
+  margin: 0 2px 8px;
+  padding: 8px 10px;
+  border: 1px solid #d9dfeb;
+  border-radius: 12px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.support-attachment-preview[hidden] {
+  display: none !important;
+}
+
+.support-attachment-preview__title {
+  font-size: 12px;
+  color: #5c6a86;
+  font-weight: 800;
+}
+
+.support-attachment-preview__clear {
+  border: 0;
+  background: transparent;
+  color: #c95b5b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.support-composer {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 0;
+}
+
+.support-composer__icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #6a7b9a;
+}
+
+.support-composer__icon .material-symbols-rounded {
+  font-size: 22px;
+}
+
+#support-record-audio .material-symbols-rounded {
+  font-size: 28px;
+}
+
+.support-composer__icon.is-recording {
+  color: #c95b5b;
+}
+
+.support-composer__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+}
+
+.support-recording-indicator {
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 1;
+  color: #c95b5b;
+  font-weight: 800;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.support-recording-indicator::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #c95b5b;
+  box-shadow: 0 0 0 0 rgba(201, 91, 91, 0.4);
+  animation: support-rec-pulse 1.2s ease-out infinite;
+}
+
+.support-recording-indicator[hidden] {
+  display: none !important;
+}
+
+@keyframes support-rec-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(201, 91, 91, 0.45); }
+  70% { box-shadow: 0 0 0 8px rgba(201, 91, 91, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 91, 91, 0); }
+}
+
+.support-composer__send {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: #005d97;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 520px) {

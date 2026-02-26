@@ -5,6 +5,16 @@ namespace App\Util;
 
 class Image
 {
+    private static function normalizeMime(?string $mime): string
+    {
+        $value = strtolower(trim((string)$mime));
+        if ($value === '') {
+            return '';
+        }
+        $base = explode(';', $value, 2)[0] ?? '';
+        return trim($base);
+    }
+
     public static function saveUploaded(array $file, string $uploadDir, ?int $userId = null): ?string
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -34,15 +44,39 @@ class Image
         if (!$mime && !empty($file['type'])) {
             $mime = $file['type'];
         }
-        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-        if (!in_array($mime, $allowed, true)) {
+        $allowed = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/pdf',
+            'audio/mpeg',
+            'audio/mp4',
+            'audio/webm',
+            'audio/ogg',
+            'audio/wav',
+            'audio/x-wav',
+            'audio/aac',
+            'audio/3gpp',
+        ];
+        $detectedMime = self::normalizeMime($mime);
+        $clientMime = self::normalizeMime((string)($file['type'] ?? ''));
+        if (!in_array($detectedMime, $allowed, true)) {
+            if (in_array($clientMime, $allowed, true)) {
+                $detectedMime = $clientMime;
+            }
+        }
+        if (!in_array($detectedMime, $allowed, true)) {
             throw new \RuntimeException('Formato de arquivo nao permitido');
         }
+        $mime = $detectedMime;
 
         if ($mime === 'application/pdf' && $fileSize > (1 * 1024 * 1024)) {
             throw new \RuntimeException('Arquivo PDF muito grande (max 1MB)');
         }
-        if ($mime !== 'application/pdf' && $fileSize > (10 * 1024 * 1024)) {
+        if (str_starts_with((string)$mime, 'audio/') && $fileSize > (20 * 1024 * 1024)) {
+            throw new \RuntimeException('Arquivo de audio muito grande (max 20MB)');
+        }
+        if (!str_starts_with((string)$mime, 'audio/') && $mime !== 'application/pdf' && $fileSize > (10 * 1024 * 1024)) {
             throw new \RuntimeException('Arquivo muito grande (max 10MB)');
         }
 
@@ -58,6 +92,25 @@ class Image
                 throw new \RuntimeException('PDF invalido');
             }
             $name = bin2hex(random_bytes(8)) . '.pdf';
+            $dest = $targetDir . $name;
+            if (!move_uploaded_file($file['tmp_name'], $dest)) {
+                throw new \RuntimeException('Erro ao salvar upload');
+            }
+            return $uid . '/uploads/' . $name;
+        }
+
+        if (str_starts_with((string)$mime, 'audio/')) {
+            $ext = match ($mime) {
+                'audio/mpeg' => 'mp3',
+                'audio/mp4' => 'm4a',
+                'audio/webm' => 'webm',
+                'audio/ogg' => 'ogg',
+                'audio/wav', 'audio/x-wav' => 'wav',
+                'audio/aac' => 'aac',
+                'audio/3gpp' => '3gp',
+                default => 'bin',
+            };
+            $name = bin2hex(random_bytes(8)) . '.' . $ext;
             $dest = $targetDir . $name;
             if (!move_uploaded_file($file['tmp_name'], $dest)) {
                 throw new \RuntimeException('Erro ao salvar upload');
