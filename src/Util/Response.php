@@ -20,7 +20,24 @@ class Response
         }
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($json === false) {
+            if (class_exists(Logger::class)) {
+                Logger::error('Falha ao serializar JSON', [
+                    'status' => $status,
+                    'path' => $_SERVER['REQUEST_URI'] ?? '',
+                    'json_error' => json_last_error_msg(),
+                ]);
+            }
+            $json = '{"error":"Falha ao serializar resposta JSON"}';
+            if ($status < 400) {
+                http_response_code(500);
+            }
+        }
+        echo $json;
         exit;
     }
 

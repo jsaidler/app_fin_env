@@ -51,6 +51,7 @@ class EntryService
         $month = substr($input['date'], 0, 7);
         $closed = $this->isClosed($month, $userId);
         $payload = $input;
+        $payload['account_id'] = $this->normalizeAccountId($payload['account_id'] ?? null, $userId);
         if ($closed) {
             $payload['needs_review'] = 1;
             $payload['reviewed_at'] = null;
@@ -82,6 +83,7 @@ class EntryService
         $newMonth = substr($targetDate, 0, 7);
         $closed = $this->isClosed($originalMonth, $userId) || $this->isClosed($newMonth, $userId);
         $payload = $input;
+        $payload['account_id'] = $this->normalizeAccountId($payload['account_id'] ?? null, $userId);
         if ($closed) {
             $payload['needs_review'] = 1;
             $payload['reviewed_at'] = null;
@@ -185,17 +187,26 @@ class EntryService
         if (!Validator::nonEmpty($input['category'] ?? '')) {
             Response::json(['error' => 'Categoria obrigatoria'], 422);
         }
-        $accountId = (int)($input['account_id'] ?? 0);
+        $this->normalizeAccountId($input['account_id'] ?? null, $userId);
+        if (!Validator::date($input['date'] ?? '')) {
+            Response::json(['error' => 'Data invalida'], 422);
+        }
+    }
+
+    private function normalizeAccountId($value, int $userId): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $accountId = (int)$value;
         if ($accountId <= 0) {
-            Response::json(['error' => 'Conta/cartao obrigatorio'], 422);
+            return null;
         }
         $account = $this->accounts->findForUser($accountId, $userId);
         if (!$account || !$account->active) {
             Response::json(['error' => 'Conta/cartao invalido'], 422);
         }
-        if (!Validator::date($input['date'] ?? '')) {
-            Response::json(['error' => 'Data invalida'], 422);
-        }
+        return $accountId;
     }
 
     private function assertAttachmentOwner(?string $path, int $userId): void

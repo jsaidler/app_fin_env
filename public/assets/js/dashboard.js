@@ -439,8 +439,8 @@ let entryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
 let draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
 let lastScopedEntryFilters = { startDate: "", endDate: "", categories: [] };
 const topSummaryState = {
-  categorias: { current: [], previous: [] },
-  contas: { current: [], previous: [] },
+  categorias: { current: [], previous: [], currentTotal: null, previousTotal: null },
+  contas: { current: [], previous: [], currentTotal: null, previousTotal: null },
   recorrencias: { current: [] },
 };
 let selectedUserCategoryIcon = "";
@@ -448,6 +448,8 @@ let selectedUserCategoryGlobalId = 0;
 let userCategoryIconCatalog = [];
 let userCategoryIconCatalogLoaded = false;
 let dashboardEntriesCache = [];
+let dashboardEntriesCacheRequest = null;
+let dashboardGroupedEntriesCache = [];
 let categoryRowsIndex = new Map();
 let currentDetailCategoryName = "";
 let currentDetailEditableCategoryId = 0;
@@ -1092,6 +1094,7 @@ function setupTabNav() {
       const tabName = String(button.dataset.tab || "");
       if (!tabName) return;
       showTab(tabName);
+      void loadDataForTab(tabName);
     });
   });
 
@@ -1107,12 +1110,93 @@ function setupTabNav() {
   setupTabDragScroll();
 }
 
+async function loadAggregateSections() {
+  const month = monthRange();
+  const prevMonth = previousMonthRange(month);
+  const monthBounds = monthBoundsFromKey(month);
+  const prevMonthBounds = monthBoundsFromKey(prevMonth);
+
+  const monthGroupsQuery = buildEntriesGroupsQueryString({
+    type: "all",
+    startDate: monthBounds.start,
+    endDate: monthBounds.end,
+    categories: [],
+  }, "");
+  const prevGroupsQuery = buildEntriesGroupsQueryString({
+    type: "all",
+    startDate: prevMonthBounds.start,
+    endDate: prevMonthBounds.end,
+    categories: [],
+  }, "");
+
+  const [monthGroupsRes, prevGroupsRes] = await Promise.all([
+    authFetch(`/api/reports/entries-groups?${monthGroupsQuery}`),
+    authFetch(`/api/reports/entries-groups?${prevGroupsQuery}`),
+  ]);
+
+  if ([monthGroupsRes, prevGroupsRes].some((response) => response.status === 401)) {
+    window.location.href = "/";
+    return;
+  }
+  if ([monthGroupsRes, prevGroupsRes].some((response) => !response.ok)) {
+    showError("Não foi possível carregar categorias/contas.");
+    return;
+  }
+
+  const [monthGroupsPayload, prevGroupsPayload] = await Promise.all([
+    safeJson(monthGroupsRes, {}),
+    safeJson(prevGroupsRes, {}),
+  ]);
+  const monthGroups = Array.isArray(monthGroupsPayload?.groups) ? monthGroupsPayload.groups : [];
+  const prevGroups = Array.isArray(prevGroupsPayload?.groups) ? prevGroupsPayload.groups : [];
+  const monthAggSafe = buildMonthAggregateFromEntries(extractEntriesFromGroups(monthGroups), month);
+  const prevMonthAggSafe = buildMonthAggregateFromEntries(extractEntriesFromGroups(prevGroups), prevMonth);
+
+  renderCategoriesTab(monthAggSafe, prevMonthAggSafe);
+  renderAccountsTab(monthAggSafe, prevMonthAggSafe);
+  renderTopSummaryForTab(activeTabName());
+}
+
+async function loadDataForTab(tabName) {
+  const tab = String(tabName || activeTabName() || "").trim();
+  if (tab === "lancamentos") {
+    await loadDashboard();
+    return;
+  }
+  if (tab === "categorias" || tab === "contas") {
+    await loadAggregateSections();
+    return;
+  }
+  if (tab === "recorrentes") {
+    await loadRecurrences();
+    return;
+  }
+}
+
 function normalizeText(value) {
   return String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+}
+
+function normalizeLookupText(value) {
+  const raw = String(value || "").trim();
+  let repaired = raw;
+  try {
+    if (/[ÃÂ]/.test(raw)) {
+      repaired = decodeURIComponent(escape(raw));
+    }
+  } catch {
+    repaired = raw;
+  }
+  return normalizeText(repaired);
+}
+
+function isNoAccountLabel(value) {
+  const normalized = normalizeLookupText(value || "");
+  return /^sem\s+conta(\s*\/\s*cartao)?$/.test(normalized);
 }
 
 function categoryGlyph(name) {
@@ -1670,12 +1754,14 @@ function renderTopSummaryForTab(tabName) {
     setTopSummaryLabels("saldo no mês", "mês anterior");
     setTopSummaryExtra("");
     setTopSummaryExtraValue("");
-    const state = topSummaryState.categorias || { current: [], previous: [] };
+    const state = topSummaryState.categorias || { current: [], previous: [], currentTotal: null, previousTotal: null };
     updateTopSummaryPanel(
       state.current,
       state.previous,
       categoryBalance,
       (item) => String(item?.name || ""),
+      state.currentTotal,
+      state.previousTotal,
     );
     return;
   }
@@ -1684,12 +1770,14 @@ function renderTopSummaryForTab(tabName) {
     setTopSummaryLabels("saldo no mês", "mês anterior");
     setTopSummaryExtra("");
     setTopSummaryExtraValue("");
-    const state = topSummaryState.contas || { current: [], previous: [] };
+    const state = topSummaryState.contas || { current: [], previous: [], currentTotal: null, previousTotal: null };
     updateTopSummaryPanel(
       state.current,
       state.previous,
       (item) => Number(item?.balance || 0),
       (item) => String(item?.name || ""),
+      state.currentTotal,
+      state.previousTotal,
     );
     return;
   }
@@ -1790,21 +1878,18 @@ function isEntryFormValid() {
   const type = currentEntryTypeForValidation();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
-  const accountId = Number(selectedAccountId || 0);
   const date = String(selectedDateISO || "").slice(0, 10).trim();
   return ["in", "out"].includes(type)
     && Number.isFinite(amount)
     && amount > 0
     && category.length > 0
-    && accountId > 0
     && /^\d{4}-\d{2}-\d{2}$/.test(date);
 }
 
 function hasEntryMinimumRequiredData() {
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
-  const accountId = Number(selectedAccountId || 0);
-  return Number.isFinite(amount) && amount > 0 && category.length > 0 && accountId > 0;
+  return Number.isFinite(amount) && amount > 0 && category.length > 0;
 }
 
 function updateSaveState() {
@@ -2640,7 +2725,7 @@ async function openEntryEditor(entryId) {
   selectedAccountId = Number(entry.account_id || 0);
   if (selectedAccountEl) {
     const accountName = String(entry.account_name || "").trim();
-    selectedAccountEl.textContent = accountName || "Selecionar conta/cartão";
+    selectedAccountEl.textContent = accountName || "Selecionar conta/cartão (opcional)";
     selectedAccountEl.classList.toggle("is-placeholder", !accountName);
   }
   setEntryModalMode(editingEntryDeleted ? "deleted" : "edit");
@@ -2777,11 +2862,15 @@ function setupEntriesInteractions() {
   accountsListScreen?.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const button = target.closest("[data-account-id]");
+    const button = target.closest("[data-account-key], [data-account-id]");
     if (!button) return;
+    const encodedKey = String(button.getAttribute("data-account-key") || "").trim();
+    if (encodedKey) {
+      void openAccountDetailModal(decodeURIComponent(encodedKey));
+      return;
+    }
     const accountId = Number(button.getAttribute("data-account-id") || 0);
-    if (accountId <= 0) return;
-    void openAccountDetailModal(accountId);
+    void openAccountDetailModal(buildAccountRowKey(accountId, ""));
   });
 
   closeCategoryDetailModalBtn?.addEventListener("click", () => {
@@ -3195,7 +3284,7 @@ function dayGroupLabel(dayNode) {
   return String(dayNode?.label || "").trim().toUpperCase();
 }
 
-function buildCategoryMonthlyBars(categoryName) {
+function buildCategoryMonthlyBars(categoryName, sourceEntries = null) {
   const keyNow = monthRange();
   const [yearNow, monthNow] = keyNow.split("-").map((value) => Number(value));
   const months = [];
@@ -3206,7 +3295,8 @@ function buildCategoryMonthlyBars(categoryName) {
   }
   const map = new Map(months.map((item) => [item.key, 0]));
   const normalizedCategory = normalizeText(categoryName);
-  dashboardEntriesCache.forEach((entry) => {
+  const source = detailEntriesSource(sourceEntries);
+  source.forEach((entry) => {
     if (Number(entry?.deleted || 0) === 1) return;
     if (normalizeText(entry?.category || "") !== normalizedCategory) return;
     const key = monthKeyFromIso(entry?.date || "");
@@ -3249,22 +3339,32 @@ function buildMonthAggregateFromEntries(entries, monthKey) {
 
   const byCategoryMap = new Map();
   const byAccountMap = new Map();
+  let totalIn = 0;
+  let totalOut = 0;
+  let totalCount = 0;
 
   rows.forEach((entry) => {
     const type = String(entry?.type || "out") === "in" ? "in" : "out";
     const amount = Math.abs(Number(effectiveEntryAmount(entry)) || 0);
+    if (type === "in") totalIn += amount;
+    else totalOut += amount;
+    totalCount += 1;
 
-    const categoryName = String(entry?.category || "").trim() || "Sem categoria";
-    if (!byCategoryMap.has(categoryName)) {
-      byCategoryMap.set(categoryName, { name: categoryName, in: 0, out: 0 });
+    const categoryNameRaw = String(entry?.category || "").trim() || "Sem categoria";
+    const categoryName = categoryNameRaw || "Sem categoria";
+    const categoryKey = normalizeLookupText(categoryName);
+    if (!byCategoryMap.has(categoryKey)) {
+      byCategoryMap.set(categoryKey, { name: categoryName, in: 0, out: 0 });
     }
-    const category = byCategoryMap.get(categoryName);
+    const category = byCategoryMap.get(categoryKey);
     category[type] += amount;
 
     const accountName = String(entry?.account_name || entry?.accountName || "").trim() || "Sem conta/cartão";
     const accountType = String(entry?.account_type || entry?.accountType || "bank");
     const accountId = Number(entry?.account_id || entry?.accountId || 0);
-    const accountKey = `${accountId > 0 ? accountId : "name"}:${normalizeText(accountName)}`;
+    const accountKey = accountId > 0
+      ? `id:${accountId}`
+      : `name:${normalizeLookupText(accountName)}`;
     if (!byAccountMap.has(accountKey)) {
       byAccountMap.set(accountKey, {
         id: accountId,
@@ -3298,7 +3398,23 @@ function buildMonthAggregateFromEntries(entries, monthKey) {
   });
   byAccount.sort((a, b) => ((Number(b.in || 0) + Number(b.out || 0)) - (Number(a.in || 0) + Number(a.out || 0))));
 
-  return { by_category: byCategory, by_account: byAccount };
+  return {
+    totals: {
+      in: totalIn,
+      out: totalOut,
+      balance: totalIn - totalOut,
+      count: totalCount,
+    },
+    by_category: byCategory,
+    by_account: byAccount,
+  };
+}
+
+function aggregateLooksEmpty(agg) {
+  const totalCount = Number(agg?.totals?.count || 0);
+  const byCategoryCount = Array.isArray(agg?.by_category) ? agg.by_category.length : 0;
+  const byAccountCount = Array.isArray(agg?.by_account) ? agg.by_account.length : 0;
+  return totalCount <= 0 && byCategoryCount <= 0 && byAccountCount <= 0;
 }
 
 function extractEntriesFromGroups(groups) {
@@ -3317,9 +3433,10 @@ function extractEntriesFromGroups(groups) {
   return result;
 }
 
-function buildCategoryEntriesHierarchy(categoryName) {
+function buildCategoryEntriesHierarchy(categoryName, sourceEntries = null) {
   const normalizedCategory = normalizeText(categoryName);
-  const filtered = dashboardEntriesCache
+  const source = detailEntriesSource(sourceEntries);
+  const filtered = source
     .filter((entry) => Number(entry?.deleted || 0) !== 1)
     .filter((entry) => normalizeText(entry?.category || "") === normalizedCategory)
     .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
@@ -3368,8 +3485,8 @@ function buildCategoryEntriesHierarchy(categoryName) {
     }));
 }
 
-function buildCategoryGroupsForLaunchListPattern(categoryName) {
-  const hierarchy = buildCategoryEntriesHierarchy(categoryName);
+function buildCategoryGroupsForLaunchListPattern(categoryName, sourceEntries = null) {
+  const hierarchy = buildCategoryEntriesHierarchy(categoryName, sourceEntries);
   return hierarchy.map((yearNode) => ({
     year: yearNode.yearKey,
     label: yearNode.yearKey,
@@ -3391,7 +3508,7 @@ function buildCategoryGroupsForLaunchListPattern(categoryName) {
   }));
 }
 
-function buildAccountMonthlyBars(accountName) {
+function buildAccountMonthlyBars(accountName, sourceEntries = null, accountId = 0) {
   const keyNow = monthRange();
   const [yearNow, monthNow] = keyNow.split("-").map((value) => Number(value));
   const months = [];
@@ -3402,9 +3519,10 @@ function buildAccountMonthlyBars(accountName) {
   }
   const map = new Map(months.map((item) => [item.key, 0]));
   const normalizedAccount = normalizeText(accountName);
-  dashboardEntriesCache.forEach((entry) => {
+  const source = detailEntriesSource(sourceEntries);
+  source.forEach((entry) => {
     if (Number(entry?.deleted || 0) === 1) return;
-    if (normalizeText(entry?.account_name || "") !== normalizedAccount) return;
+    if (!entryMatchesAccount(entry, accountId, normalizedAccount)) return;
     const key = monthKeyFromIso(entry?.date || "");
     if (!map.has(key)) return;
     map.set(key, Number(map.get(key) || 0) + Number(entry?.amount || 0));
@@ -3418,11 +3536,12 @@ function buildAccountMonthlyBars(accountName) {
   }));
 }
 
-function buildAccountEntriesHierarchy(accountName) {
+function buildAccountEntriesHierarchy(accountName, sourceEntries = null, accountId = 0) {
   const normalizedAccount = normalizeText(accountName);
-  const filtered = dashboardEntriesCache
+  const source = detailEntriesSource(sourceEntries);
+  const filtered = source
     .filter((entry) => Number(entry?.deleted || 0) !== 1)
-    .filter((entry) => normalizeText(entry?.account_name || "") === normalizedAccount)
+    .filter((entry) => entryMatchesAccount(entry, accountId, normalizedAccount))
     .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
 
   const yearsMap = new Map();
@@ -3467,8 +3586,8 @@ function buildAccountEntriesHierarchy(accountName) {
     }));
 }
 
-function buildAccountGroupsForLaunchListPattern(accountName) {
-  const hierarchy = buildAccountEntriesHierarchy(accountName);
+function buildAccountGroupsForLaunchListPattern(accountName, sourceEntries = null, accountId = 0) {
+  const hierarchy = buildAccountEntriesHierarchy(accountName, sourceEntries, accountId);
   return hierarchy.map((yearNode) => ({
     year: yearNode.yearKey,
     label: yearNode.yearKey,
@@ -3490,7 +3609,7 @@ function buildAccountGroupsForLaunchListPattern(accountName) {
   }));
 }
 
-function renderCategoryDetailModal(categoryName) {
+function renderCategoryDetailModal(categoryName, sourceEntries = null) {
   if (!categoryDetailModal || !categoryDetailTitleEl || !categoryDetailTotalEl || !categoryDetailBarsEl || !categoryDetailListEl) return;
   const meta = categoryRowsIndex.get(categoryName);
   if (!meta) return;
@@ -3532,7 +3651,7 @@ function renderCategoryDetailModal(categoryName) {
   categoryDetailTotalEl.classList.remove("pos", "neg");
   categoryDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
 
-  const bars = buildCategoryMonthlyBars(categoryName);
+  const bars = buildCategoryMonthlyBars(categoryName, sourceEntries);
   categoryDetailBarsEl.innerHTML = bars
     .map((bar) => `
       <span class="category-detail-bars__item">
@@ -3544,13 +3663,36 @@ function renderCategoryDetailModal(categoryName) {
     `)
     .join("");
 
-  const groups = buildCategoryGroupsForLaunchListPattern(categoryName);
+  const groups = buildCategoryGroupsForLaunchListPattern(categoryName, sourceEntries);
   renderEntriesGroupedFromServer(categoryDetailListEl, groups, "Sem lançamentos para esta categoria.");
 }
 
+function monthBoundsFromKey(monthKey) {
+  const [year, month] = String(monthKey || "").split("-").map((value) => Number(value));
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    const bounds = currentMonthBounds();
+    return { start: bounds.start, end: bounds.end };
+  }
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+  const toIso = (value) => {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+  return { start: toIso(startDate), end: toIso(endDate) };
+}
+
 async function openCategoryDetailModal(categoryName) {
-  renderCategoryDetailModal(categoryName);
-  await categoryDetailModal?.present();
+  try {
+    await loadCategories();
+    const detailEntries = await fetchCategoryDetailEntries(categoryName);
+    renderCategoryDetailModal(categoryName, detailEntries);
+    await categoryDetailModal?.present();
+  } catch {
+    showError("Não foi possível carregar os detalhes da categoria.");
+  }
 }
 
 async function closeCategoryDetailModal() {
@@ -3560,23 +3702,24 @@ async function closeCategoryDetailModal() {
   await categoryDetailModal?.dismiss();
 }
 
-function renderAccountDetailModal(accountId) {
+function renderAccountDetailModal(accountId, sourceEntries = null, sourceGroups = null) {
   if (!accountDetailModal || !accountDetailTitleEl || !accountDetailTotalEl || !accountDetailBarsEl || !accountDetailListEl) return;
-  const meta = accountRowsIndex.get(Number(accountId));
+  const meta = accountRowsIndex.get(String(accountId || ""));
   if (!meta) return;
-  currentDetailAccountId = Number(accountId);
   currentDetailAccountName = String(meta?.name || "");
+  currentDetailAccountId = Number(meta?.id || 0);
   const graphColor = Number(meta?.currBalance || 0) >= 0 ? "#2f925f" : "#c95b5b";
+  const canManageAccount = currentDetailAccountId > 0;
   if (editAccountFromDetailBtn) {
-    editAccountFromDetailBtn.style.display = "";
-    editAccountFromDetailBtn.disabled = false;
+    editAccountFromDetailBtn.style.display = canManageAccount ? "" : "none";
+    editAccountFromDetailBtn.disabled = !canManageAccount;
   }
   if (deleteAccountFromDetailBtn) {
-    deleteAccountFromDetailBtn.style.display = "";
-    deleteAccountFromDetailBtn.disabled = false;
+    deleteAccountFromDetailBtn.style.display = canManageAccount ? "" : "none";
+    deleteAccountFromDetailBtn.disabled = !canManageAccount;
   }
   if (accountDetailFooterEl) {
-    accountDetailFooterEl.style.display = "";
+    accountDetailFooterEl.style.display = canManageAccount ? "" : "none";
   }
 
   accountDetailTitleEl.textContent = currentDetailAccountName || "Conta/Cartão";
@@ -3584,7 +3727,7 @@ function renderAccountDetailModal(accountId) {
   accountDetailTotalEl.classList.remove("pos", "neg");
   accountDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
 
-  const bars = buildAccountMonthlyBars(currentDetailAccountName);
+  const bars = buildAccountMonthlyBars(currentDetailAccountName, sourceEntries, currentDetailAccountId);
   accountDetailBarsEl.innerHTML = bars
     .map((bar) => `
       <span class="category-detail-bars__item">
@@ -3596,13 +3739,41 @@ function renderAccountDetailModal(accountId) {
     `)
     .join("");
 
-  const groups = buildAccountGroupsForLaunchListPattern(currentDetailAccountName);
-  renderEntriesGroupedFromServer(accountDetailListEl, groups, "Sem lançamentos para esta conta/cartão.");
+  if (Array.isArray(sourceGroups) && sourceGroups.length) {
+    renderEntriesGroupedFromServer(accountDetailListEl, sourceGroups, "Sem lançamentos para esta conta/cartão.");
+  } else {
+    const groups = buildAccountGroupsForLaunchListPattern(currentDetailAccountName, sourceEntries, currentDetailAccountId);
+    renderEntriesGroupedFromServer(accountDetailListEl, groups, "Sem lançamentos para esta conta/cartão.");
+  }
 }
 
 async function openAccountDetailModal(accountId) {
-  renderAccountDetailModal(accountId);
-  await accountDetailModal?.present();
+  try {
+    await loadAccounts(true);
+    const meta = accountRowsIndex.get(String(accountId || ""));
+    if (!meta) return;
+    const accountName = String(meta?.name || "");
+    const normalizedId = Number(meta?.id || 0);
+    let detailEntries = [];
+    let detailGroups = null;
+
+    if (normalizedId <= 0) {
+      const groups = await fetchNoAccountDetailGroups();
+      detailGroups = Array.isArray(groups) ? groups : [];
+      detailEntries = extractEntriesFromGroups(detailGroups)
+        .filter((entry) => Number(entry?.deleted || 0) !== 1)
+        .filter((entry) => entryMatchesAccount(entry, normalizedId, accountName));
+    } else {
+      const fetched = await fetchAccountDetailEntries(normalizedId, accountName);
+      if (Array.isArray(fetched)) {
+        detailEntries = fetched;
+      }
+    }
+    renderAccountDetailModal(accountId, detailEntries, detailGroups);
+    await accountDetailModal?.present();
+  } catch {
+    showError("Não foi possível carregar os detalhes da conta/cartão.");
+  }
 }
 
 async function closeAccountDetailModal() {
@@ -3703,7 +3874,10 @@ function renderCategoriesTab(currentAgg, previousAgg) {
   const previousItems = Array.isArray(previousAgg?.by_category) ? previousAgg.by_category : [];
   topSummaryState.categorias.current = currentItems;
   topSummaryState.categorias.previous = previousItems;
-  const prevMap = new Map(previousItems.map((item) => [String(item?.name || ""), categoryBalance(item)]));
+  topSummaryState.categorias.currentTotal = Number(currentAgg?.totals?.balance || 0);
+  topSummaryState.categorias.previousTotal = Number(previousAgg?.totals?.balance || 0);
+  const categoryKey = (value) => normalizeLookupText(String(value || "").trim());
+  const prevMap = new Map(previousItems.map((item) => [categoryKey(item?.name), categoryBalance(item)]));
 
   const toneMap = buildCategoryToneMap([
     ...currentItems.map((item) => String(item?.name || "")),
@@ -3714,7 +3888,7 @@ function renderCategoriesTab(currentAgg, previousAgg) {
     .map((item) => {
       const name = String(item?.name || "").trim();
       const currBalance = categoryBalance(item);
-      const prevBalance = Number(prevMap.get(name) || 0);
+      const prevBalance = Number(prevMap.get(categoryKey(name)) || 0);
       return { name, currBalance, prevBalance };
     })
     .filter((item) => item.name);
@@ -3767,7 +3941,10 @@ function renderAccountsTab(currentAgg, previousAgg) {
   const previousItems = Array.isArray(previousAgg?.by_account) ? previousAgg.by_account : [];
   topSummaryState.contas.current = currentItems;
   topSummaryState.contas.previous = previousItems;
-  const prevMap = new Map(previousItems.map((item) => [String(item?.name || ""), Number(item?.balance || 0)]));
+  topSummaryState.contas.currentTotal = Number(currentAgg?.totals?.balance || 0);
+  topSummaryState.contas.previousTotal = Number(previousAgg?.totals?.balance || 0);
+  const accountKey = (item) => buildAccountRowKey(item?.id, item?.name);
+  const prevMap = new Map(previousItems.map((item) => [accountKey(item), Number(item?.balance || 0)]));
 
   const listItems = currentItems
     .map((item) => {
@@ -3775,7 +3952,7 @@ function renderAccountsTab(currentAgg, previousAgg) {
       const id = Number(item?.id || 0);
       const type = String(item?.type || "bank");
       const currBalance = Number(item?.balance || 0);
-      const prevBalance = Number(prevMap.get(name) || 0);
+      const prevBalance = Number(prevMap.get(accountKey({ id, name })) || 0);
       const normalizedName = name || "Sem conta/cartão";
       return { id, type, name: normalizedName, currBalance, prevBalance };
     })
@@ -3808,8 +3985,8 @@ function renderAccountsTab(currentAgg, previousAgg) {
       const prevWidth = Math.max(0, Math.min(100, Math.round((prevAbs / base) * 100)));
       const currClass = item.currBalance >= 0 ? "pos" : "neg";
       const prevClass = item.prevBalance >= 0 ? "pos" : "neg";
-
-      accountRowsIndex.set(item.id, {
+      const rowKey = buildAccountRowKey(item.id, item.name);
+      accountRowsIndex.set(rowKey, {
         id: item.id,
         name: item.name,
         type: item.type,
@@ -3818,7 +3995,7 @@ function renderAccountsTab(currentAgg, previousAgg) {
       });
 
       return `
-        <button type="button" class="cat-row cat-row--button" data-account-id="${item.id}">
+        <button type="button" class="cat-row cat-row--button" data-account-key="${encodeURIComponent(rowKey)}">
           <div class="cat-row__meta">
             <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
           </div>
@@ -4040,7 +4217,7 @@ function syncRecurrencePickers() {
   if (selectedRecurrenceAccountEl) {
     const account = accounts.find((item) => Number(item?.id || 0) === Number(selectedRecurrenceAccountId || 0));
     const name = String(account?.name || "");
-    selectedRecurrenceAccountEl.textContent = name || "Selecionar conta/cartão";
+    selectedRecurrenceAccountEl.textContent = name || "Selecionar conta/cartão (opcional)";
     selectedRecurrenceAccountEl.classList.toggle("is-placeholder", !name);
   }
   if (selectedRecurrenceDateEl) {
@@ -4260,10 +4437,6 @@ async function saveRecurrence() {
     showError("Informe um valor válido.");
     return;
   }
-  if (accountId <= 0) {
-    showError("Conta/cartão é obrigatória.");
-    return;
-  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
     showError("Data inicial inválida.");
     return;
@@ -4283,7 +4456,7 @@ async function saveRecurrence() {
         type: categoryType,
         amount,
         category,
-        account_id: accountId,
+        account_id: accountId > 0 ? accountId : null,
         description,
         frequency,
         start_date: startDate,
@@ -4668,6 +4841,104 @@ async function loadCategories() {
   }
 }
 
+async function syncDashboardEntriesCache() {
+  if (dashboardEntriesCacheRequest) return dashboardEntriesCacheRequest;
+  dashboardEntriesCacheRequest = (async () => {
+    try {
+      const response = await authFetch("/api/entries");
+      if (response.status === 401) {
+        window.location.href = "/";
+        return;
+      }
+      if (!response.ok) return;
+      const payload = await safeJson(response, []);
+      dashboardEntriesCache = Array.isArray(payload) ? payload : [];
+    } catch {
+      // no-op: keep previous cache
+    } finally {
+      dashboardEntriesCacheRequest = null;
+    }
+  })();
+  return dashboardEntriesCacheRequest;
+}
+
+function detailEntriesSource(preferred = null) {
+  if (Array.isArray(preferred) && preferred.length) return preferred;
+  if (Array.isArray(dashboardEntriesCache) && dashboardEntriesCache.length) return dashboardEntriesCache;
+  if (Array.isArray(dashboardGroupedEntriesCache) && dashboardGroupedEntriesCache.length) return dashboardGroupedEntriesCache;
+  return [];
+}
+
+async function fetchCategoryDetailEntries(categoryName) {
+  const name = String(categoryName || "").trim();
+  if (!name) return [];
+  const params = new URLSearchParams();
+  params.set("type", "all");
+  params.set("categories", name);
+  const response = await authFetch(`/api/reports/entries-groups?${params.toString()}`);
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  if (!response.ok) return [];
+  const payload = await safeJson(response, {});
+  const groups = Array.isArray(payload?.groups) ? payload.groups : [];
+  return extractEntriesFromGroups(groups);
+}
+
+async function fetchAccountDetailEntries(accountId, accountName) {
+  const groupsParams = new URLSearchParams();
+  groupsParams.set("type", "all");
+  const isNoAccount = Number(accountId || 0) <= 0;
+  if (isNoAccount) {
+    groupsParams.set("no_account", "1");
+  } else if (Number(accountId || 0) > 0) {
+    groupsParams.set("account_id", String(Number(accountId)));
+  } else {
+    groupsParams.set("no_account", "1");
+  }
+  const groupsResponse = await authFetch(`/api/reports/entries-groups?${groupsParams.toString()}`);
+  if (groupsResponse.status === 401) {
+    window.location.href = "/";
+    return null;
+  }
+  if (!groupsResponse.ok) return [];
+  const groupsPayload = await safeJson(groupsResponse, {});
+  const groups = Array.isArray(groupsPayload?.groups) ? groupsPayload.groups : [];
+  const entriesFromGroups = extractEntriesFromGroups(groups);
+  return entriesFromGroups
+    .filter((entry) => Number(entry?.deleted || 0) !== 1)
+    .filter((entry) => entryMatchesAccount(entry, accountId, accountName));
+}
+
+async function fetchNoAccountDetailGroups() {
+  const params = new URLSearchParams();
+  params.set("type", "all");
+  params.set("no_account", "1");
+  const response = await authFetch(`/api/reports/entries-groups?${params.toString()}`);
+  if (response.status === 401) {
+    window.location.href = "/";
+    return null;
+  }
+  if (!response.ok) return null;
+  const payload = await safeJson(response, {});
+  return Array.isArray(payload?.groups) ? payload.groups : [];
+}
+
+function entryMatchesAccount(entry, accountId, accountName) {
+  const entryAccountId = Number(entry?.account_id || entry?.accountId || 0);
+  const targetId = Number(accountId || 0);
+  if (targetId <= 0) return entryAccountId <= 0;
+  return entryAccountId === targetId;
+}
+
+function buildAccountRowKey(accountId, accountName = "") {
+  const id = Number(accountId || 0);
+  const normalizedName = String(accountName || "").trim() || "Sem conta/cartão";
+  if (id > 0) return `id:${id}`;
+  return `name:${normalizeLookupText(normalizedName)}`;
+}
+
 async function uploadAttachment(file) {
   if (!file) return null;
   const formData = new FormData();
@@ -4719,7 +4990,7 @@ function resetEntryForm() {
   selectedAccountId = 0;
   if (accountSearchInput) accountSearchInput.value = "";
   if (selectedAccountEl) {
-    selectedAccountEl.textContent = "Selecionar conta/cartão";
+    selectedAccountEl.textContent = "Selecionar conta/cartão (opcional)";
     selectedAccountEl.classList.add("is-placeholder");
   }
   setEntryDirectionHint("");
@@ -4783,10 +5054,6 @@ async function createEntry() {
     showError("Categoria \u00e9 obrigat\u00f3ria.");
     return;
   }
-  if (accountId <= 0) {
-    showError("Conta/cartão é obrigatória.");
-    return;
-  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     showError("Data inv\u00e1lida.");
     return;
@@ -4798,6 +5065,7 @@ async function createEntry() {
     const attachmentPath = selectedAttachmentFile
       ? await uploadAttachment(selectedAttachmentFile)
       : (editingEntryId ? editingEntryAttachmentPath : null);
+    const accountPayload = accountId > 0 ? accountId : null;
 
     const endpoint = editingEntryId ? `/api/entries/${editingEntryId}` : "/api/entries";
     const response = await fetch(endpoint, {
@@ -4811,7 +5079,7 @@ async function createEntry() {
         type,
         amount,
         category,
-        account_id: accountId,
+        account_id: accountPayload,
         date,
         description,
         attachment_path: attachmentPath,
@@ -4873,10 +5141,6 @@ async function approvePendingEntry() {
     showError("Categoria é obrigatória para aprovar.");
     return;
   }
-  if (accountId <= 0) {
-    showError("Conta/cartão é obrigatória para aprovar.");
-    return;
-  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     showError("Data inválida para aprovar.");
     return;
@@ -4909,6 +5173,7 @@ async function approvePendingEntry() {
     const attachmentPath = selectedAttachmentFile
       ? await uploadAttachment(selectedAttachmentFile)
       : editingEntryAttachmentPath;
+    const accountPayload = accountId > 0 ? accountId : null;
 
     const response = await fetch(`/api/admin/entries/${editingEntryId}`, {
       method: "PUT",
@@ -4919,7 +5184,7 @@ async function approvePendingEntry() {
         type,
         amount,
         category,
-        account_id: accountId,
+        account_id: accountPayload,
         date,
         description,
         attachment_path: attachmentPath || null,
@@ -5150,7 +5415,7 @@ function setupEntryModal() {
     if (selected && typed && typed !== String(selected?.name || "")) {
       selectedAccountId = 0;
       if (selectedAccountEl) {
-        selectedAccountEl.textContent = "Selecionar conta/cartão";
+        selectedAccountEl.textContent = "Selecionar conta/cartão (opcional)";
         selectedAccountEl.classList.add("is-placeholder");
       }
       updateSaveState();
@@ -5421,6 +5686,7 @@ function setupEntryModal() {
 async function authFetch(path) {
   return fetch(path, {
     method: "GET",
+    cache: "no-store",
     credentials: "same-origin",
     headers: authHeaders({ Accept: "application/json" }, { path }),
   });
@@ -7320,7 +7586,9 @@ async function impersonateAdminUser(userId, options = {}) {
   if (id <= 0) return;
   const silent = Boolean(options?.silent);
   const currentToken = getStoredAuthToken();
-  if (!currentToken) {
+  const baseAdminToken = getImpersonationAdminToken();
+  const tokenForRestore = baseAdminToken || currentToken;
+  if (!tokenForRestore) {
     if (!silent) showError("Sessão inválida para personificação.");
     return;
   }
@@ -7342,7 +7610,10 @@ async function impersonateAdminUser(userId, options = {}) {
       return;
     }
     try {
-      localStorage.setItem(IMPERSONATION_ADMIN_TOKEN_KEY, currentToken);
+      // Preserve original admin token across nested impersonations.
+      if (!baseAdminToken) {
+        localStorage.setItem(IMPERSONATION_ADMIN_TOKEN_KEY, tokenForRestore);
+      }
     } catch {
       // ignore storage errors
     }
@@ -7806,6 +8077,8 @@ async function loadDashboard() {
 
   const month = monthRange();
   const prevMonth = previousMonthRange(month);
+  const monthBounds = monthBoundsFromKey(month);
+  const prevMonthBounds = monthBoundsFromKey(prevMonth);
   const groupsQuery = buildEntriesGroupsQueryString(entryFilters, entriesSearchTerm);
   if (periodEl) periodEl.textContent = `Per\u00edodo: ${periodLabel()}`;
 
@@ -7856,8 +8129,8 @@ async function loadDashboard() {
     }
 
     const [monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes] = await Promise.all([
-      authFetch(`/api/reports/aggregate?start=${month}&end=${month}`),
-      authFetch(`/api/reports/aggregate?start=${prevMonth}&end=${prevMonth}`),
+      authFetch(`/api/reports/aggregate?start=${monthBounds.start}&end=${monthBounds.end}`),
+      authFetch(`/api/reports/aggregate?start=${prevMonthBounds.start}&end=${prevMonthBounds.end}`),
       authFetch("/api/reports/summary"),
       authFetch("/api/entries"),
       authFetch(`/api/reports/entries-groups?${groupsQuery}`),
@@ -7883,13 +8156,55 @@ async function loadDashboard() {
     dashboardEntriesCache = Array.isArray(entries) ? entries : [];
     const monthAggSafe = (monthAgg && typeof monthAgg === "object") ? monthAgg : {};
     const prevMonthAggSafe = (prevMonthAgg && typeof prevMonthAgg === "object") ? prevMonthAgg : {};
-    const monthAggEmpty = !Array.isArray(monthAggSafe.by_category) || monthAggSafe.by_category.length === 0;
-    const prevMonthAggEmpty = !Array.isArray(prevMonthAggSafe.by_category) || prevMonthAggSafe.by_category.length === 0;
-    if (monthAggEmpty || !Array.isArray(monthAggSafe.by_account) || monthAggSafe.by_account.length === 0) {
-      Object.assign(monthAggSafe, buildMonthAggregateFromEntries(dashboardEntriesCache, month));
+    const monthAggInvalid = !Array.isArray(monthAggSafe.by_category)
+      || !Array.isArray(monthAggSafe.by_account)
+      || (Number(monthAggSafe?.totals?.count || 0) > 0
+        && monthAggSafe.by_category.length === 0
+        && monthAggSafe.by_account.length === 0);
+    const prevAggInvalid = !Array.isArray(prevMonthAggSafe.by_category)
+      || !Array.isArray(prevMonthAggSafe.by_account)
+      || (Number(prevMonthAggSafe?.totals?.count || 0) > 0
+        && prevMonthAggSafe.by_category.length === 0
+        && prevMonthAggSafe.by_account.length === 0);
+
+    if (monthAggInvalid) {
+      const monthGroupsQuery = buildEntriesGroupsQueryString({
+        type: "all",
+        startDate: monthBounds.start,
+        endDate: monthBounds.end,
+        categories: [],
+      }, "");
+      const monthGroupsRes = await authFetch(`/api/reports/entries-groups?${monthGroupsQuery}`);
+      if (monthGroupsRes.status === 401) {
+        window.location.href = "/";
+        return;
+      }
+      if (monthGroupsRes.ok) {
+        const monthGroupsPayload = await safeJson(monthGroupsRes, {});
+        const monthGroups = Array.isArray(monthGroupsPayload?.groups) ? monthGroupsPayload.groups : [];
+        const monthEntries = extractEntriesFromGroups(monthGroups);
+        Object.assign(monthAggSafe, buildMonthAggregateFromEntries(monthEntries, month));
+      }
     }
-    if (prevMonthAggEmpty || !Array.isArray(prevMonthAggSafe.by_account) || prevMonthAggSafe.by_account.length === 0) {
-      Object.assign(prevMonthAggSafe, buildMonthAggregateFromEntries(dashboardEntriesCache, prevMonth));
+
+    if (prevAggInvalid) {
+      const prevGroupsQuery = buildEntriesGroupsQueryString({
+        type: "all",
+        startDate: prevMonthBounds.start,
+        endDate: prevMonthBounds.end,
+        categories: [],
+      }, "");
+      const prevGroupsRes = await authFetch(`/api/reports/entries-groups?${prevGroupsQuery}`);
+      if (prevGroupsRes.status === 401) {
+        window.location.href = "/";
+        return;
+      }
+      if (prevGroupsRes.ok) {
+        const prevGroupsPayload = await safeJson(prevGroupsRes, {});
+        const prevGroups = Array.isArray(prevGroupsPayload?.groups) ? prevGroupsPayload.groups : [];
+        const prevEntriesFromGroups = extractEntriesFromGroups(prevGroups);
+        Object.assign(prevMonthAggSafe, buildMonthAggregateFromEntries(prevEntriesFromGroups, prevMonth));
+      }
     }
 
     const totals = monthAggSafe?.totals || {};
@@ -7911,9 +8226,7 @@ async function loadDashboard() {
 
     const entryGroups = Array.isArray(groupedPayload?.groups) ? groupedPayload.groups : [];
     const groupedEntries = extractEntriesFromGroups(entryGroups);
-    if (groupedEntries.length) {
-      Object.assign(monthAggSafe, buildMonthAggregateFromEntries(groupedEntries, month));
-    }
+    dashboardGroupedEntriesCache = groupedEntries;
     renderEntriesGroupedFromServer(entriesList, entryGroups, "Nenhum lan\u00e7amento encontrado.");
     if (entriesMetaEl) {
       const count = Number(groupedPayload?.count || 0);
@@ -7938,6 +8251,10 @@ async function loadDashboard() {
       renderCategories(monthAggSafe?.by_category || []);
       renderCategoriesTab(monthAggSafe || {}, prevMonthAggSafe || {});
       renderAccountsTab(monthAggSafe || {}, prevMonthAggSafe || {});
+      topSummaryState.categorias.currentTotal = Number(monthAggSafe?.totals?.balance || 0);
+      topSummaryState.categorias.previousTotal = Number(prevMonthAggSafe?.totals?.balance || 0);
+      topSummaryState.contas.currentTotal = Number(monthAggSafe?.totals?.balance || 0);
+      topSummaryState.contas.previousTotal = Number(prevMonthAggSafe?.totals?.balance || 0);
       renderTopSummaryForTab(activeTabName());
     } catch (sectionError) {
       console.error("Erro ao renderizar se\u00e7\u00f5es secund\u00e1rias do dashboard:", sectionError);
@@ -8716,7 +9033,7 @@ adminExportUserModal?.addEventListener("ionModalDidPresent", () => {
 });
 
 refreshBtn?.addEventListener("click", () => {
-  void loadDashboard();
+  void loadDataForTab(activeTabName());
 });
 
 stopImpersonationBtn?.addEventListener("click", () => {
@@ -8742,6 +9059,23 @@ setInitialLoading(true);
 requestAnimationFrame(updateOverlayPositioning);
 void loadDashboard();
 
+function registerPwaServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (!window.isSecureContext) return;
+
+  navigator.serviceWorker
+    .register("/service-worker.js")
+    .catch(() => {
+      // Service worker should not block app usage.
+    });
+}
+
+if (document.readyState === "complete") {
+  registerPwaServiceWorker();
+} else {
+  window.addEventListener("load", registerPwaServiceWorker, { once: true });
+}
+
 
 
 
@@ -8756,3 +9090,4 @@ deleteAdminUserModalBtn?.addEventListener("click", () => {
     void deleteAdminUser(editingAdminUserId);
   }
 });
+

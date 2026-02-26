@@ -9,6 +9,7 @@ use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Service\MonthLockService;
 use App\Service\RecurrenceService;
 use App\Service\ReportService;
+use App\Util\Logger;
 use App\Util\Response;
 
 class ReportController extends BaseController
@@ -34,6 +35,7 @@ class ReportController extends BaseController
         ];
         $service = new ReportService($this->entryRepo(), $this->accountRepo());
         $data = $service->aggregateReport($uid, $filters);
+        $this->logDiagnostics('aggregate', $uid, $filters, $data);
         Response::json($data);
     }
 
@@ -73,11 +75,53 @@ class ReportController extends BaseController
             'entry_type' => $_GET['entry_type'] ?? null,
             'q' => $_GET['q'] ?? null,
             'categories' => $categories,
+            'account_id' => $_GET['account_id'] ?? null,
+            'account' => $_GET['account'] ?? null,
+            'no_account' => $_GET['no_account'] ?? null,
         ];
 
         $service = new ReportService($this->entryRepo(), $this->accountRepo());
         $data = $service->entriesGroupsReport($uid, $filters);
+        $this->logDiagnostics('entries-groups', $uid, $filters, $data);
         Response::json($data);
+    }
+
+    private function logDiagnostics(string $endpoint, int $uid, array $filters, array $data): void
+    {
+        if (!$this->diagnosticsEnabled()) {
+            return;
+        }
+
+        $groupCount = is_array($data['groups'] ?? null) ? count($data['groups']) : 0;
+        $categoryCount = is_array($data['by_category'] ?? null) ? count($data['by_category']) : 0;
+        $accountCount = is_array($data['by_account'] ?? null) ? count($data['by_account']) : 0;
+        $totalsCount = (int)($data['totals']['count'] ?? 0);
+        $totalsBalance = (float)($data['totals']['balance'] ?? 0.0);
+
+        Logger::info('report_diagnostics', [
+            'endpoint' => $endpoint,
+            'uid' => $uid,
+            'auth_uid' => (int)($this->authPayload['uid'] ?? 0),
+            'auth_role' => (string)($this->authPayload['role'] ?? ''),
+            'imp_by' => isset($this->authPayload['imp_by']) ? (int)$this->authPayload['imp_by'] : 0,
+            'path' => (string)($_SERVER['REQUEST_URI'] ?? ''),
+            'filters' => $filters,
+            'group_count' => $groupCount,
+            'by_category_count' => $categoryCount,
+            'by_account_count' => $accountCount,
+            'totals_count' => $totalsCount,
+            'totals_balance' => $totalsBalance,
+        ]);
+    }
+
+    private function diagnosticsEnabled(): bool
+    {
+        $env = (string)($this->config['env'] ?? 'prod');
+        if ($env === 'dev') {
+            return true;
+        }
+        $debug = strtolower(trim((string)($_GET['debug_report'] ?? '')));
+        return in_array($debug, ['1', 'true', 'yes', 'on'], true);
     }
 
     private function entryRepo()

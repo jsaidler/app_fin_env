@@ -2193,9 +2193,10 @@ ion-fab.fab-safe {
   border: 0 !important;
   box-shadow: none !important;
   align-self: flex-end;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sheet-modal::part(backdrop) {
@@ -2234,9 +2235,11 @@ ion-fab.fab-safe {
 .sheet-modal ion-header {
   border-top: 0;
   border-bottom: 0;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 20;
   background: #ffffff;
+  flex: 0 0 auto;
 }
 
 .sheet-modal ion-header::before {
@@ -2252,10 +2255,12 @@ ion-fab.fab-safe {
 }
 
 .sheet-modal ion-footer {
-  position: relative;
+  position: sticky;
+  bottom: 0;
   z-index: 20;
   background: #ffffff;
   border-top: 0;
+  flex: 0 0 auto;
 }
 
 .sheet-modal ion-header::after,
@@ -2270,7 +2275,8 @@ ion-fab.fab-safe {
 }
 
 .sheet-modal .toolbar-actions {
-  display: none !important;
+  display: flex;
+  align-items: center;
 }
 
 .support-sheet .toolbar-actions {
@@ -2315,14 +2321,38 @@ ion-fab.fab-safe {
   min-height: min(360px, calc(100vh - (var(--safe-top) + 24px)));
 }
 
+.entry-content {
+  min-height: 0;
+  overflow: visible;
+  padding: 10px 16px 14px;
+}
+
+.sheet-modal ion-content.entry-content {
+  --background: transparent;
+  --padding-top: 10px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-bottom: 14px;
+}
+
+.entry-picker-sheet ion-content.entry-content {
+  --padding-bottom: calc(26px + var(--safe-bottom));
+}
+
 .entry-picker-sheet .entry-content {
   padding-bottom: calc(26px + var(--safe-bottom));
 }
 
-.entry-content {
-  min-height: 0;
-  overflow: auto;
-  padding: 10px 16px 14px;
+.sheet-modal ion-content.entry-content::part(scroll) {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.entry-actions {
+  position: relative;
+  z-index: 30;
+  background: #ffffff;
 }
 
 .entry-type-switch {

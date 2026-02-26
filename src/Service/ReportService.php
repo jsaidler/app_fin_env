@@ -151,8 +151,8 @@ class ReportService
         $filtered = $this->filterEntries($entries, $filters);
         $groupEntriesFiltered = $filtered;
 
-        // Totais por nÃ­vel independentes de filtros comuns.
-        // No modo "deleted", o escopo-base sÃ£o todos os excluÃ­dos.
+        // Base totals independent from common filters.
+        // In "deleted" mode, the base scope is deleted entries.
         $groupEntriesAll = $deletedOnly
             ? $groupEntriesFiltered
             : ($pendingOnly
@@ -171,7 +171,7 @@ class ReportService
     }
 
     /**
-     * MantÃ©m estrutura/entries filtrados, mas troca totais de ano/mÃªs/dia pelos totais-base do perÃ­odo.
+     * Keeps filtered entries structure, but replaces year/month/day totals with period base totals.
      *
      * @param array<int, array<string, mixed>> $filtered
      * @param array<int, array<string, mixed>> $base
@@ -293,9 +293,21 @@ class ReportService
         }
         $query = trim((string)($filters['q'] ?? ''));
         $query = $query !== '' ? $this->lower($query) : null;
+        $accountIdFilter = null;
+        if (array_key_exists('account_id', $filters) && $filters['account_id'] !== null && $filters['account_id'] !== '') {
+            $accountIdFilter = (int)$filters['account_id'];
+        }
+        $noAccountFilter = false;
+        if (!empty($filters['no_account'])) {
+            $rawNoAccount = strtolower(trim((string)$filters['no_account']));
+            $noAccountFilter = in_array($rawNoAccount, ['1', 'true', 'yes', 'on'], true);
+        }
+        if ($accountIdFilter !== null && $accountIdFilter <= 0) {
+            $noAccountFilter = true;
+        }
         [$start, $end] = $this->normalizeRange($filters);
 
-        return array_values(array_filter($entries, function ($e) use ($type, $pendingOnly, $categories, $query, $start, $end, $includeDeleted, $deletedOnly) {
+        return array_values(array_filter($entries, function ($e) use ($type, $pendingOnly, $categories, $query, $accountIdFilter, $noAccountFilter, $start, $end, $includeDeleted, $deletedOnly) {
             if (!$includeDeleted && !$deletedOnly && !empty($e->deletedAt)) {
                 return false;
             }
@@ -312,9 +324,19 @@ class ReportService
             if ($categories && !in_array($this->lower($entryCategory), $categories, true)) {
                 return false;
             }
+            $entryAccountId = (int)($e->accountId ?? 0);
+            if ($noAccountFilter) {
+                if ($entryAccountId > 0) {
+                    return false;
+                }
+            }
+            if ($accountIdFilter !== null && $accountIdFilter > 0 && $entryAccountId !== $accountIdFilter) {
+                return false;
+            }
             if ($query !== null) {
                 $description = trim((string)($e->description ?? ''));
-                $searchIndex = $this->lower($description . ' ' . $entryCategory . ' ' . (string)$e->date);
+                $entryAccountName = trim((string)($e->accountName ?? ''));
+                $searchIndex = $this->lower($description . ' ' . $entryCategory . ' ' . $entryAccountName . ' ' . (string)$e->date);
                 if (strpos($searchIndex, $query) === false) {
                     return false;
                 }
@@ -645,6 +667,7 @@ class ReportService
     private function accountSummary(array $entries, int $userId = 0): array
     {
         $map = [];
+        $canonicalNoAccount = 'Sem conta/cartao';
 
         if ($userId > 0 && $this->accounts) {
             foreach ($this->accounts->listByUser($userId, false) as $account) {
@@ -669,11 +692,14 @@ class ReportService
         }
 
         foreach ($entries as $entry) {
-            $name = trim((string)($entry->accountName ?? ''));
-            if ($name === '') {
-                $name = 'Sem conta/cartÃ£o';
-            }
             $accountId = (int)($entry->accountId ?? 0);
+            $name = trim((string)($entry->accountName ?? ''));
+            if ($accountId <= 0) {
+                $name = $canonicalNoAccount;
+                $accountId = 0;
+            } elseif ($name === '') {
+                $name = 'Conta #' . $accountId;
+            }
             $key = ($accountId > 0 ? $accountId . ':' : 'name:') . strtolower($name);
             if (!isset($map[$key])) {
                 $map[$key] = [
@@ -771,3 +797,4 @@ class ReportService
         return (float)$entry->amount;
     }
 }
+

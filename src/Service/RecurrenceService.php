@@ -103,7 +103,7 @@ class RecurrenceService
                         'type' => $recurrence->type,
                         'amount' => $recurrence->amount,
                         'category' => $recurrence->category,
-                        'account_id' => $recurrence->accountId,
+                        'account_id' => $recurrence->accountId > 0 ? $recurrence->accountId : null,
                         'description' => $recurrence->description,
                         'date' => $cursor,
                         'attachment_path' => null,
@@ -135,7 +135,7 @@ class RecurrenceService
         $type = trim((string)($input['type'] ?? ''));
         $amount = $input['amount'] ?? null;
         $category = trim((string)($input['category'] ?? ''));
-        $accountId = (int)($input['account_id'] ?? 0);
+        $accountId = $this->normalizeAccountId($input['account_id'] ?? null, $userId);
         $description = trim((string)($input['description'] ?? ''));
         $frequency = $this->normalizeFrequency((string)($input['frequency'] ?? ''));
         $startDate = (string)($input['start_date'] ?? '');
@@ -150,14 +150,6 @@ class RecurrenceService
         if (!Validator::nonEmpty($category)) {
             Response::json(['error' => 'Categoria obrigatoria'], 422);
         }
-        if ($accountId <= 0) {
-            Response::json(['error' => 'Conta/cartao obrigatorio'], 422);
-        }
-        $account = $this->accounts->findForUser($accountId, $userId);
-        if (!$account || !$account->active) {
-            Response::json(['error' => 'Conta/cartao invalido'], 422);
-        }
-
         if ($startDate === '') {
             $startDate = $isUpdate && $existing ? $existing->startDate : date('Y-m-d');
         }
@@ -190,6 +182,22 @@ class RecurrenceService
             'last_run_date' => $lastRunDate ?: null,
             'active' => $active ? 1 : 0,
         ];
+    }
+
+    private function normalizeAccountId($value, int $userId): int
+    {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+        $accountId = (int)$value;
+        if ($accountId <= 0) {
+            return 0;
+        }
+        $account = $this->accounts->findForUser($accountId, $userId);
+        if (!$account || !$account->active) {
+            Response::json(['error' => 'Conta/cartao invalido'], 422);
+        }
+        return $accountId;
     }
 
     private function normalizeFrequency(string $value): string
