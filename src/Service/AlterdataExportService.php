@@ -39,6 +39,7 @@ class AlterdataExportService
         $query = ['include_deleted' => true];
         $month = $filters['month'] ?? '';
         $type = $filters['type'] ?? 'all';
+        $columnMap = $this->normalizeColumnMap((array)($filters['column_map'] ?? []));
         $userIds = array_values(array_unique(array_map('intval', (array)($filters['user_ids'] ?? []))));
         $userIds = array_values(array_filter($userIds, fn(int $id): bool => $id > 0));
         if ($month) {
@@ -90,10 +91,6 @@ class AlterdataExportService
             if (!$user) {
                 continue;
             }
-            if ($user->alterdataCode === '') {
-                $missingUsers[$user->id] = $user->name ?: ('ID ' . $user->id);
-                continue;
-            }
             $catKey = $this->normalizeCategoryKey((string)$entry->category);
             $userCat = $userCatMap[$entry->userId][$catKey] ?? null;
             if (!$userCat && isset($userCatMap[$entry->userId])) {
@@ -118,19 +115,26 @@ class AlterdataExportService
                     }
                 }
             }
-            if (!$cat || $cat->alterdataAuto === '') {
-                $missingCats[$entry->category] = $entry->category;
+
+            $lineValues = [];
+            $shouldSkip = false;
+            foreach ($columnMap as $column) {
+                $resolved = $this->resolveColumnValue($column, $entry, $user, $cat, $month);
+                if (!empty($resolved['missing']) && $resolved['missing'] === 'user_alterdata') {
+                    $missingUsers[$user->id] = $user->name ?: ('ID ' . $user->id);
+                    $shouldSkip = true;
+                }
+                if (!empty($resolved['missing']) && $resolved['missing'] === 'category_alterdata') {
+                    $missingCats[$entry->category] = $entry->category;
+                    $shouldSkip = true;
+                }
+                $lineValues[] = (string)($resolved['value'] ?? '');
+            }
+            if ($shouldSkip) {
                 continue;
             }
-            $lines[] = implode(';', [
-                $this->sanitize($user->alterdataCode),
-                $entry->date,
-                $entry->type === 'in' ? 'E' : 'S',
-                $this->sanitize($entry->category),
-                $this->sanitize($cat->alterdataAuto),
-                $this->formatAmount($entry->amount),
-                $this->sanitize($entry->description),
-            ]);
+
+            $lines[] = implode(';', $lineValues);
             $exportedUserIds[(int)$entry->userId] = true;
         }
 
@@ -165,6 +169,91 @@ class AlterdataExportService
     private function formatAmount(float $amount): string
     {
         return number_format($amount, 2, '.', '');
+    }
+
+    private function normalizeColumnMap(array $raw): array
+    {
+        $defaults = AlterdataExportConfigService::defaultColumns();
+        $merged = [];
+        foreach ($defaults as $column => $base) {
+            $merged[$column] = $base;
+        }
+        foreach ($raw as $row) {
+            $column = strtoupper(trim((string)($row['column'] ?? '')));
+            if (!isset($merged[$column])) {
+                continue;
+            }
+            $merged[$column] = [
+                'column' => $column,
+                'source_scope' => (string)($row['source_scope'] ?? $merged[$column]['source_scope']),
+                'source_field' => (string)($row['source_field'] ?? $merged[$column]['source_field']),
+                'fixed_value' => (string)($row['fixed_value'] ?? $merged[$column]['fixed_value']),
+            ];
+        }
+        ksort($merged);
+        return array_values($merged);
+    }
+
+    private function resolveColumnValue(array $column, object $entry, object $user, ?object $cat, string $month): array
+    {
+        $scope = (string)($column['source_scope'] ?? '');
+        $field = (string)($column['source_field'] ?? '');
+        $fixed = (string)($column['fixed_value'] ?? '');
+
+        if ($scope === 'fixed') {
+            return ['value' => $this->sanitize($fixed), 'missing' => null];
+        }
+
+        if ($scope === 'entry') {
+            $value = match ($field) {
+                'id' => (string)((int)($entry->id ?? 0)),
+                'date' => (string)($entry->date ?? ''),
+                'amount' => $this->formatAmount((float)($entry->amount ?? 0)),
+                'type' => (string)($entry->type ?? ''),
+                'type_code' => ((string)($entry->type ?? '') === 'in') ? 'E' : 'S',
+                'category' => $this->sanitize((string)($entry->category ?? '')),
+                'description' => $this->sanitize((string)($entry->description ?? '')),
+                'account_name' => $this->sanitize((string)($entry->accountName ?? '')),
+                'account_id' => (string)((int)($entry->accountId ?? 0)),
+                default => '',
+            };
+            return ['value' => $value, 'missing' => null];
+        }
+
+        if ($scope === 'category') {
+            if (!$cat) {
+                return ['value' => '', 'missing' => ($field === 'alterdata_auto' ? 'category_alterdata' : null)];
+            }
+            $value = match ($field) {
+                'id' => (string)((int)($cat->id ?? 0)),
+                'name' => $this->sanitize((string)($cat->name ?? '')),
+                'type' => (string)($cat->type ?? ''),
+                'alterdata_auto' => $this->sanitize((string)($cat->alterdataAuto ?? '')),
+                default => '',
+            };
+            $missing = ($field === 'alterdata_auto' && trim($value) === '') ? 'category_alterdata' : null;
+            return ['value' => $value, 'missing' => $missing];
+        }
+
+        if ($scope === 'user') {
+            $value = match ($field) {
+                'id' => (string)((int)($user->id ?? 0)),
+                'name' => $this->sanitize((string)($user->name ?? '')),
+                'email' => $this->sanitize((string)($user->email ?? '')),
+                'alterdata_code' => $this->sanitize((string)($user->alterdataCode ?? '')),
+                default => '',
+            };
+            $missing = ($field === 'alterdata_code' && trim($value) === '') ? 'user_alterdata' : null;
+            return ['value' => $value, 'missing' => $missing];
+        }
+
+        // fallback de compatibilidade
+        if ($scope === 'system') {
+            $value = $field === 'month' ? $month : '';
+            return ['value' => $this->sanitize((string)$value), 'missing' => null];
+        }
+
+        return ['value' => '', 'missing' => null];
     }
 
     private function normalizeCategoryKey(string $value): string

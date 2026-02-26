@@ -2830,6 +2830,10 @@ ion-input.amount-input {
   grid-template-columns: 20px minmax(0, 1fr) 20px;
 }
 
+.category-option--admin-text-only {
+  grid-template-columns: minmax(0, 1fr) 20px;
+}
+
 .category-option--pending-entry {
   grid-template-columns: 20px minmax(0, 1fr);
   padding: 8px 6px;

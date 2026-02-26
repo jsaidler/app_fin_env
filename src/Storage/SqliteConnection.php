@@ -167,6 +167,14 @@ class SqliteConnection
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_admin_activity_action_created ON admin_activity_logs(action, created_at DESC)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_admin_activity_month ON admin_activity_logs(month)');
 
+        $pdo->exec('CREATE TABLE IF NOT EXISTS alterdata_export_columns (
+            column_code TEXT PRIMARY KEY,
+            source_scope TEXT NOT NULL,
+            source_field TEXT NOT NULL,
+            fixed_value TEXT,
+            updated_at TEXT NOT NULL
+        )');
+
         $pdo->exec('CREATE TABLE IF NOT EXISTS support_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,

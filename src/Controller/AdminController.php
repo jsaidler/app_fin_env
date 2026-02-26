@@ -11,6 +11,7 @@ use App\Service\AdminEntryService;
 use App\Service\AdminActivityLogService;
 use App\Service\AdminService;
 use App\Service\AdminNotificationService;
+use App\Service\AlterdataExportConfigService;
 use App\Service\CategoryService;
 use App\Service\MonthLockService;
 use App\Service\ReportService;
@@ -275,6 +276,25 @@ class AdminController extends BaseController
         $this->requireAdmin();
         $list = (new AdminActivityLogService($this->db()))->listByAction('export_alterdata', 30);
         Response::json(['items' => $list]);
+    }
+
+    public function getAlterdataExportConfig(): void
+    {
+        $this->requireAdmin();
+        $service = new AlterdataExportConfigService($this->db());
+        Response::json([
+            'columns' => $service->list(),
+            'allowed_fields' => AlterdataExportConfigService::allowedFieldsByScope(),
+        ]);
+    }
+
+    public function updateAlterdataExportConfig(array $params): void
+    {
+        $this->requireAdmin();
+        $column = strtoupper(trim((string)($params['column'] ?? '')));
+        $service = new AlterdataExportConfigService($this->db());
+        $saved = $service->upsert($column, $this->jsonInput());
+        Response::json($saved);
     }
 
     public function closedMonths(): void

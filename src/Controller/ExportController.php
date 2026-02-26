@@ -8,6 +8,7 @@ use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteUserCategoryRepository;
 use App\Repository\Sqlite\SqliteUserRepository;
 use App\Service\AlterdataExportService;
+use App\Service\AlterdataExportConfigService;
 use App\Service\AdminActivityLogService;
 use App\Service\ExportService;
 use App\Service\MonthLockService;
@@ -140,10 +141,12 @@ class ExportController extends BaseController
         }
 
         $service = new AlterdataExportService($this->entryRepo(), $this->userRepo(), $this->categoryRepo(), $this->userCategoryRepo());
+        $configService = new AlterdataExportConfigService($this->db());
         $result = $service->exportResult([
             'month' => $month,
             'type' => $type,
             'user_ids' => $userIds,
+            'column_map' => $configService->list(),
         ]);
         $txt = (string)($result['text'] ?? '');
         $admin = $this->userRepo()->findById($adminId);

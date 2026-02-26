@@ -200,7 +200,7 @@
             <button type="button" class="entry-picker-row" data-admin-action="global-categories">
               <span class="entry-picker-row__label">Categorias globais</span>
               <span class="entry-picker-row__value-wrap">
-                <span class="entry-picker-row__value">Gerenciar cadastro</span>
+                <span class="entry-picker-row__value">Gerenciar categorias</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </span>
             </button>
@@ -236,6 +236,13 @@
               <span class="entry-picker-row__label">Exportar Alterdata</span>
               <span class="entry-picker-row__value-wrap">
                 <span class="entry-picker-row__value">Gerar arquivo TXT</span>
+                <span class="material-symbols-rounded">chevron_right</span>
+              </span>
+            </button>
+            <button type="button" class="entry-picker-row" data-admin-action="alterdata-config">
+              <span class="entry-picker-row__label">Configuração do arquivo Alterdata</span>
+              <span class="entry-picker-row__value-wrap">
+                <span class="entry-picker-row__value">Mapear colunas A-J</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </span>
             </button>
@@ -796,6 +803,108 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div id="admin-export-user-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-alterdata-config-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Configuração Alterdata</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-alterdata-config-modal" aria-label="Fechar configuração Alterdata">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Mapeamento de colunas do Alterdata">
+            <div id="admin-alterdata-config-list" class="category-list"></div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-alterdata-config-modal">Fechar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-alterdata-column-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title id="admin-alterdata-column-title" class="entry-title">Editar coluna</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-alterdata-column-modal" aria-label="Fechar coluna Alterdata">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="entry-fields">
+          <section class="entry-stage" aria-label="Configuração da coluna do Alterdata">
+            <button id="open-admin-alterdata-source-modal" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Origem</span>
+              <span id="selected-admin-alterdata-source" class="entry-picker-row__value">Lançamento</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <button id="open-admin-alterdata-field-modal" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Campo</span>
+              <span id="selected-admin-alterdata-field" class="entry-picker-row__value">Data</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+            <div id="admin-alterdata-fixed-wrap" hidden>
+              <p class="entry-stage__title">Valor fixo</p>
+              <ion-item class="entry-text-field entry-text-field--no-label">
+                <ion-input id="admin-alterdata-fixed-value" type="text" placeholder="Informe o valor fixo"></ion-input>
+              </ion-item>
+            </div>
+          </section>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <div class="modal-actions">
+            <ion-button fill="clear" id="cancel-admin-alterdata-column-modal">Cancelar</ion-button>
+            <ion-button color="primary" id="save-admin-alterdata-column-modal">Salvar</ion-button>
+          </div>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
+    <ion-modal id="admin-alterdata-source-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Origem da coluna</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-alterdata-source-modal" aria-label="Fechar origem da coluna">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-alterdata-source-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-alterdata-field-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Campo da coluna</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-alterdata-field-modal" aria-label="Fechar campo da coluna">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div id="admin-alterdata-field-list" class="category-list"></div>
       </div>
     </ion-modal>
 

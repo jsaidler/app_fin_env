@@ -96,6 +96,27 @@ const adminExportUserModal = document.getElementById("admin-export-user-modal");
 const closeAdminExportUserModalBtn = document.getElementById("close-admin-export-user-modal");
 const adminExportUserListEl = document.getElementById("admin-export-user-list");
 const adminExportHistoryEl = document.getElementById("admin-export-history");
+const adminAlterdataConfigModal = document.getElementById("admin-alterdata-config-modal");
+const closeAdminAlterdataConfigModalBtn = document.getElementById("close-admin-alterdata-config-modal");
+const cancelAdminAlterdataConfigModalBtn = document.getElementById("cancel-admin-alterdata-config-modal");
+const adminAlterdataConfigListEl = document.getElementById("admin-alterdata-config-list");
+const adminAlterdataColumnModal = document.getElementById("admin-alterdata-column-modal");
+const closeAdminAlterdataColumnModalBtn = document.getElementById("close-admin-alterdata-column-modal");
+const cancelAdminAlterdataColumnModalBtn = document.getElementById("cancel-admin-alterdata-column-modal");
+const saveAdminAlterdataColumnModalBtn = document.getElementById("save-admin-alterdata-column-modal");
+const adminAlterdataColumnTitleEl = document.getElementById("admin-alterdata-column-title");
+const openAdminAlterdataSourceModalBtn = document.getElementById("open-admin-alterdata-source-modal");
+const selectedAdminAlterdataSourceEl = document.getElementById("selected-admin-alterdata-source");
+const openAdminAlterdataFieldModalBtn = document.getElementById("open-admin-alterdata-field-modal");
+const selectedAdminAlterdataFieldEl = document.getElementById("selected-admin-alterdata-field");
+const adminAlterdataFixedWrapEl = document.getElementById("admin-alterdata-fixed-wrap");
+const adminAlterdataFixedValueInput = document.getElementById("admin-alterdata-fixed-value");
+const adminAlterdataSourceModal = document.getElementById("admin-alterdata-source-modal");
+const closeAdminAlterdataSourceModalBtn = document.getElementById("close-admin-alterdata-source-modal");
+const adminAlterdataSourceListEl = document.getElementById("admin-alterdata-source-list");
+const adminAlterdataFieldModal = document.getElementById("admin-alterdata-field-modal");
+const closeAdminAlterdataFieldModalBtn = document.getElementById("close-admin-alterdata-field-modal");
+const adminAlterdataFieldListEl = document.getElementById("admin-alterdata-field-list");
 const dashMenuUserNameEl = document.getElementById("dash-menu-user-name");
 const dashMenuUserEmailEl = document.getElementById("dash-menu-user-email");
 const dashMenuUserMetaEl = document.getElementById("dash-menu-user-meta");
@@ -135,6 +156,7 @@ const cancelEntryFiltersBtn = document.getElementById("cancel-entry-filters");
 const clearEntryFiltersBtn = document.getElementById("clear-entry-filters");
 const applyEntryFiltersBtn = document.getElementById("apply-entry-filters");
 const entriesFilterType = document.getElementById("entries-filter-type");
+const entriesFilterStatus = document.getElementById("entries-filter-status");
 const entriesFilterCategories = document.getElementById("entries-filter-categories");
 
 const openEntriesFilterStartDateBtn = document.getElementById("open-entries-filter-start-date");
@@ -348,6 +370,7 @@ let loadedEntriesIndex = new Map();
 let initialBootPending = true;
 let entryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
 let draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
+let lastScopedEntryFilters = { startDate: "", endDate: "", categories: [] };
 const topSummaryState = {
   categorias: { current: [], previous: [] },
   contas: { current: [], previous: [] },
@@ -386,6 +409,29 @@ let selectedAdminCloseMonthUserKeys = ["all"];
 let selectedAdminExportMonth = "";
 let selectedAdminExportType = "all";
 let selectedAdminExportUserIds = ["all"];
+let adminAlterdataConfigColumns = [];
+let adminAlterdataAllowedFields = {};
+let editingAdminAlterdataColumn = "";
+let selectedAdminAlterdataSourceScope = "entry";
+let selectedAdminAlterdataSourceField = "date";
+const ADMIN_ALTERDATA_COLUMNS_META = [
+  { column: "A", description: "Código do lançamento automático" },
+  { column: "B", description: "Conta débito" },
+  { column: "C", description: "Conta crédito" },
+  { column: "D", description: "Data" },
+  { column: "E", description: "Valor" },
+  { column: "F", description: "Código do histórico" },
+  { column: "G", description: "Complemento histórico" },
+  { column: "H", description: "Centro de custo débito" },
+  { column: "I", description: "Centro de custo crédito" },
+  { column: "J", description: "Número do documento" },
+];
+const ADMIN_ALTERDATA_SOURCE_OPTIONS = [
+  { value: "entry", label: "Lançamento", icon: "receipt_long" },
+  { value: "category", label: "Categoria", icon: "category" },
+  { value: "user", label: "Usuário", icon: "person" },
+  { value: "fixed", label: "Valor fixo", icon: "tune" },
+];
 const USER_NOTIFICATIONS_KEY = "caixa_user_notifications";
 const AUTH_TOKEN_KEY = "caixa_auth_token";
 const IMPERSONATION_ADMIN_TOKEN_KEY = "caixa_impersonation_admin_token";
@@ -935,6 +981,37 @@ function initEntryFilters() {
   const bounds = currentMonthBounds();
   entryFilters = { startDate: bounds.start, endDate: bounds.end, type: "all", categories: [] };
   draftEntryFilters = { ...entryFilters, categories: [...entryFilters.categories] };
+  lastScopedEntryFilters = { startDate: bounds.start, endDate: bounds.end, categories: [] };
+}
+
+function normalizeAppliedEntryFilters() {
+  const bounds = currentMonthBounds();
+  const allowedTypes = new Set(["all", "in", "out", "pending", "deleted"]);
+  const safeType = allowedTypes.has(String(entryFilters?.type || "")) ? String(entryFilters.type) : "all";
+  entryFilters.type = safeType;
+
+  if (safeType === "pending" || safeType === "deleted") {
+    entryFilters.startDate = "";
+    entryFilters.endDate = "";
+    entryFilters.categories = [];
+    return;
+  }
+
+  if (!entryFilters.startDate) entryFilters.startDate = bounds.start;
+  if (!entryFilters.endDate) entryFilters.endDate = bounds.end;
+
+  if (!Array.isArray(entryFilters.categories)) {
+    entryFilters.categories = [];
+  }
+  if (!entryFilters.categories.length && categories.length) {
+    if (safeType === "in" || safeType === "out") {
+      entryFilters.categories = categories
+        .filter((item) => String(item?.type || "") === safeType)
+        .map((item) => String(item?.name || ""));
+    } else {
+      entryFilters.categories = categories.map((item) => String(item?.name || ""));
+    }
+  }
 }
 
 function buildEntriesGroupsQueryString(filters, searchTerm) {
@@ -2219,6 +2296,10 @@ function renderEntriesGroupedFromServer(container, groups, emptyText) {
 
 function formatFilterPanel() {
   if (!filterPanelPeriod) return;
+  if (entryFilters.type === "pending") {
+    filterPanelPeriod.textContent = "Pendentes (todos)";
+    return;
+  }
   if (entryFilters.type === "deleted") {
     filterPanelPeriod.textContent = "Exclu\u00eddos (todos)";
     return;
@@ -2233,12 +2314,20 @@ function syncFilterDraftToUi() {
   if (entriesFilterEndDatePicker) entriesFilterEndDatePicker.value = draftEntryFilters.endDate || "";
   if (selectedEntriesFilterStartDateEl) selectedEntriesFilterStartDateEl.textContent = formatIsoDate(draftEntryFilters.startDate);
   if (selectedEntriesFilterEndDateEl) selectedEntriesFilterEndDateEl.textContent = formatIsoDate(draftEntryFilters.endDate);
-  if (entriesFilterType) entriesFilterType.value = draftEntryFilters.type || "all";
-  const deletedMode = draftEntryFilters.type === "deleted";
-  if (openEntriesFilterStartDateBtn) openEntriesFilterStartDateBtn.disabled = deletedMode;
-  if (openEntriesFilterEndDateBtn) openEntriesFilterEndDateBtn.disabled = deletedMode;
-  if (entriesFilterCategories) entriesFilterCategories.style.pointerEvents = deletedMode ? "none" : "";
-  if (entriesFilterCategories) entriesFilterCategories.style.opacity = deletedMode ? "0.5" : "";
+  const status = (draftEntryFilters.type === "pending" || draftEntryFilters.type === "deleted")
+    ? draftEntryFilters.type
+    : "all";
+  const directionType = (draftEntryFilters.type === "in" || draftEntryFilters.type === "out")
+    ? draftEntryFilters.type
+    : "all";
+  if (entriesFilterStatus) entriesFilterStatus.value = status;
+  if (entriesFilterType) entriesFilterType.value = directionType;
+  const statusMode = status === "pending" || status === "deleted";
+  if (openEntriesFilterStartDateBtn) openEntriesFilterStartDateBtn.disabled = statusMode;
+  if (openEntriesFilterEndDateBtn) openEntriesFilterEndDateBtn.disabled = statusMode;
+  if (entriesFilterType) entriesFilterType.disabled = statusMode;
+  if (entriesFilterCategories) entriesFilterCategories.style.pointerEvents = statusMode ? "none" : "";
+  if (entriesFilterCategories) entriesFilterCategories.style.opacity = statusMode ? "0.5" : "";
 
   const selected = new Set(draftEntryFilters.categories || []);
   const categoriesHtml = categories.map((category) => {
@@ -2252,18 +2341,35 @@ function syncFilterDraftToUi() {
 }
 
 function applyTypeRulesOnDraft(type) {
+  const previousType = String(draftEntryFilters.type || "all");
   draftEntryFilters.type = type;
   const ins = categories.filter((c) => String(c?.type || "") === "in").map((c) => String(c?.name || ""));
   const outs = categories.filter((c) => String(c?.type || "") === "out").map((c) => String(c?.name || ""));
   const current = new Set(draftEntryFilters.categories || []);
 
-  if (type === "deleted") {
+  if (type === "deleted" || type === "pending") {
+    if (previousType !== "deleted" && previousType !== "pending") {
+      lastScopedEntryFilters = {
+        startDate: String(draftEntryFilters.startDate || ""),
+        endDate: String(draftEntryFilters.endDate || ""),
+        categories: [...(draftEntryFilters.categories || [])],
+      };
+    }
     draftEntryFilters.startDate = "";
     draftEntryFilters.endDate = "";
     draftEntryFilters.categories = [];
     return;
   }
   if (type === "all") {
+    if (previousType === "deleted" || previousType === "pending") {
+      const bounds = currentMonthBounds();
+      draftEntryFilters.startDate = String(lastScopedEntryFilters.startDate || bounds.start);
+      draftEntryFilters.endDate = String(lastScopedEntryFilters.endDate || bounds.end);
+      draftEntryFilters.categories = (lastScopedEntryFilters.categories || []).length
+        ? [...lastScopedEntryFilters.categories]
+        : categories.map((c) => String(c?.name || ""));
+      return;
+    }
     draftEntryFilters.categories = categories.map((c) => String(c?.name || ""));
     return;
   }
@@ -2377,6 +2483,12 @@ function setupEntriesInteractions() {
   entriesFilterType?.addEventListener("ionChange", (event) => {
     const type = String(event?.detail?.value || "all");
     applyTypeRulesOnDraft(type);
+    syncFilterDraftToUi();
+  });
+
+  entriesFilterStatus?.addEventListener("ionChange", (event) => {
+    const status = String(event?.detail?.value || "all");
+    applyTypeRulesOnDraft(status);
     syncFilterDraftToUi();
   });
 
@@ -5330,6 +5442,49 @@ function adminExportTypeLabel(value) {
   return "Todos";
 }
 
+function adminAlterdataSourceLabel(value) {
+  const option = ADMIN_ALTERDATA_SOURCE_OPTIONS.find((item) => item.value === String(value || ""));
+  return option ? option.label : "Lançamento";
+}
+
+function adminAlterdataFieldLabel(scope, field) {
+  const fieldMap = {
+    entry: {
+      id: "ID do lançamento",
+      date: "Data",
+      amount: "Valor",
+      type: "Tipo",
+      type_code: "Tipo (E/S)",
+      category: "Categoria",
+      description: "Descrição",
+      account_name: "Conta/cartão",
+      account_id: "ID da conta/cartão",
+    },
+    category: {
+      id: "ID da categoria",
+      name: "Nome",
+      type: "Tipo",
+      alterdata_auto: "Código Alterdata",
+    },
+    user: {
+      id: "ID do usuário",
+      name: "Nome",
+      email: "E-mail",
+      alterdata_code: "Código Alterdata",
+    },
+    fixed: {
+      value: "Valor fixo",
+    },
+  };
+  const byScope = fieldMap[String(scope || "")] || {};
+  return byScope[String(field || "")] || "Campo";
+}
+
+function adminAlterdataColumnDescription(column) {
+  const item = ADMIN_ALTERDATA_COLUMNS_META.find((entry) => entry.column === String(column || ""));
+  return item ? item.description : "Coluna";
+}
+
 function syncAdminCategoryTypeLabel() {
   if (selectedAdminCategoryTypeEl) selectedAdminCategoryTypeEl.textContent = adminCategoryTypeLabel(selectedAdminCategoryType);
 }
@@ -5387,7 +5542,7 @@ function renderAdminCategoriesList(items) {
     const name = escapeHtml(String(row?.name || ""));
     const type = adminCategoryTypeLabel(String(row?.type || ""));
     const alter = escapeHtml(String(row?.alterdata_auto || ""));
-    const detail = `${type} · ${alter ? `Alterdata ${alter}` : "Sem código Alterdata"}`;
+    const detail = `${type} · ${alter ? alter : "Sem código"}`;
     return `
       <button type="button" class="category-option category-option--admin-row is-neutral" data-admin-category-select="${id}">
         <span class="category-option__lead"><span class="material-symbols-rounded">category</span></span>
@@ -5727,6 +5882,95 @@ async function fetchAdminExportHistory() {
     return [];
   }
   return Array.isArray(payload?.items) ? payload.items : [];
+}
+
+function normalizeAdminAlterdataColumns(columns) {
+  const rows = Array.isArray(columns) ? columns : [];
+  const map = new Map(rows.map((item) => [String(item?.column || ""), item]));
+  return ADMIN_ALTERDATA_COLUMNS_META.map((meta) => {
+    const row = map.get(meta.column) || {};
+    return {
+      column: meta.column,
+      source_scope: String(row?.source_scope || "entry"),
+      source_field: String(row?.source_field || "date"),
+      fixed_value: String(row?.fixed_value || ""),
+      updated_at: String(row?.updated_at || ""),
+    };
+  });
+}
+
+async function fetchAdminAlterdataConfig() {
+  const response = await authFetch("/api/admin/export/alterdata/config");
+  if (response.status === 401) {
+    window.location.href = "/";
+    return { columns: [], allowed_fields: {} };
+  }
+  const payload = await safeJson(response, {});
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar configuração do Alterdata."));
+    return { columns: [], allowed_fields: {} };
+  }
+  adminAlterdataAllowedFields = (payload && typeof payload.allowed_fields === "object" && payload.allowed_fields)
+    ? payload.allowed_fields
+    : {};
+  adminAlterdataConfigColumns = normalizeAdminAlterdataColumns(payload?.columns);
+  return {
+    columns: adminAlterdataConfigColumns,
+    allowed_fields: adminAlterdataAllowedFields,
+  };
+}
+
+function renderAdminAlterdataConfigList(items) {
+  if (!adminAlterdataConfigListEl) return;
+  const rows = normalizeAdminAlterdataColumns(items);
+  adminAlterdataConfigListEl.innerHTML = rows.map((row) => {
+    const column = String(row?.column || "");
+    const description = adminAlterdataColumnDescription(column);
+    return `
+      <button type="button" class="category-option category-option--admin-row category-option--admin-text-only is-neutral" data-admin-alterdata-column="${column}">
+        <span class="category-option__text">${column} · ${escapeHtml(description)}</span>
+        <span class="material-symbols-rounded category-option__trail">chevron_right</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderAdminAlterdataSourceList() {
+  if (!adminAlterdataSourceListEl) return;
+  adminAlterdataSourceListEl.innerHTML = ADMIN_ALTERDATA_SOURCE_OPTIONS.map((option) => `
+    <button type="button" class="category-option is-neutral" data-admin-alterdata-source="${option.value}"${selectedAdminAlterdataSourceScope === option.value ? ' aria-current="true"' : ""}>
+      <span class="category-option__lead"><span class="material-symbols-rounded">${option.icon}</span></span>
+      <span class="category-option__text">${option.label}</span>
+    </button>
+  `).join("");
+}
+
+function renderAdminAlterdataFieldList() {
+  if (!adminAlterdataFieldListEl) return;
+  const scope = String(selectedAdminAlterdataSourceScope || "entry");
+  const allowed = Array.isArray(adminAlterdataAllowedFields?.[scope]) ? adminAlterdataAllowedFields[scope] : [];
+  if (!allowed.length) {
+    adminAlterdataFieldListEl.innerHTML = '<p class="category-empty">Nenhum campo disponível.</p>';
+    return;
+  }
+  adminAlterdataFieldListEl.innerHTML = allowed.map((field) => `
+    <button type="button" class="category-option is-neutral" data-admin-alterdata-field="${escapeHtml(String(field))}"${selectedAdminAlterdataSourceField === field ? ' aria-current="true"' : ""}>
+      <span class="category-option__lead"><span class="material-symbols-rounded">list_alt</span></span>
+      <span class="category-option__text">${escapeHtml(adminAlterdataFieldLabel(scope, field))}</span>
+    </button>
+  `).join("");
+}
+
+function syncAdminAlterdataColumnEditor() {
+  if (selectedAdminAlterdataSourceEl) {
+    selectedAdminAlterdataSourceEl.textContent = adminAlterdataSourceLabel(selectedAdminAlterdataSourceScope);
+  }
+  if (selectedAdminAlterdataFieldEl) {
+    selectedAdminAlterdataFieldEl.textContent = adminAlterdataFieldLabel(selectedAdminAlterdataSourceScope, selectedAdminAlterdataSourceField);
+  }
+  if (adminAlterdataFixedWrapEl) {
+    adminAlterdataFixedWrapEl.hidden = selectedAdminAlterdataSourceScope !== "fixed";
+  }
 }
 
 async function fetchAdminCategoryStats(categoryId) {
@@ -6174,6 +6418,134 @@ async function closeAdminExportModal() {
   }
 }
 
+async function openAdminAlterdataConfigModal() {
+  const payload = await fetchAdminAlterdataConfig();
+  renderAdminAlterdataConfigList(payload.columns);
+  await adminAlterdataConfigModal?.present();
+}
+
+async function closeAdminAlterdataConfigModal() {
+  try {
+    await adminAlterdataConfigModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminAlterdataColumnModal(column) {
+  const key = String(column || "").trim().toUpperCase();
+  if (!key) return;
+  const current = normalizeAdminAlterdataColumns(adminAlterdataConfigColumns).find((item) => String(item?.column || "") === key);
+  if (!current) return;
+  editingAdminAlterdataColumn = key;
+  selectedAdminAlterdataSourceScope = String(current?.source_scope || "entry");
+  selectedAdminAlterdataSourceField = String(current?.source_field || "date");
+  const allowed = Array.isArray(adminAlterdataAllowedFields?.[selectedAdminAlterdataSourceScope])
+    ? adminAlterdataAllowedFields[selectedAdminAlterdataSourceScope]
+    : [];
+  if (allowed.length && !allowed.includes(selectedAdminAlterdataSourceField)) {
+    selectedAdminAlterdataSourceField = String(allowed[0] || "");
+  }
+  if (adminAlterdataFixedValueInput) adminAlterdataFixedValueInput.value = String(current?.fixed_value || "");
+  if (adminAlterdataColumnTitleEl) {
+    adminAlterdataColumnTitleEl.textContent = `Coluna ${key} · ${adminAlterdataColumnDescription(key)}`;
+  }
+  syncAdminAlterdataColumnEditor();
+  await adminAlterdataColumnModal?.present();
+}
+
+async function closeAdminAlterdataColumnModal() {
+  try {
+    await adminAlterdataColumnModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminAlterdataSourceModal() {
+  renderAdminAlterdataSourceList();
+  await adminAlterdataSourceModal?.present();
+}
+
+async function closeAdminAlterdataSourceModal() {
+  try {
+    await adminAlterdataSourceModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function openAdminAlterdataFieldModal() {
+  renderAdminAlterdataFieldList();
+  await adminAlterdataFieldModal?.present();
+}
+
+async function closeAdminAlterdataFieldModal() {
+  try {
+    await adminAlterdataFieldModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
+async function saveAdminAlterdataColumnConfig() {
+  const column = String(editingAdminAlterdataColumn || "").trim().toUpperCase();
+  if (!column) {
+    showError("Coluna inválida.");
+    return;
+  }
+  const scope = String(selectedAdminAlterdataSourceScope || "").trim();
+  const field = String(selectedAdminAlterdataSourceField || "").trim();
+  const fixed = String(adminAlterdataFixedValueInput?.value || "").trim();
+  if (!scope || !field) {
+    showError("Selecione origem e campo.");
+    return;
+  }
+  if (scope === "fixed" && !fixed) {
+    showError("Informe o valor fixo da coluna.");
+    return;
+  }
+  if (saveAdminAlterdataColumnModalBtn) saveAdminAlterdataColumnModalBtn.disabled = true;
+  try {
+    const response = await fetch(`/api/admin/export/alterdata/config/${column}`, {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: adminAuthHeaders({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      body: JSON.stringify({
+        source_scope: scope,
+        source_field: field,
+        fixed_value: scope === "fixed" ? fixed : "",
+      }),
+    });
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      showError(String(payload?.error || "Não foi possível salvar a configuração da coluna."));
+      return;
+    }
+    const next = normalizeAdminAlterdataColumns(adminAlterdataConfigColumns).map((row) => {
+      if (String(row?.column || "") !== column) return row;
+      return {
+        ...row,
+        source_scope: scope,
+        source_field: field,
+        fixed_value: scope === "fixed" ? fixed : "",
+        updated_at: String(payload?.updated_at || row?.updated_at || ""),
+      };
+    });
+    adminAlterdataConfigColumns = next;
+    renderAdminAlterdataConfigList(next);
+    await closeAdminAlterdataColumnModal();
+    showInfo(`Configuração da coluna ${column} atualizada.`);
+  } catch {
+    showError("Falha de rede ao salvar configuração da coluna.");
+  } finally {
+    if (saveAdminAlterdataColumnModalBtn) saveAdminAlterdataColumnModalBtn.disabled = false;
+  }
+}
+
 async function submitAdminExport() {
   const month = String(selectedAdminExportMonth || "").trim();
   const type = String(selectedAdminExportType || "all").trim() || "all";
@@ -6333,6 +6705,12 @@ async function closeAdminExportUserModal() {
 async function loadDashboard() {
   hideMessages();
   if (refreshBtn) refreshBtn.disabled = true;
+
+  if (!categories.length) {
+    await loadCategories();
+  }
+  normalizeAppliedEntryFilters();
+  formatFilterPanel();
 
   const month = monthRange();
   const prevMonth = previousMonthRange(month);
@@ -6547,6 +6925,10 @@ adminActionButtons.forEach((button) => {
     }
     if (action === "export-alterdata") {
       void openAdminExportModal();
+      return;
+    }
+    if (action === "alterdata-config") {
+      void openAdminAlterdataConfigModal();
       return;
     }
     if (adminInfoEl) {
@@ -6859,6 +7241,72 @@ adminExportUserListEl?.addEventListener("click", (event) => {
   selectedAdminExportUserIds = next.size ? Array.from(next) : ["all"];
   renderAdminExportUsersList(adminUsersCache);
   syncAdminExportLabels();
+});
+
+closeAdminAlterdataConfigModalBtn?.addEventListener("click", () => {
+  void closeAdminAlterdataConfigModal();
+});
+cancelAdminAlterdataConfigModalBtn?.addEventListener("click", () => {
+  void closeAdminAlterdataConfigModal();
+});
+adminAlterdataConfigListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-alterdata-column]");
+  if (!btn) return;
+  const column = String(btn.getAttribute("data-admin-alterdata-column") || "").trim().toUpperCase();
+  if (!column) return;
+  void openAdminAlterdataColumnModal(column);
+});
+closeAdminAlterdataColumnModalBtn?.addEventListener("click", () => {
+  void closeAdminAlterdataColumnModal();
+});
+cancelAdminAlterdataColumnModalBtn?.addEventListener("click", () => {
+  void closeAdminAlterdataColumnModal();
+});
+saveAdminAlterdataColumnModalBtn?.addEventListener("click", () => {
+  void saveAdminAlterdataColumnConfig();
+});
+openAdminAlterdataSourceModalBtn?.addEventListener("click", () => {
+  void openAdminAlterdataSourceModal();
+});
+openAdminAlterdataFieldModalBtn?.addEventListener("click", () => {
+  void openAdminAlterdataFieldModal();
+});
+closeAdminAlterdataSourceModalBtn?.addEventListener("click", () => {
+  void closeAdminAlterdataSourceModal();
+});
+adminAlterdataSourceListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-alterdata-source]");
+  if (!btn) return;
+  const scope = String(btn.getAttribute("data-admin-alterdata-source") || "").trim();
+  if (!scope) return;
+  selectedAdminAlterdataSourceScope = scope;
+  const allowed = Array.isArray(adminAlterdataAllowedFields?.[scope]) ? adminAlterdataAllowedFields[scope] : [];
+  if (!allowed.includes(selectedAdminAlterdataSourceField)) {
+    selectedAdminAlterdataSourceField = String(allowed[0] || "");
+  }
+  syncAdminAlterdataColumnEditor();
+  renderAdminAlterdataSourceList();
+  renderAdminAlterdataFieldList();
+  void closeAdminAlterdataSourceModal();
+});
+closeAdminAlterdataFieldModalBtn?.addEventListener("click", () => {
+  void closeAdminAlterdataFieldModal();
+});
+adminAlterdataFieldListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-admin-alterdata-field]");
+  if (!btn) return;
+  const field = String(btn.getAttribute("data-admin-alterdata-field") || "").trim();
+  if (!field) return;
+  selectedAdminAlterdataSourceField = field;
+  syncAdminAlterdataColumnEditor();
+  renderAdminAlterdataFieldList();
+  void closeAdminAlterdataFieldModal();
 });
 
 notificationsModal?.addEventListener("ionModalDidDismiss", () => {

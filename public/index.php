@@ -263,6 +263,8 @@ $router->add('GET', '/api/admin/users/{id}/stats', [AdminController::class, 'use
 $router->add('POST', '/api/admin/users/{id}/impersonate', [AdminController::class, 'impersonate']);
 $router->add('GET', '/api/admin/export/alterdata', [ExportController::class, 'alterdata']);
 $router->add('GET', '/api/admin/export/alterdata/history', [AdminController::class, 'exportAlterdataHistory']);
+$router->add('GET', '/api/admin/export/alterdata/config', [AdminController::class, 'getAlterdataExportConfig']);
+$router->add('PUT', '/api/admin/export/alterdata/config/{column}', [AdminController::class, 'updateAlterdataExportConfig']);
 $router->add('GET', '/', function () {
     header('Content-Type: text/html; charset=utf-8');
     readfile(__DIR__ . '/index.html');
