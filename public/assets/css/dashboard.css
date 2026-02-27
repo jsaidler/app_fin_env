@@ -2025,6 +2025,14 @@ ion-content::part(scroll) {
   padding-top: 6px;
 }
 
+.support-help-block + .support-help-block {
+  margin-top: 14px;
+}
+
+.support-help-block .entry-stage__title {
+  margin-bottom: 6px;
+}
+
 .settings-item {
   border: 1px solid #dde4ef;
   border-radius: 12px;

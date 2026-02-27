@@ -2021,7 +2021,7 @@ ion-datetime::part(content) {
 
 ion-button::part(native) {
   min-height: 44px;
-  font-weight: 600;
+  font-weight: 300;
 }
 
 ion-toolbar {

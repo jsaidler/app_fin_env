@@ -205,6 +205,10 @@ const impersonationBannerEl = document.getElementById("impersonation-banner");
 const impersonationBannerTextEl = document.getElementById("impersonation-banner-text");
 const stopImpersonationBtn = document.getElementById("stop-impersonation-btn");
 const supportMenuBtn = document.getElementById("dash-support-btn");
+const supportHelpModal = document.getElementById("support-help-modal");
+const closeSupportHelpModalBtn = document.getElementById("close-support-help-modal");
+const supportHelpThreadListEl = document.getElementById("support-help-thread-list");
+const openSupportChatFromHelpBtn = document.getElementById("open-support-chat-from-help");
 const supportModal = document.getElementById("support-modal");
 const closeSupportModalBtn = document.getElementById("close-support-modal");
 const openSupportThreadPickerBtn = document.getElementById("open-support-thread-picker");
@@ -685,6 +689,113 @@ function setupConfirmActionModal() {
   });
 }
 
+let modalBackSyncInProgress = false;
+let modalBackSyntheticDepth = 0;
+const DASH_HISTORY_TAB_KEY = "__cs_tab";
+
+function isPresentedModal(el) {
+  return el instanceof HTMLElement
+    && el.tagName === "ION-MODAL"
+    && !el.classList.contains("overlay-hidden");
+}
+
+function topPresentedModal() {
+  const modals = Array.from(document.querySelectorAll("ion-modal")).filter(isPresentedModal);
+  if (!modals.length) return null;
+  return modals[modals.length - 1];
+}
+
+function pushModalBackState() {
+  if (modalBackSyncInProgress) return;
+  try {
+    window.history.pushState(
+      {
+        ...(window.history.state || {}),
+        __cs_modal_depth: modalBackSyntheticDepth + 1,
+      },
+      "",
+      window.location.href,
+    );
+    modalBackSyntheticDepth += 1;
+  } catch {
+    // no-op
+  }
+}
+
+function popSyntheticModalState() {
+  if (modalBackSyncInProgress) return;
+  if (modalBackSyntheticDepth <= 0) return;
+  modalBackSyncInProgress = true;
+  modalBackSyntheticDepth -= 1;
+  try {
+    window.history.back();
+  } catch {
+    // no-op
+  }
+  window.setTimeout(() => {
+    modalBackSyncInProgress = false;
+  }, 0);
+}
+
+function setupModalBackNavigation() {
+  document.addEventListener(
+    "ionModalDidPresent",
+    (event) => {
+      const modal = event?.target;
+      if (!isPresentedModal(modal)) return;
+      pushModalBackState();
+    },
+    true,
+  );
+
+  document.addEventListener(
+    "ionModalDidDismiss",
+    () => {
+      if (modalBackSyncInProgress) return;
+      popSyntheticModalState();
+    },
+    true,
+  );
+
+  window.addEventListener("popstate", () => {
+    if (modalBackSyncInProgress) {
+      modalBackSyncInProgress = false;
+      return;
+    }
+    const modal = topPresentedModal();
+    if (modal) {
+      modalBackSyncInProgress = true;
+      if (modalBackSyntheticDepth > 0) {
+        modalBackSyntheticDepth -= 1;
+      }
+      Promise.resolve(modal.dismiss(null, "backdrop")).finally(() => {
+        window.setTimeout(() => {
+          modalBackSyncInProgress = false;
+        }, 0);
+      });
+      return;
+    }
+    const stateTab = normalizeDashboardTab(window.history.state?.[DASH_HISTORY_TAB_KEY]);
+    if (stateTab && stateTab !== activeTabName()) {
+      navigateToTab(stateTab, { pushHistory: false, replaceHistory: false, load: true });
+    }
+  });
+
+  document.addEventListener("ionBackButton", (event) => {
+    if (!event?.detail?.register) return;
+    event.detail.register(100, () => {
+      const modal = topPresentedModal();
+      if (modal) {
+        void modal.dismiss(null, "backdrop");
+        return;
+      }
+      if (activeTabName() !== "lancamentos") {
+        window.history.back();
+      }
+    });
+  });
+}
+
 function hideMessages() {
   errorEl.hidden = true;
   infoEl.hidden = true;
@@ -737,6 +848,47 @@ function showTab(tabName) {
     void scrollActiveTabIntoView(transitionToken);
     updateOverlayPositioning();
   });
+}
+
+function normalizeDashboardTab(tabName) {
+  const candidate = String(tabName || "").trim();
+  if (!candidate) return "lancamentos";
+  const hasTab = tabButtons.some((button) => String(button.dataset.tab || "") === candidate);
+  if (!hasTab) return "lancamentos";
+  if (candidate === "administracao" && adminTabBtn?.hidden) return "lancamentos";
+  return candidate;
+}
+
+function navigateToTab(tabName, options = {}) {
+  const targetTab = normalizeDashboardTab(tabName);
+  const pushHistory = Boolean(options?.pushHistory);
+  const replaceHistory = Boolean(options?.replaceHistory);
+  const shouldLoad = options?.load !== false;
+  const forceRender = Boolean(options?.forceRender);
+  const currentTab = activeTabName();
+  const stateTab = normalizeDashboardTab(window.history.state?.[DASH_HISTORY_TAB_KEY]);
+  const tabChanged = currentTab !== targetTab;
+
+  if (tabChanged || forceRender) {
+    showTab(targetTab);
+  }
+  if (shouldLoad) {
+    void loadDataForTab(targetTab);
+  }
+
+  const nextState = {
+    ...(window.history.state || {}),
+    [DASH_HISTORY_TAB_KEY]: targetTab,
+  };
+  try {
+    if (replaceHistory) {
+      window.history.replaceState(nextState, "", window.location.href);
+    } else if (pushHistory && stateTab !== targetTab) {
+      window.history.pushState(nextState, "", window.location.href);
+    }
+  } catch {
+    // no-op
+  }
 }
 
 function readCssPx(variableName, fallback = 0) {
@@ -1097,12 +1249,11 @@ function setupTabNav() {
     button.addEventListener("click", () => {
       const tabName = String(button.dataset.tab || "");
       if (!tabName) return;
-      showTab(tabName);
-      void loadDataForTab(tabName);
+      navigateToTab(tabName, { pushHistory: true, load: true });
     });
   });
 
-  showTab("lancamentos");
+  navigateToTab("lancamentos", { replaceHistory: true, load: false, forceRender: true });
   window.addEventListener("resize", syncTabPill, { passive: true });
   window.addEventListener(
     "resize",
@@ -1466,7 +1617,7 @@ function syncAdminAreaAccess() {
   if (adminMenuBtn) adminMenuBtn.hidden = !isAdmin;
   if (adminTabBtn) adminTabBtn.hidden = !isAdmin;
   if (!isAdmin && activeTabName() === "administracao") {
-    showTab("lancamentos");
+    navigateToTab("lancamentos", { replaceHistory: true, load: true });
   }
 }
 
@@ -4485,7 +4636,7 @@ async function saveRecurrence() {
     await closeRecurrenceModal();
     showInfo(isEditingRecurrence ? "Recorrência atualizada com sucesso." : "Recorrência criada com sucesso.");
     await loadDashboard();
-    showTab("recorrentes");
+    navigateToTab("recorrentes", { pushHistory: true, load: false });
   } catch {
     showError("Falha de rede ao salvar a recorrência.");
   }
@@ -5111,7 +5262,7 @@ async function createEntry() {
     await closeEntryModal();
     showInfo(editingEntryId ? "Lan\u00e7amento atualizado com sucesso." : "Entrada adicionada com sucesso.");
     await loadDashboard();
-    showTab("lancamentos");
+    navigateToTab("lancamentos", { pushHistory: true, load: false });
   } catch {
     showError("Falha de rede ao salvar a entrada.");
   } finally {
@@ -5215,7 +5366,7 @@ async function approvePendingEntry() {
     await closeEntryModal();
     showInfo("Lan\u00e7amento aprovado com sucesso.");
     await loadDashboard();
-    showTab("lancamentos");
+    navigateToTab("lancamentos", { pushHistory: true, load: false });
   } catch {
     showError("Falha de rede ao aprovar o lan\u00e7amento.");
   } finally {
@@ -5861,6 +6012,21 @@ async function closeNotificationsModal() {
   }
 }
 
+async function openSupportHelpModal() {
+  renderSupportHelpThreadList();
+  supportThreadsCache = await fetchSupportThreads();
+  renderSupportHelpThreadList();
+  await supportHelpModal?.present();
+}
+
+async function closeSupportHelpModal() {
+  try {
+    await supportHelpModal?.dismiss();
+  } catch {
+    // no-op
+  }
+}
+
 async function handleNotificationSelection(item) {
   const actionType = String(item?.action?.type || "");
   if (actionType === "support") {
@@ -5908,7 +6074,7 @@ function syncSupportThreadLabel() {
   if (!selectedSupportThreadEl) return;
   const current = supportCurrentThread();
   if (!current) {
-    selectedSupportThreadEl.textContent = "Selecionar conversa";
+    selectedSupportThreadEl.textContent = "Selecionar conversa de suporte";
     selectedSupportThreadEl.classList.add("is-placeholder");
     return;
   }
@@ -5986,6 +6152,31 @@ async function fetchSupportThreads() {
   return Array.isArray(payload?.threads) ? payload.threads : [];
 }
 
+async function createSupportThread(subject = "Atendimento") {
+  if (isSupportAdminMode()) return 0;
+  const response = await fetch("/api/support/threads", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    }),
+    body: JSON.stringify({ subject: String(subject || "Atendimento") }),
+  });
+  if (response.status === 401) {
+    window.location.href = "/";
+    return 0;
+  }
+  if (!response.ok && response.status !== 409) {
+    const payload = await safeJson(response, {});
+    showError(String(payload?.error || "Não foi possível iniciar atendimento."));
+    return 0;
+  }
+  const payload = await safeJson(response, {});
+  const directId = Number(payload?.thread?.id || payload?.id || 0);
+  return directId > 0 ? directId : 0;
+}
+
 async function ensureSupportThreadForUser() {
   if (isSupportAdminMode()) return;
   if (supportThreadsCache.length > 0) return;
@@ -6004,13 +6195,13 @@ async function ensureSupportThreadForUser() {
   }
 }
 
-function renderSupportThreadList() {
-  if (!supportThreadListEl) return;
+function renderSupportThreadListInto(listEl, emptyText = "Nenhuma conversa encontrada.") {
+  if (!listEl) return;
   if (!supportThreadsCache.length) {
-    supportThreadListEl.innerHTML = `<p class="category-empty">Nenhuma conversa encontrada.</p>`;
+    listEl.innerHTML = `<p class="category-empty">${escapeHtml(emptyText)}</p>`;
     return;
   }
-  supportThreadListEl.innerHTML = supportThreadsCache.map((thread) => {
+  listEl.innerHTML = supportThreadsCache.map((thread) => {
     const id = Number(thread?.id || 0);
     const selected = id > 0 && id === Number(selectedSupportThreadId || 0);
     const unread = Number(thread?.unread_count || 0);
@@ -6026,6 +6217,14 @@ function renderSupportThreadList() {
       </button>
     `;
   }).join("");
+}
+
+function renderSupportThreadList() {
+  renderSupportThreadListInto(supportThreadListEl, "Nenhuma conversa encontrada.");
+}
+
+function renderSupportHelpThreadList() {
+  renderSupportThreadListInto(supportHelpThreadListEl, "Nenhum atendimento anterior.");
 }
 
 async function fetchSupportMessages(threadId) {
@@ -6143,6 +6342,7 @@ async function loadSupportThreadsAndMessages() {
   setSupportAndNotificationBadges(unreadTotal);
   syncSupportThreadLabel();
   renderSupportThreadList();
+  renderSupportHelpThreadList();
   await loadSupportMessages();
 }
 
@@ -8318,7 +8518,7 @@ notificationsMenuBtn?.addEventListener("click", () => {
 });
 
 supportMenuBtn?.addEventListener("click", () => {
-  void openSupportModal();
+  void openSupportHelpModal();
 });
 
 profileMenuBtn?.addEventListener("click", () => {
@@ -8330,7 +8530,7 @@ passwordMenuBtn?.addEventListener("click", () => {
 });
 
 adminMenuBtn?.addEventListener("click", () => {
-  showTab("administracao");
+  navigateToTab("administracao", { pushHistory: true, load: true });
 });
 
 adminActionButtons.forEach((button) => {
@@ -8374,6 +8574,27 @@ closeNotificationsModalBtn?.addEventListener("click", () => {
   void closeNotificationsModal();
 });
 
+closeSupportHelpModalBtn?.addEventListener("click", () => {
+  void closeSupportHelpModal();
+});
+
+openSupportChatFromHelpBtn?.addEventListener("click", async () => {
+  if (isSupportAdminMode()) {
+    await closeSupportHelpModal();
+    await openSupportModal();
+    return;
+  }
+
+  const createdThreadId = await createSupportThread("Atendimento");
+  if (createdThreadId <= 0) {
+    showError("Não foi possível iniciar um novo atendimento agora.");
+    return;
+  }
+
+  await closeSupportHelpModal();
+  await openSupportModal({ threadId: createdThreadId });
+});
+
 notificationsListEl?.addEventListener("click", (event) => {
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (!target) return;
@@ -8409,6 +8630,19 @@ supportThreadListEl?.addEventListener("click", (event) => {
   syncSupportThreadLabel();
   renderSupportThreadList();
   void closeSupportThreadModal().then(() => loadSupportMessages());
+});
+
+supportHelpThreadListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const btn = target.closest("[data-support-thread-id]");
+  if (!btn) return;
+  const id = Number(btn.getAttribute("data-support-thread-id") || 0);
+  if (id <= 0) return;
+  selectedSupportThreadId = id;
+  syncSupportThreadLabel();
+  renderSupportHelpThreadList();
+  void closeSupportHelpModal().then(() => openSupportModal({ threadId: id }));
 });
 
 openSupportAttachModalBtn?.addEventListener("click", () => {
@@ -8888,6 +9122,13 @@ notificationsModal?.addEventListener("ionModalDidPresent", () => {
   refreshPickerLayerState();
 });
 
+supportHelpModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+supportHelpModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
 supportModal?.addEventListener("ionModalDidDismiss", () => {
   supportModal.classList.remove("is-attachment-open");
   refreshPickerLayerState();
@@ -9055,6 +9296,7 @@ setupTabNav();
 setupEntryModal();
 setupRecurrenceInteractions();
 setupConfirmActionModal();
+setupModalBackNavigation();
 initInfiniteLists();
 initEntryFilters();
 formatFilterPanel();

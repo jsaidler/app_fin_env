@@ -2,5 +2,31 @@
   "name": "caixa-simples-ui",
   "private": true,
   "type": "module",
-  "scripts": {}
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui",
+    "e2e:install": "playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  },
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsaidler/caixa-simples-envisione_2.0.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jsaidler/caixa-simples-envisione_2.0/issues"
+  },
+  "homepage": "https://github.com/jsaidler/caixa-simples-envisione_2.0#readme"
 }

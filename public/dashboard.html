@@ -29,8 +29,8 @@
       <ion-toolbar class="dash-topbar">
         <div class="brand-shell">
           <div class="brand-top-actions">
-            <ion-button id="dash-support-btn" fill="clear" class="brand-top-btn" aria-label="Mensagens">
-              <span class="material-symbols-rounded">chat_bubble</span>
+            <ion-button id="dash-support-btn" fill="clear" class="brand-top-btn" aria-label="Ajuda e suporte">
+              <span class="material-symbols-rounded">help</span>
               <span id="dash-support-badge" class="top-icon-badge" hidden>0</span>
             </ion-button>
             <img class="brand-logo" src="/assets/img/logo-mono-white-app.webp" alt="Envisione Assessoria Contábil" />
@@ -334,12 +334,69 @@
       </div>
     </ion-modal>
 
+    <ion-modal id="support-help-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Ajuda</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-support-help-modal" aria-label="Fechar ajuda">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <div class="support-help-block">
+          <p class="entry-stage__title">FAQ do app</p>
+          <div class="settings-list">
+            <article class="settings-item">
+              <h4 class="settings-item__title">Primeiro acesso: por onde começo?</h4>
+              <p class="settings-item__text">Cadastre suas categorias e contas/cartões principais. Depois registre os lançamentos do mês para gerar os resumos.</p>
+            </article>
+            <article class="settings-item">
+              <h4 class="settings-item__title">Como lançar receitas e despesas?</h4>
+              <p class="settings-item__text">Toque no +, escolha tipo, informe valor, categoria e data. Conta/cartão é opcional quando o lançamento não passa por uma conta específica.</p>
+            </article>
+            <article class="settings-item">
+              <h4 class="settings-item__title">Categorias x Contas: qual a diferença?</h4>
+              <p class="settings-item__text">Categoria representa natureza do gasto/receita. Conta/cartão representa origem ou destino financeiro do lançamento.</p>
+            </article>
+            <article class="settings-item">
+              <h4 class="settings-item__title">Como funcionam recorrências?</h4>
+              <p class="settings-item__text">Recorrências criam lançamentos automáticos por frequência. Revise a próxima execução e histórico na aba Recorrências.</p>
+            </article>
+            <article class="settings-item">
+              <h4 class="settings-item__title">Como usar filtros e revisões?</h4>
+              <p class="settings-item__text">Na aba Lançamentos, use busca e filtros por período/tipo/categoria para localizar itens e validar o mês.</p>
+            </article>
+            <article class="settings-item">
+              <h4 class="settings-item__title">Fechamento mensal e mês anterior</h4>
+              <p class="settings-item__text">As abas de categorias/contas exibem atual x anterior com base no período ativo. Confira os totais antes de fechar o mês.</p>
+            </article>
+            <article class="settings-item">
+              <h4 class="settings-item__title">Boas práticas de segurança</h4>
+              <p class="settings-item__text">Mantenha senha forte, não compartilhe sessão ativa e finalize o acesso ao terminar o uso.</p>
+            </article>
+          </div>
+        </div>
+        <div class="support-help-block">
+          <p class="entry-stage__title">Histórico de atendimentos</p>
+          <div id="support-help-thread-list" class="category-list"></div>
+        </div>
+      </div>
+      <ion-footer class="entry-actions">
+        <ion-toolbar>
+          <ion-button id="open-support-chat-from-help" expand="block" color="primary">Novo atendimento</ion-button>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-modal>
+
     <ion-modal id="support-modal" class="sheet-modal support-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Mensageiro</ion-title>
+          <ion-title class="entry-title">Suporte</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-support-modal" aria-label="Fechar mensageiro">
+            <ion-button id="close-support-modal" aria-label="Fechar suporte">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -348,7 +405,7 @@
       <div class="entry-content ion-padding support-chat-content">
         <button id="open-support-thread-picker" type="button" class="entry-picker-row" aria-expanded="false">
           <span class="entry-picker-row__label">Conversa</span>
-          <span id="selected-support-thread" class="entry-picker-row__value is-placeholder">Selecionar conversa</span>
+          <span id="selected-support-thread" class="entry-picker-row__value is-placeholder">Selecionar conversa de suporte</span>
           <span class="material-symbols-rounded">chevron_right</span>
         </button>
         <div id="support-thread-empty" class="settings-empty" hidden>
