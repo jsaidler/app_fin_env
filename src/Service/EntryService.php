@@ -13,6 +13,9 @@ use App\Domain\Entry;
 
 class EntryService
 {
+    private const PURGE_COOLDOWN_SECONDS = 3600;
+    private static int $lastPurgeAt = 0;
+
     private EntryRepositoryInterface $entries;
     private UserAccountRepositoryInterface $accounts;
     private ?MonthLockService $locks;
@@ -163,6 +166,12 @@ class EntryService
 
     public function purgeOlderThanDays(int $days): void
     {
+        $now = time();
+        if (self::$lastPurgeAt > 0 && ($now - self::$lastPurgeAt) < self::PURGE_COOLDOWN_SECONDS) {
+            return;
+        }
+        self::$lastPurgeAt = $now;
+
         $cutoff = strtotime('-' . (int)$days . ' days');
         foreach ($this->entries->listAll(['include_deleted' => true]) as $entry) {
             if (!$entry->deletedAt) continue;

@@ -49,6 +49,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
     public function create(int $userId, array $data): Recurrence
     {
         $now = date('c');
+        $accountId = (int)($data['account_id'] ?? 0);
         $stmt = $this->pdo->prepare(
             'INSERT INTO recurrences (
                 user_id, type, amount, category, account_id, description,
@@ -63,7 +64,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
             'type' => $data['type'],
             'amount' => (float)$data['amount'],
             'category' => $data['category'],
-            'account_id' => (int)$data['account_id'],
+            'account_id' => $accountId > 0 ? $accountId : null,
             'description' => (string)($data['description'] ?? ''),
             'frequency' => $data['frequency'],
             'start_date' => $data['start_date'],
@@ -81,7 +82,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
             'type' => $data['type'],
             'amount' => (float)$data['amount'],
             'category' => $data['category'],
-            'account_id' => (int)$data['account_id'],
+            'account_id' => $accountId > 0 ? $accountId : null,
             'description' => (string)($data['description'] ?? ''),
             'frequency' => $data['frequency'],
             'start_date' => $data['start_date'],
@@ -102,6 +103,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
 
         $merged = array_merge($existing->toArray(), $data);
         $merged['updated_at'] = date('c');
+        $accountId = (int)($merged['account_id'] ?? 0);
 
         $stmt = $this->pdo->prepare(
             'UPDATE recurrences
@@ -123,7 +125,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
             'type' => $merged['type'],
             'amount' => (float)$merged['amount'],
             'category' => $merged['category'],
-            'account_id' => (int)$merged['account_id'],
+            'account_id' => $accountId > 0 ? $accountId : null,
             'description' => (string)($merged['description'] ?? ''),
             'frequency' => $merged['frequency'],
             'start_date' => $merged['start_date'],

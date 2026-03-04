@@ -19,6 +19,13 @@ class CategoryController extends BaseController
         Response::json($service->listMergedForUser($uid));
     }
 
+    public function tree(): void
+    {
+        $uid = $this->requireAuth();
+        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
+        Response::json($service->listTreeForUser($uid));
+    }
+
     public function listUserCategories(): void
     {
         $uid = $this->requireAuth();

@@ -20,9 +20,10 @@ export async function loginViaUi(page, { email, password }) {
   await expect(page.locator('[data-tab="lancamentos"]')).toBeVisible();
 }
 
-export async function authTokenFromStorage(page) {
-  const token = await page.evaluate(() => localStorage.getItem("caixa_auth_token") || "");
-  return String(token || "");
+export async function csrfTokenFromCookie(page) {
+  const cookies = await page.context().cookies();
+  const csrf = cookies.find((cookie) => cookie.name === "csrf_token");
+  return String(csrf?.value || "");
 }
 
 export async function activateTab(page, tabName) {

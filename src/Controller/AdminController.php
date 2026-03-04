@@ -6,6 +6,7 @@ namespace App\Controller;
 use App\Repository\Sqlite\SqliteCategoryRepository;
 use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteRecurrenceRepository;
+use App\Repository\Sqlite\SqliteRecurrenceRunRepository;
 use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Repository\Sqlite\SqliteUserCategoryRepository;
 use App\Repository\Sqlite\SqliteUserRepository;
@@ -89,7 +90,7 @@ class AdminController extends BaseController
         if (!$user) {
             Response::json(['error' => 'Usuario nao encontrado'], 404);
         }
-        $service = new RecurrenceService($this->recurrenceRepo(), $this->entryRepo(), $this->accountRepo());
+        $service = new RecurrenceService($this->recurrenceRepo(), $this->recurrenceRunRepo(), $this->entryRepo(), $this->accountRepo());
         Response::json($service->listForUser($userId));
     }
 
@@ -124,6 +125,13 @@ class AdminController extends BaseController
         $this->requireAdmin();
         $service = new CategoryService($this->categoryRepo());
         Response::json($service->list());
+    }
+
+    public function categoriesTree(): void
+    {
+        $this->requireAdmin();
+        $service = new CategoryService($this->categoryRepo());
+        Response::json($service->listTree());
     }
 
     public function createCategory(): void
@@ -553,6 +561,7 @@ class AdminController extends BaseController
             'role' => $user->role,
             'imp_by' => $adminId,
         ], (string)$this->config['secret'], (int)$this->config['token_ttl']);
+        $this->setAuthCookie($token);
 
         Response::json([
             'token' => $token,
@@ -561,6 +570,41 @@ class AdminController extends BaseController
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+            ],
+        ]);
+    }
+
+    public function stopImpersonation(): void
+    {
+        $uid = $this->requireAuth();
+        $impBy = isset($this->authPayload['imp_by']) ? (int)$this->authPayload['imp_by'] : 0;
+        if ($impBy <= 0) {
+            Response::json(['error' => 'Personificacao inativa'], 422);
+        }
+
+        $admin = $this->userRepo()->findById($impBy);
+        if (!$admin || $admin->role !== 'admin') {
+            Response::json(['error' => 'Administrador invalido para encerrar personificacao'], 422);
+        }
+
+        $token = Token::issue([
+            'uid' => $admin->id,
+            'role' => $admin->role,
+        ], (string)$this->config['secret'], (int)$this->config['token_ttl']);
+        $this->setAuthCookie($token);
+
+        Response::json([
+            'ok' => true,
+            'token' => $token,
+            'user' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'role' => $admin->role,
+            ],
+            'impersonation' => [
+                'active' => false,
+                'restored_from_user_id' => $uid,
             ],
         ]);
     }
@@ -588,6 +632,11 @@ class AdminController extends BaseController
     protected function recurrenceRepo()
     {
         return new SqliteRecurrenceRepository($this->db());
+    }
+
+    protected function recurrenceRunRepo()
+    {
+        return new SqliteRecurrenceRunRepository($this->db());
     }
 
     protected function lockService(): MonthLockService
@@ -693,6 +742,23 @@ class AdminController extends BaseController
             $endDate = $tmp;
         }
         return [$startDate, $endDate];
+    }
+
+    private function setAuthCookie(string $token): void
+    {
+        if ($token === '') {
+            return;
+        }
+        $ttl = (int)($this->config['token_ttl'] ?? 0);
+        $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        setcookie('auth_token', $token, [
+            'expires' => $ttl > 0 ? time() + $ttl : 0,
+            'path' => '/',
+            'httponly' => true,
+            'samesite' => 'Lax',
+            'secure' => $secure,
+        ]);
+        $this->setCsrfCookie();
     }
 
     private function normalizeDate(?string $value, bool $isStart): ?string

@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteRecurrenceRepository;
+use App\Repository\Sqlite\SqliteRecurrenceRunRepository;
 use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Service\RecurrenceService;
 use App\Util\Response;
@@ -51,10 +52,31 @@ class RecurrenceController extends BaseController
         Response::json(['deleted' => $service->deleteForUser($id, $uid)]);
     }
 
+    public function confirmRun(array $params): void
+    {
+        $uid = $this->requireAuth();
+        $recurrenceId = (int)($params['id'] ?? 0);
+        $runId = (int)($params['runId'] ?? 0);
+        $service = $this->service();
+        $item = $service->confirmRunForUser($recurrenceId, $runId, $uid, $this->jsonInput());
+        Response::json($item);
+    }
+
+    public function skipRun(array $params): void
+    {
+        $uid = $this->requireAuth();
+        $recurrenceId = (int)($params['id'] ?? 0);
+        $runId = (int)($params['runId'] ?? 0);
+        $service = $this->service();
+        $item = $service->skipRunForUser($recurrenceId, $runId, $uid);
+        Response::json($item);
+    }
+
     private function service(): RecurrenceService
     {
         return new RecurrenceService(
             new SqliteRecurrenceRepository($this->db()),
+            new SqliteRecurrenceRunRepository($this->db()),
             new SqliteEntryRepository($this->db()),
             new SqliteUserAccountRepository($this->db())
         );

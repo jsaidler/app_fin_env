@@ -20,6 +20,14 @@ spl_autoload_register(function (string $class): void {
 $config = require __DIR__ . '/../config/config.php';
 $GLOBALS['config'] = $config;
 
+$env = (string)($config['env'] ?? 'dev');
+$secret = (string)($config['secret'] ?? '');
+if ($env !== 'dev') {
+    if ($secret === '' || $secret === 'change-this-secret' || strlen($secret) < 24) {
+        throw new RuntimeException('APP_SECRET invalido para ambiente nao-dev.');
+    }
+}
+
 // Ensure data directories exist
 foreach ([$config['paths']['data'], $config['paths']['uploads']] as $dir) {
     if (!is_dir($dir)) {

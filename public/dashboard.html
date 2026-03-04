@@ -8,14 +8,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Caixa Simples" />
-  <link rel="manifest" href="/manifest.json" />
+  <link rel="manifest" href="/manifest.json?v=20260302-01" />
   <link rel="apple-touch-icon" href="/assets/img/icons/icon_x192.png" />
   <title>Caixa Simples | Dashboard</title>
-  <script src="/assets/js/dashboard-loading.js"></script>
-  <link rel="stylesheet" href="/assets/vendor/ionic/css/ionic.bundle.css" />
-  <link rel="stylesheet" href="/assets/css/tokens.css" />
-  <link rel="stylesheet" href="/assets/css/components.css" />
-  <link rel="stylesheet" href="/assets/css/dashboard.css" />
+  <script src="/assets/js/dashboard-loading.js?v=20260302-01"></script>
+  <link rel="stylesheet" href="/assets/vendor/ionic/css/ionic.bundle.css?v=20260302-01" />
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=20260302-01" />
+  <link rel="stylesheet" href="/assets/css/components.css?v=20260302-01" />
+  <link rel="stylesheet" href="/assets/css/dashboard.css?v=20260302-01" />
 </head>
 <body>
   <ion-app mode="md" class="is-booting">
@@ -52,13 +52,13 @@
             <span>Lançamentos</span>
           </button>
           <button type="button" class="dash-tab" data-tab="categorias" aria-selected="false">
-            <span>Categorias</span>
-          </button>
-          <button type="button" class="dash-tab" data-tab="contas" aria-selected="false">
             <span>Contas</span>
           </button>
+          <button type="button" class="dash-tab" data-tab="contas" aria-selected="false">
+            <span>Tags</span>
+          </button>
           <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
-            <span>Recorrências</span>
+            <span>Agendamentos</span>
           </button>
           <button id="dash-admin-tab" type="button" class="dash-tab" data-tab="administracao" aria-selected="false" hidden>
             <span>Administração</span>
@@ -75,7 +75,7 @@
         </div>
       </div>
 
-      <div id="cat-summary-overlay" class="cat-summary-overlay" aria-label="Resumo de categorias">
+      <div id="cat-summary-overlay" class="cat-summary-overlay" aria-label="Resumo de contas e tags">
         <div class="cat-summary">
           <div class="cat-summary__metric">
             <div id="cat-so-far" class="cat-summary__value">R$ 0,00</div>
@@ -161,8 +161,8 @@
           <div id="next-list" class="upcoming-list feed-list"></div>
         </section>
 
-        <section id="sec-categorias" class="dash-section dash-categories" data-tab-content="categorias" aria-label="Resumo por categorias" hidden>
-          <button id="open-user-category-modal" type="button" class="tx-add-cta">Adicionar categoria</button>
+        <section id="sec-categorias" class="dash-section dash-categories" data-tab-content="categorias" aria-label="Resumo por contas" hidden>
+          <button id="open-user-category-modal" type="button" class="tx-add-cta">Adicionar conta</button>
 
           <div class="cat-list-head" aria-hidden="true">
             <span class="cat-list-head__name"></span>
@@ -174,8 +174,8 @@
           <div id="categories-list-screen" class="cat-list"></div>
         </section>
 
-        <section id="sec-contas" class="dash-section dash-categories" data-tab-content="contas" aria-label="Resumo por contas e cartões" hidden>
-          <button id="open-user-account-modal" type="button" class="tx-add-cta">Adicionar conta/cartão</button>
+        <section id="sec-contas" class="dash-section dash-categories" data-tab-content="contas" aria-label="Resumo por tags" hidden>
+          <button id="open-user-account-modal" type="button" class="tx-add-cta">Adicionar tag</button>
 
           <div class="cat-list-head" aria-hidden="true">
             <span class="cat-list-head__name"></span>
@@ -187,8 +187,8 @@
           <div id="accounts-list-screen" class="cat-list"></div>
         </section>
 
-        <section id="sec-recorrentes" class="dash-section dash-categories" data-tab-content="recorrentes" aria-label="Recorrências" hidden>
-          <button id="open-recurrence-inline" type="button" class="tx-add-cta">Adicionar recorrência</button>
+        <section id="sec-recorrentes" class="dash-section dash-categories" data-tab-content="recorrentes" aria-label="Agendamentos" hidden>
+          <button id="open-recurrence-inline" type="button" class="tx-add-cta">Adicionar agendamento</button>
           <p id="recurrence-meta" class="tx-head__meta">--</p>
           <div id="recurrences-list" class="tx-list"></div>
         </section>
@@ -199,9 +199,9 @@
           </header>
           <div class="settings-list">
             <button type="button" class="entry-picker-row" data-admin-action="global-categories">
-              <span class="entry-picker-row__label">Categorias globais</span>
+              <span class="entry-picker-row__label">Contas globais</span>
               <span class="entry-picker-row__value-wrap">
-                <span class="entry-picker-row__value">Gerenciar categorias</span>
+                <span class="entry-picker-row__value">Gerenciar contas</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </span>
             </button>
@@ -351,27 +351,27 @@
           <div class="settings-list">
             <article class="settings-item">
               <h4 class="settings-item__title">Primeiro acesso: por onde começo?</h4>
-              <p class="settings-item__text">Cadastre suas categorias e contas/cartões principais. Depois registre os lançamentos do mês para gerar os resumos.</p>
+              <p class="settings-item__text">Cadastre suas contas e tags principais. Depois registre os lançamentos do mês para gerar os resumos.</p>
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Como lançar receitas e despesas?</h4>
-              <p class="settings-item__text">Toque no +, escolha tipo, informe valor, categoria e data. Conta/cartão é opcional quando o lançamento não passa por uma conta específica.</p>
+              <p class="settings-item__text">Toque no +, escolha tipo, informe valor, conta e data. Tag é opcional quando o lançamento não precisa dessa classificação.</p>
             </article>
             <article class="settings-item">
-              <h4 class="settings-item__title">Categorias x Contas: qual a diferença?</h4>
-              <p class="settings-item__text">Categoria representa natureza do gasto/receita. Conta/cartão representa origem ou destino financeiro do lançamento.</p>
+              <h4 class="settings-item__title">Contas x Tags: qual a diferença?</h4>
+              <p class="settings-item__text">Conta representa a natureza do lançamento no plano. Tag é uma classificação auxiliar para organização.</p>
             </article>
             <article class="settings-item">
-              <h4 class="settings-item__title">Como funcionam recorrências?</h4>
-              <p class="settings-item__text">Recorrências criam lançamentos automáticos por frequência. Revise a próxima execução e histórico na aba Recorrências.</p>
+              <h4 class="settings-item__title">Como funcionam agendamentos?</h4>
+              <p class="settings-item__text">Agendamentos criam lançamentos automáticos por frequência. Revise a próxima execução e histórico na aba Agendamentos.</p>
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Como usar filtros e revisões?</h4>
-              <p class="settings-item__text">Na aba Lançamentos, use busca e filtros por período/tipo/categoria para localizar itens e validar o mês.</p>
+              <p class="settings-item__text">Na aba Lançamentos, use busca e filtros por período/tipo/conta para localizar itens e validar o mês.</p>
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Fechamento mensal e mês anterior</h4>
-              <p class="settings-item__text">As abas de categorias/contas exibem atual x anterior com base no período ativo. Confira os totais antes de fechar o mês.</p>
+              <p class="settings-item__text">As abas de contas/tags exibem atual x anterior com base no período ativo. Confira os totais antes de fechar o mês.</p>
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Boas práticas de segurança</h4>
@@ -568,9 +568,9 @@
     <ion-modal id="admin-categories-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Categorias globais</ion-title>
+          <ion-title class="entry-title">Contas globais</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-admin-categories-modal" aria-label="Fechar categorias globais">
+            <ion-button id="close-admin-categories-modal" aria-label="Fechar contas globais">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -578,7 +578,7 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div class="entry-fields">
-          <section class="entry-stage" aria-label="Lista de categorias globais">
+          <section class="entry-stage" aria-label="Lista de contas globais">
             <div id="admin-categories-list" class="category-list"></div>
           </section>
         </div>
@@ -596,9 +596,9 @@
     <ion-modal id="admin-category-editor-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Editar categoria global</ion-title>
+          <ion-title class="entry-title">Editar conta global</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-admin-category-editor-modal" aria-label="Fechar editor de categoria global">
+            <ion-button id="close-admin-category-editor-modal" aria-label="Fechar editor de conta global">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -606,7 +606,7 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div class="entry-fields">
-          <section class="entry-stage" aria-label="Formulário de categoria global">
+          <section class="entry-stage" aria-label="Formulário de conta global">
             <p class="entry-stage__title">Nome</p>
             <ion-item class="entry-text-field entry-text-field--no-label">
               <ion-input id="admin-category-name" type="text" placeholder="Ex.: Honorários"></ion-input>
@@ -616,12 +616,31 @@
               <span id="selected-admin-category-type" class="entry-picker-row__value">Saída</span>
               <span class="material-symbols-rounded">chevron_right</span>
             </button>
+            <section class="filters-block" aria-label="Classe da conta global">
+              <p class="entry-stage__title">Classe</p>
+              <ion-segment id="admin-category-class" value="synthetic" mode="md">
+                <ion-segment-button value="synthetic">
+                  <ion-label>Sintética</ion-label>
+                </ion-segment-button>
+                <ion-segment-button value="analytic">
+                  <ion-label>Analítica</ion-label>
+                </ion-segment-button>
+              </ion-segment>
+            </section>
+            <button id="open-admin-category-parent" type="button" class="entry-picker-row" aria-expanded="false">
+              <span class="entry-picker-row__label">Conta pai (opcional)</span>
+              <span id="selected-admin-category-parent" class="entry-picker-row__value is-placeholder">Selecionar conta pai</span>
+              <span class="material-symbols-rounded">chevron_right</span>
+            </button>
             <p class="entry-stage__title">Código Alterdata</p>
-            <ion-item class="entry-text-field entry-text-field--no-label">
-              <ion-input id="admin-category-alterdata" type="text" placeholder="Ex.: 1.01.001"></ion-input>
-            </ion-item>
+            <div class="entry-alterdata-inline">
+              <span id="admin-category-alterdata-prefix" class="entry-alterdata-inline__prefix" hidden></span>
+              <ion-item class="entry-text-field entry-text-field--no-label entry-alterdata-inline__input">
+                <ion-input id="admin-category-alterdata" type="text" placeholder="0001"></ion-input>
+              </ion-item>
+            </div>
           </section>
-          <section class="entry-stage" aria-label="Resumo da categoria global">
+          <section class="entry-stage" aria-label="Resumo da conta global">
             <p class="entry-stage__title">Resumo</p>
             <div id="admin-category-stats" class="settings-list"></div>
           </section>
@@ -833,9 +852,9 @@
     <ion-modal id="admin-category-type-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Tipo da categoria</ion-title>
+          <ion-title class="entry-title">Tipo da conta</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-admin-category-type-modal" aria-label="Fechar tipo da categoria">
+            <ion-button id="close-admin-category-type-modal" aria-label="Fechar tipo da conta">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -843,6 +862,23 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div id="admin-category-type-list" class="category-list"></div>
+      </div>
+    </ion-modal>
+
+    <ion-modal id="admin-category-parent-modal" class="sheet-modal entry-picker-sheet">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title class="entry-title">Selecionar conta pai</ion-title>
+          <ion-buttons slot="end" class="toolbar-actions">
+            <ion-button id="close-admin-category-parent-modal" aria-label="Fechar conta pai">
+              <span class="material-symbols-rounded">close</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <div class="entry-content ion-padding">
+        <ion-searchbar id="admin-category-parent-search" mode="md" placeholder="Buscar conta pai"></ion-searchbar>
+        <div id="admin-category-parent-list" class="category-list"></div>
       </div>
     </ion-modal>
 
@@ -1131,10 +1167,10 @@
           <section class="entry-stage" aria-label="Dados do lançamento">
             <div class="entry-field-set">
               <button id="open-category" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Categoria</span>
+                <span class="entry-picker-row__label">Conta</span>
                 <span class="entry-picker-row__value-wrap">
                   <span id="selected-category-direction" class="entry-picker-row__direction material-symbols-rounded" aria-hidden="true" hidden>arrow_downward</span>
-                  <span id="selected-category" class="entry-picker-row__value is-placeholder">Selecionar categoria</span>
+                  <span id="selected-category" class="entry-picker-row__value is-placeholder">Selecionar conta</span>
                 </span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
@@ -1142,8 +1178,8 @@
 
             <div class="entry-field-set">
               <button id="open-account" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Conta / Cartão (opcional)</span>
-                <span id="selected-account" class="entry-picker-row__value is-placeholder">Selecionar conta/cartão (opcional)</span>
+                <span class="entry-picker-row__label">Tag (opcional)</span>
+                <span id="selected-account" class="entry-picker-row__value is-placeholder">Selecionar tag (opcional)</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
             </div>
@@ -1170,10 +1206,10 @@
             </button>
           </section>
 
-          <section class="entry-stage" aria-label="Recorrência opcional">
+          <section class="entry-stage" aria-label="Agendamento opcional">
             <div class="entry-field-set">
               <button id="open-entry-recurrence" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Recorrência</span>
+                <span class="entry-picker-row__label">Agendamento</span>
                 <span id="selected-entry-recurrence" class="entry-picker-row__value">Nenhuma</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
@@ -1208,9 +1244,9 @@
     <ion-modal id="recurrence-modal" class="sheet-modal entry-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title id="recurrence-modal-title" class="entry-title">Nova recorrência</ion-title>
+          <ion-title id="recurrence-modal-title" class="entry-title">Novo agendamento</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-recurrence" aria-label="Fechar recorrência">
+            <ion-button id="close-recurrence" aria-label="Fechar agendamento">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1236,26 +1272,26 @@
           </div>
         </div>
         <div class="entry-fields">
-          <section class="entry-stage" aria-label="Dados da recorrência">
+          <section class="entry-stage" aria-label="Dados do agendamento">
             <div class="entry-field-set">
               <button id="open-recurrence-category" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Categoria</span>
-                <span id="selected-recurrence-category" class="entry-picker-row__value is-placeholder">Selecionar categoria</span>
+                <span class="entry-picker-row__label">Conta</span>
+                <span id="selected-recurrence-category" class="entry-picker-row__value is-placeholder">Selecionar conta</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
             </div>
 
             <div class="entry-field-set">
               <button id="open-recurrence-account" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Conta / Cartão (opcional)</span>
-                <span id="selected-recurrence-account" class="entry-picker-row__value is-placeholder">Selecionar conta/cartão (opcional)</span>
+                <span class="entry-picker-row__label">Tag (opcional)</span>
+                <span id="selected-recurrence-account" class="entry-picker-row__value is-placeholder">Selecionar tag (opcional)</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
             </div>
 
             <div class="entry-field-set">
               <button id="open-recurrence-date" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Primeiro lançamento</span>
+                <span class="entry-picker-row__label">Primeira execução</span>
                 <span id="selected-recurrence-date" class="entry-picker-row__value is-placeholder">Selecionar data</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
@@ -1297,16 +1333,16 @@
     <ion-modal id="recurrence-category-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar categoria</ion-title>
+          <ion-title class="entry-title">Selecionar conta</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-recurrence-category-modal" aria-label="Fechar categorias da recorrência">
+            <ion-button id="close-recurrence-category-modal" aria-label="Fechar contas do agendamento">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding">
-        <ion-searchbar id="recurrence-category-search" mode="md" placeholder="Buscar categoria"></ion-searchbar>
+        <ion-searchbar id="recurrence-category-search" mode="md" placeholder="Buscar conta"></ion-searchbar>
         <div id="recurrence-category-list" class="category-list"></div>
       </div>
     </ion-modal>
@@ -1314,16 +1350,16 @@
     <ion-modal id="recurrence-account-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar conta/cartão</ion-title>
+          <ion-title class="entry-title">Selecionar tag</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-recurrence-account-modal" aria-label="Fechar contas da recorrência">
+            <ion-button id="close-recurrence-account-modal" aria-label="Fechar contas do agendamento">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding">
-        <ion-searchbar id="recurrence-account-search" mode="md" placeholder="Buscar conta/cartão"></ion-searchbar>
+        <ion-searchbar id="recurrence-account-search" mode="md" placeholder="Buscar tag"></ion-searchbar>
         <div id="recurrence-account-list" class="category-list"></div>
       </div>
     </ion-modal>
@@ -1333,7 +1369,7 @@
         <ion-toolbar>
           <ion-title class="entry-title">Selecionar data</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-recurrence-date-modal" aria-label="Fechar data da recorrência">
+            <ion-button id="close-recurrence-date-modal" aria-label="Fechar data do agendamento">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1354,7 +1390,7 @@
         <ion-toolbar>
           <ion-title class="entry-title">Selecionar frequência</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-recurrence-frequency-modal" aria-label="Fechar frequência da recorrência">
+            <ion-button id="close-recurrence-frequency-modal" aria-label="Fechar frequência do agendamento">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1370,7 +1406,7 @@
         <ion-toolbar>
           <ion-title class="entry-title">Recorrência</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-recurrence-detail" aria-label="Fechar detalhes da recorrência">
+            <ion-button id="close-recurrence-detail" aria-label="Fechar detalhes do agendamento">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1394,7 +1430,7 @@
       <ion-footer class="entry-actions">
         <ion-toolbar>
           <div class="modal-actions">
-            <ion-button id="edit-recurrence-from-detail" fill="outline">Editar recorrência</ion-button>
+            <ion-button id="edit-recurrence-from-detail" fill="outline">Editar agendamento</ion-button>
           </div>
         </ion-toolbar>
       </ion-footer>
@@ -1403,16 +1439,16 @@
     <ion-modal id="entry-category-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar categoria</ion-title>
+          <ion-title class="entry-title">Selecionar conta</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-category-modal" aria-label="Fechar categorias">
+            <ion-button id="close-category-modal" aria-label="Fechar contas">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding">
-        <ion-searchbar id="category-search" mode="md" placeholder="Buscar categoria"></ion-searchbar>
+        <ion-searchbar id="category-search" mode="md" placeholder="Buscar conta"></ion-searchbar>
         <div id="category-list" class="category-list"></div>
       </div>
     </ion-modal>
@@ -1420,16 +1456,16 @@
     <ion-modal id="entry-account-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar conta/cartão</ion-title>
+          <ion-title class="entry-title">Selecionar tag</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-account-modal" aria-label="Fechar contas/cartões">
+            <ion-button id="close-account-modal" aria-label="Fechar tags">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding">
-        <ion-searchbar id="account-search" mode="md" placeholder="Buscar conta/cartão"></ion-searchbar>
+        <ion-searchbar id="account-search" mode="md" placeholder="Buscar tag"></ion-searchbar>
         <div id="account-list" class="category-list"></div>
       </div>
     </ion-modal>
@@ -1437,9 +1473,9 @@
     <ion-modal id="user-category-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title id="user-category-modal-title" class="entry-title">Nova categoria</ion-title>
+          <ion-title id="user-category-modal-title" class="entry-title">Nova conta</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-user-category-modal" aria-label="Fechar nova categoria">
+            <ion-button id="close-user-category-modal" aria-label="Fechar nova conta">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1447,10 +1483,10 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div class="entry-fields">
-          <section class="entry-stage" aria-label="Dados da categoria">
+          <section class="entry-stage" aria-label="Dados da conta">
             <p class="entry-stage__title">Nome</p>
             <ion-item class="entry-text-field entry-text-field--no-label">
-              <ion-input id="user-category-name" type="text" placeholder="Nome da categoria"></ion-input>
+              <ion-input id="user-category-name" type="text" placeholder="Nome da conta"></ion-input>
             </ion-item>
 
             <div class="entry-field-set">
@@ -1466,8 +1502,8 @@
 
             <div class="entry-field-set">
               <button id="open-user-category-global-modal" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Categoria global</span>
-                <span id="selected-user-category-global" class="entry-picker-row__value is-placeholder">Selecionar categoria global</span>
+                <span class="entry-picker-row__label">Categoria principal</span>
+                <span id="selected-user-category-global" class="entry-picker-row__value is-placeholder">Selecionar categoria principal</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
             </div>
@@ -1487,9 +1523,9 @@
     <ion-modal id="user-account-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title id="user-account-modal-title" class="entry-title">Nova conta/cartão</ion-title>
+          <ion-title id="user-account-modal-title" class="entry-title">Nova tag</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-user-account-modal" aria-label="Fechar conta/cartão">
+            <ion-button id="close-user-account-modal" aria-label="Fechar tag">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1497,28 +1533,11 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div class="entry-fields">
-          <section class="entry-stage" aria-label="Dados da conta/cartão">
+          <section class="entry-stage" aria-label="Dados da tag">
             <p class="entry-stage__title">Nome</p>
             <ion-item class="entry-text-field entry-text-field--no-label">
-              <ion-input id="user-account-name" type="text" placeholder="Nome da conta/cartão"></ion-input>
+              <ion-input id="user-account-name" type="text" placeholder="Nome da tag"></ion-input>
             </ion-item>
-
-            <p class="entry-stage__title">Saldo inicial</p>
-            <ion-item class="entry-text-field entry-text-field--no-label">
-              <ion-input id="user-account-initial-balance" type="tel" inputmode="decimal" placeholder="0,00"></ion-input>
-            </ion-item>
-
-            <section class="filters-block" aria-label="Tipo de conta/cartão">
-              <p class="entry-stage__title">Tipo</p>
-              <ion-segment id="user-account-type" value="bank" mode="md">
-                <ion-segment-button value="bank">
-                  <ion-label>Conta</ion-label>
-                </ion-segment-button>
-                <ion-segment-button value="card">
-                  <ion-label>Cartão</ion-label>
-                </ion-segment-button>
-              </ion-segment>
-            </section>
 
             <div class="entry-field-set">
               <button id="open-user-account-icon-modal" type="button" class="entry-picker-row" aria-expanded="false">
@@ -1548,7 +1567,7 @@
         <ion-toolbar>
           <ion-title class="entry-title">Selecionar ícone</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-user-account-icon-modal" aria-label="Fechar seleção de ícones da conta/cartão">
+            <ion-button id="close-user-account-icon-modal" aria-label="Fechar seleção de ícones da tag">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1562,16 +1581,16 @@
     <ion-modal id="account-detail-modal" class="sheet-modal entry-picker-sheet category-detail-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Conta/Cartão</ion-title>
+          <ion-title class="entry-title">Tag</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-account-detail-modal" aria-label="Fechar detalhes da conta/cartão">
+            <ion-button id="close-account-detail-modal" aria-label="Fechar detalhes da tag">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding category-detail-content">
-        <h3 id="account-detail-title" class="category-detail-title">Conta/Cartão</h3>
+        <h3 id="account-detail-title" class="category-detail-title">Tag</h3>
 
         <section class="category-detail-kpi">
           <p class="category-detail-kpi__label">Movimentações do mês</p>
@@ -1592,8 +1611,8 @@
       <ion-footer class="entry-actions">
         <ion-toolbar>
           <div class="modal-actions">
-            <ion-button id="delete-account-from-detail" fill="outline" color="danger">Excluir conta/cartão</ion-button>
-            <ion-button id="edit-account-from-detail" fill="outline">Editar conta/cartão</ion-button>
+            <ion-button id="delete-account-from-detail" fill="outline" color="danger">Excluir tag</ion-button>
+            <ion-button id="edit-account-from-detail" fill="outline">Editar tag</ion-button>
           </div>
         </ion-toolbar>
       </ion-footer>
@@ -1618,16 +1637,16 @@
     <ion-modal id="user-category-global-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar categoria global</ion-title>
+          <ion-title class="entry-title">Selecionar categoria principal</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-user-category-global-modal" aria-label="Fechar categoria global">
+            <ion-button id="close-user-category-global-modal" aria-label="Fechar conta global">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding">
-        <ion-searchbar id="user-category-global-search" mode="md" placeholder="Buscar categoria global"></ion-searchbar>
+        <ion-searchbar id="user-category-global-search" mode="md" placeholder="Buscar categoria principal"></ion-searchbar>
         <div id="user-category-global-list" class="category-list"></div>
       </div>
     </ion-modal>
@@ -1635,16 +1654,16 @@
     <ion-modal id="category-detail-modal" class="sheet-modal entry-picker-sheet category-detail-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Categoria</ion-title>
+          <ion-title class="entry-title">Conta</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-category-detail-modal" aria-label="Fechar detalhes da categoria">
+            <ion-button id="close-category-detail-modal" aria-label="Fechar detalhes da conta">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding category-detail-content">
-        <h3 id="category-detail-title" class="category-detail-title">Categoria</h3>
+        <h3 id="category-detail-title" class="category-detail-title">Conta</h3>
         <p id="category-detail-global-name" class="category-detail-global-name" hidden></p>
 
         <section class="category-detail-kpi">
@@ -1666,8 +1685,8 @@
       <ion-footer class="entry-actions">
         <ion-toolbar>
           <div class="modal-actions">
-            <ion-button id="delete-category-from-detail" fill="outline" color="danger">Excluir categoria</ion-button>
-            <ion-button id="edit-category-from-detail" fill="outline">Editar categoria</ion-button>
+            <ion-button id="delete-category-from-detail" fill="outline" color="danger">Excluir conta</ion-button>
+            <ion-button id="edit-category-from-detail" fill="outline">Editar conta</ion-button>
           </div>
         </ion-toolbar>
       </ion-footer>
@@ -1697,9 +1716,9 @@
     <ion-modal id="entry-recurrence-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar recorrência</ion-title>
+          <ion-title class="entry-title">Selecionar agendamento</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-entry-recurrence-modal" aria-label="Fechar recorrência">
+            <ion-button id="close-entry-recurrence-modal" aria-label="Fechar agendamento">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1787,9 +1806,9 @@
             </ion-segment>
           </section>
 
-          <section class="filters-block" aria-label="Categorias">
-            <p class="entry-stage__title">Categorias</p>
-            <div id="entries-filter-categories" class="filters-categories-list" role="group" aria-label="Categorias para filtrar"></div>
+          <section class="filters-block" aria-label="Contas">
+            <p class="entry-stage__title">Contas</p>
+            <div id="entries-filter-categories" class="filters-categories-list" role="group" aria-label="Contas para filtrar"></div>
           </section>
         </div>
       </div>
@@ -1872,7 +1891,7 @@
 
   </ion-app>
 
-  <script type="module" src="/assets/vendor/ionic/dist/ionic/ionic.esm.js"></script>
-  <script type="module" src="/assets/js/dashboard.js?v=20260226-03"></script>
+  <script type="module" src="/assets/vendor/ionic/dist/ionic/ionic.esm.js?v=20260302-01"></script>
+  <script type="module" src="/assets/js/dashboard.js?v=20260302-01"></script>
 </body>
 </html>

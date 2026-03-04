@@ -122,7 +122,7 @@ if ($origin !== '' && $host !== '' && parse_url($origin, PHP_URL_HOST) === $host
     header('Vary: Origin');
     header('Access-Control-Allow-Credentials: true');
 }
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
@@ -222,7 +222,10 @@ $router->add('GET', '/api/recurrences/{id}', [RecurrenceController::class, 'deta
 $router->add('POST', '/api/recurrences', [RecurrenceController::class, 'create']);
 $router->add('PUT', '/api/recurrences/{id}', [RecurrenceController::class, 'update']);
 $router->add('DELETE', '/api/recurrences/{id}', [RecurrenceController::class, 'delete']);
+$router->add('POST', '/api/recurrences/{id}/runs/{runId}/confirm', [RecurrenceController::class, 'confirmRun']);
+$router->add('POST', '/api/recurrences/{id}/runs/{runId}/skip', [RecurrenceController::class, 'skipRun']);
 $router->add('GET', '/api/categories', [CategoryController::class, 'list']);
+$router->add('GET', '/api/categories/tree', [CategoryController::class, 'tree']);
 $router->add('GET', '/api/user-categories', [CategoryController::class, 'listUserCategories']);
 $router->add('POST', '/api/user-categories', [CategoryController::class, 'createUserCategory']);
 $router->add('PUT', '/api/user-categories/{id}', [CategoryController::class, 'updateUserCategory']);
@@ -231,6 +234,10 @@ $router->add('GET', '/api/accounts', [FinancialAccountController::class, 'list']
 $router->add('POST', '/api/accounts', [FinancialAccountController::class, 'create']);
 $router->add('PUT', '/api/accounts/{id}', [FinancialAccountController::class, 'update']);
 $router->add('DELETE', '/api/accounts/{id}', [FinancialAccountController::class, 'delete']);
+$router->add('GET', '/api/tags', [FinancialAccountController::class, 'listTags']);
+$router->add('POST', '/api/tags', [FinancialAccountController::class, 'createTag']);
+$router->add('PUT', '/api/tags/{id}', [FinancialAccountController::class, 'updateTag']);
+$router->add('DELETE', '/api/tags/{id}', [FinancialAccountController::class, 'deleteTag']);
 $router->add('GET', '/api/reports/summary', [ReportController::class, 'summary']);
 $router->add('GET', '/api/reports/aggregate', [ReportController::class, 'aggregate']);
 $router->add('GET', '/api/reports/entries-groups', [ReportController::class, 'entriesGroups']);
@@ -249,6 +256,7 @@ $router->add('GET', '/api/admin/users/{id}/categories', [AdminController::class,
 $router->add('GET', '/api/admin/users/{id}/accounts', [AdminController::class, 'userAccounts']);
 $router->add('GET', '/api/admin/users/{id}/recurrences', [AdminController::class, 'userRecurrences']);
 $router->add('GET', '/api/admin/categories', [AdminController::class, 'categories']);
+$router->add('GET', '/api/admin/categories/tree', [AdminController::class, 'categoriesTree']);
 $router->add('POST', '/api/admin/categories', [AdminController::class, 'createCategory']);
 $router->add('PUT', '/api/admin/categories/{id}', [AdminController::class, 'updateCategory']);
 $router->add('DELETE', '/api/admin/categories/{id}', [AdminController::class, 'deleteCategory']);
@@ -271,6 +279,7 @@ $router->add('GET', '/api/admin/support/messages', [AdminController::class, 'sup
 $router->add('POST', '/api/admin/support/messages', [AdminController::class, 'sendSupportMessage']);
 $router->add('GET', '/api/admin/users/{id}/stats', [AdminController::class, 'userStats']);
 $router->add('POST', '/api/admin/users/{id}/impersonate', [AdminController::class, 'impersonate']);
+$router->add('POST', '/api/admin/impersonation/stop', [AdminController::class, 'stopImpersonation']);
 $router->add('GET', '/api/admin/export/alterdata', [ExportController::class, 'alterdata']);
 $router->add('GET', '/api/admin/export/alterdata/history', [AdminController::class, 'exportAlterdataHistory']);
 $router->add('GET', '/api/admin/export/alterdata/config', [AdminController::class, 'getAlterdataExportConfig']);

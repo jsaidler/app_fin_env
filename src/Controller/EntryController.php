@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteRecurrenceRepository;
+use App\Repository\Sqlite\SqliteRecurrenceRunRepository;
 use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Service\AdminNotificationService;
 use App\Service\EntryService;
@@ -200,7 +201,12 @@ class EntryController extends BaseController
 
     private function recurrenceService(): RecurrenceService
     {
-        return new RecurrenceService($this->recurrenceRepo(), $this->entryRepo(), $this->accountRepo());
+        return new RecurrenceService($this->recurrenceRepo(), $this->recurrenceRunRepo(), $this->entryRepo(), $this->accountRepo());
+    }
+
+    private function recurrenceRunRepo()
+    {
+        return new SqliteRecurrenceRunRepository($this->db());
     }
 
     private function nextDateByFrequency(string $dateIso, string $frequency): string

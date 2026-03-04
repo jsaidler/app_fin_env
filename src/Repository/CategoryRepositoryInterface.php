@@ -9,8 +9,10 @@ interface CategoryRepositoryInterface
 {
     /** @return Category[] */
     public function listAll(): array;
+    /** @return Category[] */
+    public function listForUser(int $userId): array;
     public function find(int $id): ?Category;
-    public function create(string $name, string $type, ?string $alterdataAuto = null): Category;
+    public function create(string $name, string $type, ?string $alterdataAuto = null, array $meta = []): Category;
     public function update(int $id, array $data): ?Category;
     public function delete(int $id): bool;
 }

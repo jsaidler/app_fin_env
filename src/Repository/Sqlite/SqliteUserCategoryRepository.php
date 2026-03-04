@@ -69,18 +69,20 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
         return $row ? UserCategory::fromArray($row) : null;
     }
 
-    public function create(int $userId, string $name, string $icon, int $globalCategoryId): UserCategory
+    public function create(int $userId, string $name, string $icon, int $globalCategoryId, array $meta = []): UserCategory
     {
         $now = date('c');
+        $accountClass = (string)($meta['account_class'] ?? 'analytic');
         $stmt = $this->pdo->prepare(
-            'INSERT INTO user_categories (user_id, name, icon, global_category_id, created_at, updated_at, last_modified_by_user_id, last_modified_at)
-             VALUES (:uid, :name, :icon, :global_id, :created_at, :updated_at, :last_modified_by, :last_modified_at)'
+            'INSERT INTO user_categories (user_id, name, icon, global_category_id, account_class, created_at, updated_at, last_modified_by_user_id, last_modified_at)
+             VALUES (:uid, :name, :icon, :global_id, :account_class, :created_at, :updated_at, :last_modified_by, :last_modified_at)'
         );
         $stmt->execute([
             'uid' => $userId,
             'name' => $name,
             'icon' => $icon,
             'global_id' => $globalCategoryId,
+            'account_class' => $accountClass,
             'created_at' => $now,
             'updated_at' => $now,
             'last_modified_by' => null,
@@ -93,6 +95,7 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
             'name' => $name,
             'icon' => $icon,
             'global_category_id' => $globalCategoryId,
+            'account_class' => $accountClass,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -114,6 +117,7 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
              SET name = :name,
                  icon = :icon,
                  global_category_id = :global_id,
+                 account_class = :account_class,
                  updated_at = :updated_at,
                  last_modified_by_user_id = COALESCE(:last_modified_by,last_modified_by_user_id),
                  last_modified_at = COALESCE(:last_modified_at,last_modified_at)
@@ -123,6 +127,7 @@ class SqliteUserCategoryRepository implements UserCategoryRepositoryInterface
             'name' => $merged['name'],
             'icon' => $merged['icon'],
             'global_id' => (int)$merged['global_category_id'],
+            'account_class' => $merged['account_class'] ?? 'analytic',
             'updated_at' => $merged['updated_at'],
             'last_modified_by' => $modifierId && $modifierId > 0 ? $modifierId : null,
             'last_modified_at' => $modifiedAt,

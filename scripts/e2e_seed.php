@@ -7,6 +7,14 @@ require __DIR__ . '/../src/Storage/SqliteConnection.php';
 
 $config = require __DIR__ . '/../config/config.php';
 $dbPath = (string)($config['db']['path'] ?? (__DIR__ . '/../data/caixa.sqlite'));
+$normalizedPath = str_replace('\\', '/', strtolower($dbPath));
+if (
+    strpos($normalizedPath, '/playwright-') === false
+    && strpos($normalizedPath, '/tests/_runtime/') === false
+) {
+    fwrite(STDERR, "Refusing to seed non-E2E database: {$dbPath}\n");
+    exit(1);
+}
 $dbDir = dirname($dbPath);
 
 if (!is_dir($dbDir)) {

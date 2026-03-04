@@ -17,10 +17,9 @@ interface UserCategoryRepositoryInterface
 
     public function findByUserAndName(int $userId, string $name): ?UserCategory;
 
-    public function create(int $userId, string $name, string $icon, int $globalCategoryId): UserCategory;
+    public function create(int $userId, string $name, string $icon, int $globalCategoryId, array $meta = []): UserCategory;
 
     public function updateForUser(int $id, int $userId, array $data): ?UserCategory;
 
     public function deleteForUser(int $id, int $userId): bool;
 }
-

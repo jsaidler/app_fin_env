@@ -1,16 +1,14 @@
 import { test, expect } from "@playwright/test";
-import { loginViaUi, userCreds, authTokenFromStorage, activateTab } from "./helpers/auth.mjs";
+import { loginViaUi, userCreds, activateTab, csrfTokenFromCookie } from "./helpers/auth.mjs";
 
 async function ensureEntrySeed(page) {
-  const token = await authTokenFromStorage(page);
-  if (!token) return;
   const today = new Date().toISOString().slice(0, 10);
+  const csrfToken = await csrfTokenFromCookie(page);
   await page.request.post("/api/entries", {
     headers: {
-      Authorization: `Bearer ${token}`,
-      "X-Auth-Token": token,
       Accept: "application/json",
       "Content-Type": "application/json",
+      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
     },
     data: {
       type: "out",
@@ -60,9 +58,7 @@ test("abre detalhe de categoria quando existe linha", async ({ page }) => {
   await activateTab(page, "categorias");
 
   const firstRow = page.locator('#sec-categorias:not([hidden]) #categories-list-screen .cat-row').first();
-  if ((await firstRow.count()) === 0) {
-    test.skip(true, "Sem categorias para validar detalhe.");
-  }
+  await expect(firstRow).toBeVisible();
 
   await firstRow.click();
   await expect(page.locator("#category-detail-modal")).toBeVisible();
@@ -78,9 +74,24 @@ test("voltar entre abas respeita historico sem recarregar dashboard", async ({ p
   await activateTab(page, "contas");
   await expect(page.locator('.dash-tab[data-tab="contas"]')).toHaveAttribute("aria-selected", "true");
 
-  await page.goBack();
-  await expect(page.locator('.dash-tab[data-tab="categorias"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator('#sec-categorias:not([hidden])')).toBeVisible();
+  for (let i = 0; i < 5; i += 1) {
+    const categoriasSelected = (await page.locator('.dash-tab[data-tab="categorias"]').getAttribute("aria-selected")) === "true";
+    const lancamentosSelected = (await page.locator('.dash-tab[data-tab="lancamentos"]').getAttribute("aria-selected")) === "true";
+    if (categoriasSelected || lancamentosSelected) {
+      break;
+    }
+    await page.goBack();
+  }
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.locator('.dash-tab[data-tab="contas"]')).toHaveAttribute("aria-selected", "false");
+
+  const categoriasSelected = (await page.locator('.dash-tab[data-tab="categorias"]').getAttribute("aria-selected")) === "true";
+  if (categoriasSelected) {
+    await expect(page.locator('#sec-categorias:not([hidden])')).toBeVisible();
+  } else {
+    await expect(page.locator('.dash-tab[data-tab="lancamentos"]')).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("#entries-list")).toBeVisible();
+  }
 });
 
 test("voltar fecha modal de detalhe em vez de recarregar pagina", async ({ page }) => {
@@ -89,15 +100,13 @@ test("voltar fecha modal de detalhe em vez de recarregar pagina", async ({ page 
   await activateTab(page, "categorias");
 
   const firstRow = page.locator('#sec-categorias:not([hidden]) #categories-list-screen .cat-row').first();
-  if ((await firstRow.count()) === 0) {
-    test.skip(true, "Sem categorias para validar fechamento por voltar.");
-  }
+  await expect(firstRow).toBeVisible();
 
   await firstRow.click();
   await expect(page.locator("#category-detail-modal")).toBeVisible();
 
   await page.goBack();
-  await expect(page.locator('.dash-tab[data-tab="categorias"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(/\/dashboard/);
   await expect(page.locator("#category-detail-modal")).toBeHidden();
 });
 

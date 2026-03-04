@@ -44,6 +44,48 @@ class FinancialAccountController extends BaseController
         Response::json($result);
     }
 
+    public function listTags(): void
+    {
+        $uid = $this->requireAuth();
+        $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] === '1';
+        $service = new UserAccountService($this->accountRepo(), $this->entryRepo());
+        $rows = $service->listForUser($uid, $includeInactive);
+        $rows = array_map(function ($row) {
+            $row['resource'] = 'tag';
+            return $row;
+        }, $rows);
+        Response::json($rows);
+    }
+
+    public function createTag(): void
+    {
+        $uid = $this->requireAuth();
+        $service = new UserAccountService($this->accountRepo(), $this->entryRepo());
+        $item = $service->createForUser($uid, $this->jsonInput());
+        $item['resource'] = 'tag';
+        Response::json($item, 201);
+    }
+
+    public function updateTag(array $params): void
+    {
+        $uid = $this->requireAuth();
+        $id = (int)($params['id'] ?? 0);
+        $service = new UserAccountService($this->accountRepo(), $this->entryRepo());
+        $item = $service->updateForUser($id, $uid, $this->jsonInput());
+        $item['resource'] = 'tag';
+        Response::json($item);
+    }
+
+    public function deleteTag(array $params): void
+    {
+        $uid = $this->requireAuth();
+        $id = (int)($params['id'] ?? 0);
+        $service = new UserAccountService($this->accountRepo(), $this->entryRepo());
+        $result = $service->deleteForUser($id, $uid);
+        $result['resource'] = 'tag';
+        Response::json($result);
+    }
+
     private function accountRepo()
     {
         return new SqliteUserAccountRepository($this->db());

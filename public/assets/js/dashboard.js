@@ -1,4 +1,6 @@
-﻿const periodEl = document.getElementById("dash-period");
+﻿const APP_ASSET_VERSION = "20260302-01";
+
+const periodEl = document.getElementById("dash-period");
 const userTitleEl = document.getElementById("dash-user-title");
 const balanceHeadEl = document.getElementById("dash-balance-head");
 const entriesMetaEl = document.getElementById("dash-entries-meta");
@@ -27,12 +29,20 @@ const deleteAdminCategoryModalBtn = document.getElementById("delete-admin-catego
 const adminCategoryNameInput = document.getElementById("admin-category-name");
 const openAdminCategoryTypeBtn = document.getElementById("open-admin-category-type");
 const selectedAdminCategoryTypeEl = document.getElementById("selected-admin-category-type");
+const adminCategoryClassInput = document.getElementById("admin-category-class");
+const openAdminCategoryParentBtn = document.getElementById("open-admin-category-parent");
+const selectedAdminCategoryParentEl = document.getElementById("selected-admin-category-parent");
 const adminCategoryAlterdataInput = document.getElementById("admin-category-alterdata");
+const adminCategoryAlterdataPrefixEl = document.getElementById("admin-category-alterdata-prefix");
 const adminCategoryStatsEl = document.getElementById("admin-category-stats");
 const adminCategoriesListEl = document.getElementById("admin-categories-list");
 const adminCategoryTypeModal = document.getElementById("admin-category-type-modal");
 const closeAdminCategoryTypeModalBtn = document.getElementById("close-admin-category-type-modal");
 const adminCategoryTypeListEl = document.getElementById("admin-category-type-list");
+const adminCategoryParentModal = document.getElementById("admin-category-parent-modal");
+const closeAdminCategoryParentModalBtn = document.getElementById("close-admin-category-parent-modal");
+const adminCategoryParentSearchInput = document.getElementById("admin-category-parent-search");
+const adminCategoryParentListEl = document.getElementById("admin-category-parent-list");
 const adminUsersModal = document.getElementById("admin-users-modal");
 const closeAdminUsersModalBtn = document.getElementById("close-admin-users-modal");
 const cancelAdminUsersModalBtn = document.getElementById("cancel-admin-users-modal");
@@ -285,8 +295,6 @@ const cancelUserAccountBtn = document.getElementById("cancel-user-account");
 const saveUserAccountBtn = document.getElementById("save-user-account");
 const userAccountModalTitleEl = document.getElementById("user-account-modal-title");
 const userAccountNameInput = document.getElementById("user-account-name");
-const userAccountInitialBalanceInput = document.getElementById("user-account-initial-balance");
-const userAccountTypeInput = document.getElementById("user-account-type");
 const openUserAccountIconModalBtn = document.getElementById("open-user-account-icon-modal");
 const selectedUserAccountIconGlyphEl = document.getElementById("selected-user-account-icon-glyph");
 const selectedUserAccountIconTextEl = document.getElementById("selected-user-account-icon-text");
@@ -412,6 +420,7 @@ const infiniteListTargets = [
   { el: adminExportUserListEl, selector: ":scope > .category-option", chunkSize: 24 },
   { el: adminExportHistoryEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
   { el: adminCategoryTypeListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: adminCategoryParentListEl, selector: ":scope > .category-option", chunkSize: 24 },
   { el: adminUserRoleListEl, selector: ":scope > .category-option", chunkSize: 24 },
   { el: adminExportTypeListEl, selector: ":scope > .category-option", chunkSize: 24 },
   { el: adminAlterdataConfigListEl, selector: ":scope > .entry-picker-row", chunkSize: 24 },
@@ -426,6 +435,7 @@ let selectedAccountId = 0;
 let accounts = [];
 let selectedAttachmentFile = null;
 let categories = [];
+let categoriesTreeCache = [];
 let recurrences = [];
 let selectedEntryRecurrenceFrequency = "";
 let selectedRecurrenceCategoryValue = "";
@@ -459,6 +469,7 @@ let dashboardEntriesCache = [];
 let dashboardEntriesCacheRequest = null;
 let dashboardGroupedEntriesCache = [];
 let categoryRowsIndex = new Map();
+const categoriesTreeCollapsedIds = new Set();
 let currentDetailCategoryName = "";
 let currentDetailEditableCategoryId = 0;
 let currentDetailGlobalCategoryName = "";
@@ -477,8 +488,14 @@ let editingAdminCategoryId = 0;
 let editingAdminUserId = 0;
 let adminUsersCache = [];
 let adminCategoriesCache = [];
+let adminCategoriesTreeCache = [];
 let adminPendingEntriesCache = [];
 let selectedAdminCategoryType = "out";
+let selectedAdminCategoryClass = "synthetic";
+let selectedAdminCategoryParentId = 0;
+let lastAdminCategoryParentCode = "";
+const adminCategoryCollapsedIds = new Set();
+const adminCategoryParentCollapsedIds = new Set();
 let selectedAdminUserRole = "user";
 let selectedAdminImpersonateUserId = 0;
 let selectedAdminCloseMonth = "";
@@ -500,6 +517,9 @@ let supportEntityPickerType = "";
 let supportEntityPickerRows = [];
 let supportRecording = null;
 let supportRecordingTimer = null;
+let dashboardLoadToken = 0;
+let dashboardLoadsInFlight = 0;
+let aggregateLoadToken = 0;
 const ADMIN_ALTERDATA_COLUMNS_META = [
   { column: "A", description: "Código do lançamento automático" },
   { column: "B", description: "Conta débito" },
@@ -514,13 +534,11 @@ const ADMIN_ALTERDATA_COLUMNS_META = [
 ];
 const ADMIN_ALTERDATA_SOURCE_OPTIONS = [
   { value: "entry", label: "Lançamento", icon: "receipt_long" },
-  { value: "category", label: "Categoria", icon: "category" },
+  { value: "category", label: "Conta", icon: "category" },
   { value: "user", label: "Usuário", icon: "person" },
   { value: "fixed", label: "Valor fixo", icon: "tune" },
 ];
 const USER_NOTIFICATIONS_KEY = "caixa_user_notifications";
-const AUTH_TOKEN_KEY = "caixa_auth_token";
-const IMPERSONATION_ADMIN_TOKEN_KEY = "caixa_impersonation_admin_token";
 const ENTRY_RECURRENCE_OPTIONS = [
   { value: "", label: "Nenhuma", icon: "block" },
   { value: "daily", label: "Diária", icon: "today" },
@@ -571,44 +589,27 @@ function showError(message) {
   }
 }
 
-function getStoredAuthToken() {
+function readCookieValue(name) {
+  const key = String(name || "").trim();
+  if (!key) return "";
   try {
-    return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+    const parts = String(document.cookie || "").split(";");
+    for (const part of parts) {
+      const [rawName, ...rest] = part.split("=");
+      if (String(rawName || "").trim() !== key) continue;
+      return decodeURIComponent(rest.join("=").trim());
+    }
   } catch {
-    return "";
+    // ignore cookie parsing errors
   }
-}
-
-function setStoredAuthToken(token) {
-  const safeToken = String(token || "").trim();
-  try {
-    if (safeToken) localStorage.setItem(AUTH_TOKEN_KEY, safeToken);
-    else localStorage.removeItem(AUTH_TOKEN_KEY);
-  } catch {
-    // ignore storage errors
-  }
-  try {
-    if (safeToken) document.cookie = `auth_token=${safeToken}; Path=/; SameSite=Lax`;
-    else document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax";
-  } catch {
-    // ignore cookie errors
-  }
+  return "";
 }
 
 function authHeaders(extra = {}, options = {}) {
-  const path = String(options?.path || "");
-  const preferAdmin = Boolean(options?.preferAdmin) || path.startsWith("/api/admin/");
-  const useImpersonationAdminToken = Boolean(
-    preferAdmin
-    && Boolean(currentProfile?.impersonation?.active)
-    && String(currentProfile?.role || "") !== "admin"
-  );
-  const adminToken = useImpersonationAdminToken ? getImpersonationAdminToken() : "";
-  const token = adminToken || getStoredAuthToken();
   const headers = { ...extra };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-    headers["X-Auth-Token"] = token;
+  const csrfToken = readCookieValue("csrf_token");
+  if (csrfToken) {
+    headers["X-CSRF-Token"] = csrfToken;
   }
   return headers;
 }
@@ -617,18 +618,12 @@ function adminAuthHeaders(extra = {}) {
   return authHeaders(extra, { preferAdmin: true });
 }
 
-function getImpersonationAdminToken() {
-  try {
-    return String(localStorage.getItem(IMPERSONATION_ADMIN_TOKEN_KEY) || "").trim();
-  } catch {
-    return "";
-  }
+function hasAdminPrivileges() {
+  return String(currentProfile?.role || "") === "admin" || Boolean(currentProfile?.impersonation?.active);
 }
 
 function canApprovePendingEntry() {
-  if (String(currentProfile?.role || "") === "admin") return true;
-  if (!Boolean(currentProfile?.impersonation?.active)) return false;
-  return Boolean(getImpersonationAdminToken());
+  return hasAdminPrivileges();
 }
 
 function showInfo(message) {
@@ -646,7 +641,7 @@ async function confirmActionModal({
   if (!confirmActionModalEl) return false;
   confirmActionConfirmRole = String(confirmRole || "destructive");
   if (confirmActionTitleEl) confirmActionTitleEl.textContent = String(header || "Confirmar ação");
-  if (confirmActionMessageEl) confirmActionMessageEl.innerHTML = String(message || "");
+  if (confirmActionMessageEl) confirmActionMessageEl.textContent = String(message || "");
   if (cancelConfirmActionBtn) cancelConfirmActionBtn.textContent = String(cancelText || "Cancelar");
   if (confirmConfirmActionBtn) confirmConfirmActionBtn.textContent = String(confirmText || "Confirmar");
   return new Promise(async (resolve) => {
@@ -1266,6 +1261,7 @@ function setupTabNav() {
 }
 
 async function loadAggregateSections() {
+  const token = ++aggregateLoadToken;
   const month = monthRange();
   const prevMonth = previousMonthRange(month);
   const monthBounds = monthBoundsFromKey(month);
@@ -1294,7 +1290,7 @@ async function loadAggregateSections() {
     return;
   }
   if ([monthGroupsRes, prevGroupsRes].some((response) => !response.ok)) {
-    showError("Não foi possível carregar categorias/contas.");
+    showError("Não foi possível carregar contas/tags.");
     return;
   }
 
@@ -1302,6 +1298,7 @@ async function loadAggregateSections() {
     safeJson(monthGroupsRes, {}),
     safeJson(prevGroupsRes, {}),
   ]);
+  if (token !== aggregateLoadToken) return;
   const monthGroups = Array.isArray(monthGroupsPayload?.groups) ? monthGroupsPayload.groups : [];
   const prevGroups = Array.isArray(prevGroupsPayload?.groups) ? prevGroupsPayload.groups : [];
   const monthAggSafe = buildMonthAggregateFromEntries(extractEntriesFromGroups(monthGroups), month);
@@ -1326,6 +1323,39 @@ async function loadDataForTab(tabName) {
     await loadRecurrences();
     return;
   }
+}
+
+async function refreshActiveTabAfterMutation(options = {}) {
+  const tab = String(options?.tab || activeTabName() || "").trim();
+  const refreshLookups = options?.refreshLookups !== false;
+  const refreshRecurrences = Boolean(options?.refreshRecurrences);
+
+  if (tab === "lancamentos" || tab === "administracao") {
+    await loadDashboard();
+    return;
+  }
+
+  if (refreshLookups) {
+    const tasks = [loadCategories(), loadAccounts(true)];
+    if (refreshRecurrences) tasks.push(loadRecurrences());
+    await Promise.all(tasks);
+  } else if (refreshRecurrences) {
+    await loadRecurrences();
+  }
+
+  if (tab === "categorias" || tab === "contas") {
+    await loadAggregateSections();
+    renderTopSummaryForTab(tab);
+    return;
+  }
+
+  if (tab === "recorrentes") {
+    await loadRecurrences();
+    renderTopSummaryForTab(tab);
+    return;
+  }
+
+  await loadDashboard();
 }
 
 function normalizeText(value) {
@@ -1425,14 +1455,12 @@ function currentMonthBounds() {
 }
 
 function initEntryFilters() {
-  const bounds = currentMonthBounds();
-  entryFilters = { startDate: bounds.start, endDate: bounds.end, type: "all", categories: [] };
+  entryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
   draftEntryFilters = { ...entryFilters, categories: [...entryFilters.categories] };
-  lastScopedEntryFilters = { startDate: bounds.start, endDate: bounds.end, categories: [] };
+  lastScopedEntryFilters = { startDate: "", endDate: "", categories: [] };
 }
 
 function normalizeAppliedEntryFilters() {
-  const bounds = currentMonthBounds();
   const allowedTypes = new Set(["all", "in", "out", "pending", "deleted"]);
   const safeType = allowedTypes.has(String(entryFilters?.type || "")) ? String(entryFilters.type) : "all";
   entryFilters.type = safeType;
@@ -1444,20 +1472,8 @@ function normalizeAppliedEntryFilters() {
     return;
   }
 
-  if (!entryFilters.startDate) entryFilters.startDate = bounds.start;
-  if (!entryFilters.endDate) entryFilters.endDate = bounds.end;
-
   if (!Array.isArray(entryFilters.categories)) {
     entryFilters.categories = [];
-  }
-  if (!entryFilters.categories.length && categories.length) {
-    if (safeType === "in" || safeType === "out") {
-      entryFilters.categories = categories
-        .filter((item) => String(item?.type || "") === safeType)
-        .map((item) => String(item?.name || ""));
-    } else {
-      entryFilters.categories = categories.map((item) => String(item?.name || ""));
-    }
   }
 }
 
@@ -1876,7 +1892,7 @@ function renderRecurrenceTopSummary(items) {
   const nextRecurrence = activeRows
     .sort((a, b) => String(a?.next_run_date || "").localeCompare(String(b?.next_run_date || "")))[0];
 
-  setTopSummaryLabels("recorrências ativas", "próxima data");
+  setTopSummaryLabels("agendamentos ativos", "próxima data");
   catSummaryCardEl?.classList.add("cat-summary--recurrences");
 
   if (catSoFarEl) {
@@ -1888,12 +1904,12 @@ function renderRecurrenceTopSummary(items) {
     catLastMonthEl.classList.remove("pos", "neg");
   }
   if (!nextRecurrence) {
-    setTopSummaryExtra("Nenhuma recorrência agendada no momento.");
+    setTopSummaryExtra("Nenhum agendamento ativo no momento.");
     setTopSummaryExtraValue("");
   } else {
-    const category = String(nextRecurrence?.category || "Recorrência");
+    const category = String(nextRecurrence?.category || "Agendamento");
     const frequency = recurrenceFrequencyLabel(nextRecurrence?.frequency);
-    const account = String(nextRecurrence?.account_name || "Sem conta/cartão");
+    const account = String(nextRecurrence?.account_name || "Sem tag");
     const amountRaw = Number(nextRecurrence?.amount || 0);
     const signedAmount = String(nextRecurrence?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
     const amountClass = toAmountClass(signedAmount);
@@ -2077,7 +2093,7 @@ function renderCategoryOptions(type = "") {
   );
 
   if (!searched.length) {
-    categoryListEl.innerHTML = `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
+    categoryListEl.innerHTML = `<p class="category-empty">Nenhuma conta encontrada.</p>`;
     return;
   }
   const groups = [
@@ -2112,11 +2128,11 @@ function renderCategoryOptions(type = "") {
     })
     .join("");
 
-  categoryListEl.innerHTML = html || `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
+  categoryListEl.innerHTML = html || `<p class="category-empty">Nenhuma conta encontrada.</p>`;
 }
 
 function accountTypeLabel(value) {
-  return String(value || "") === "card" ? "Cartões" : "Contas";
+  return "Tags";
 }
 
 function accountTypeIcon(value) {
@@ -2129,16 +2145,21 @@ function renderAccountOptions() {
   const searched = accounts.filter((account) =>
     String(account?.name || "").toLowerCase().includes(query)
   );
-
-  if (!searched.length) {
-    accountListEl.innerHTML = `<p class="category-empty">Nenhuma conta/cartão encontrada.</p>`;
-    return;
-  }
-
   const groups = [
     { key: "bank" },
     { key: "card" },
   ];
+  const optionalOption = `
+    <section class="category-group">
+      <h4 class="category-group__title">Opcional</h4>
+      <div class="category-group__items">
+        <button type="button" class="category-option is-neutral" data-account-id="0"${Number(selectedAccountId || 0) <= 0 ? ' aria-current="true"' : ""}>
+          <span class="category-option__lead"><span class="material-symbols-rounded">account_balance_wallet</span></span>
+          <span class="category-option__text">Sem tag</span>
+        </button>
+      </div>
+    </section>
+  `;
 
   const html = groups
     .map((group) => {
@@ -2166,7 +2187,11 @@ function renderAccountOptions() {
     })
     .join("");
 
-  accountListEl.innerHTML = html || `<p class="category-empty">Nenhuma conta/cartão encontrada.</p>`;
+  if (!html.trim() && query) {
+    accountListEl.innerHTML = `${optionalOption}<p class="category-empty">Nenhuma tag encontrada.</p>`;
+    return;
+  }
+  accountListEl.innerHTML = `${optionalOption}${html}`;
 }
 
 async function loadAccounts(includeInactive = false) {
@@ -2197,8 +2222,180 @@ function globalCategoriesOnly() {
   return categories.filter((item) => String(item?.scope || "global") === "global");
 }
 
+function buildGlobalTreeRows(globals, options = {}) {
+  const source = Array.isArray(globals) ? globals : [];
+  const syntheticChildrenByParent = new Map();
+  source.forEach((row) => {
+    const parentId = Number(row?.parent_category_id || 0);
+    const id = Number(row?.id || 0);
+    const klass = String(row?.account_class || "synthetic");
+    if (id <= 0 || parentId <= 0 || klass !== "synthetic") return;
+    const current = syntheticChildrenByParent.get(parentId) || 0;
+    syntheticChildrenByParent.set(parentId, current + 1);
+  });
+  const byId = new Map();
+  source.forEach((row) => {
+    const id = Number(row?.id || 0);
+    if (id <= 0) return;
+    byId.set(id, { ...row, children: [] });
+  });
+  const roots = [];
+  byId.forEach((row) => {
+    const parentId = Number(row?.parent_category_id || 0);
+    if (parentId > 0 && byId.has(parentId)) {
+      byId.get(parentId).children.push(row);
+      return;
+    }
+    roots.push(row);
+  });
+  const sortTree = (items) => {
+    items.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "pt-BR"));
+    items.forEach((item) => sortTree(item.children));
+  };
+  sortTree(roots);
+  const rows = [];
+  const walk = (items, depth) => {
+    items.forEach((item) => {
+      const id = Number(item?.id || 0);
+      const accountClass = String(item?.account_class || "synthetic");
+      const hasSyntheticChildren = (syntheticChildrenByParent.get(id) || 0) > 0;
+      const include = typeof options.include === "function"
+        ? options.include(item)
+        : true;
+      if (include) {
+        rows.push({
+          ...item,
+          id,
+          depth,
+          account_class: accountClass,
+          has_synthetic_children: hasSyntheticChildren ? 1 : 0,
+          child_count: Array.isArray(item.children) ? item.children.length : 0,
+        });
+      }
+      walk(item.children || [], depth + 1);
+    });
+  };
+  walk(roots, 0);
+  return rows;
+}
+
+function filterTreeRowsByCollapsed(rows, collapsedIds) {
+  const source = Array.isArray(rows) ? rows : [];
+  if (!collapsedIds || collapsedIds.size === 0) return source;
+  const byId = new Map(source.map((row) => [Number(row?.id || 0), row]));
+  return source.filter((row) => {
+    let parentId = Number(row?.parent_category_id || 0);
+    while (parentId > 0) {
+      if (collapsedIds.has(parentId)) return false;
+      const parent = byId.get(parentId);
+      if (!parent) break;
+      parentId = Number(parent?.parent_category_id || 0);
+    }
+    return true;
+  });
+}
+
+function treeToggleMarkup(row, collapsedIds, attrName) {
+  const hasChildren = Number(row?.child_count || 0) > 0;
+  if (!hasChildren) {
+    return '<span class="category-tree-toggle-spacer" aria-hidden="true"></span>';
+  }
+  const id = Number(row?.id || 0);
+  const collapsed = collapsedIds.has(id);
+  const icon = collapsed ? "chevron_right" : "expand_more";
+  return `<span class="category-tree-toggle" data-${attrName}="${id}" role="button" tabindex="0" aria-label="Alternar grupo"><span class="material-symbols-rounded">${icon}</span></span>`;
+}
+
+function alterdataCodeSuffix(value) {
+  const parts = String(value || "")
+    .split(".")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  return parts.length ? String(parts[parts.length - 1]) : "";
+}
+
+function buildAlterdataDisplayCodeMap(rows) {
+  const source = Array.isArray(rows) ? rows : [];
+  const byId = new Map();
+  source.forEach((row) => {
+    const id = Number(row?.id || 0);
+    if (id > 0) byId.set(id, row);
+  });
+  const memo = new Map();
+  const resolve = (id, trail = new Set()) => {
+    if (memo.has(id)) return String(memo.get(id) || "");
+    if (trail.has(id)) return "";
+    const row = byId.get(id);
+    if (!row) return "";
+    const nextTrail = new Set(trail);
+    nextTrail.add(id);
+    const suffix = alterdataCodeSuffix(row?.alterdata_auto);
+    const parentId = Number(row?.parent_category_id || 0);
+    if (parentId > 0 && byId.has(parentId)) {
+      const parentCode = resolve(parentId, nextTrail);
+      const fullCode = parentCode && suffix ? `${parentCode}.${suffix}` : (parentCode || suffix);
+      memo.set(id, fullCode);
+      return fullCode;
+    }
+    memo.set(id, suffix);
+    return suffix;
+  };
+  byId.forEach((_, id) => resolve(id));
+  return memo;
+}
+
+function adminCategoryParentCandidates() {
+  const blockedIds = new Set();
+  if (editingAdminCategoryId > 0) {
+    blockedIds.add(editingAdminCategoryId);
+    const childrenByParent = new Map();
+    (Array.isArray(adminCategoriesCache) ? adminCategoriesCache : []).forEach((row) => {
+      const pid = Number(row?.parent_category_id || 0);
+      const id = Number(row?.id || 0);
+      if (pid <= 0 || id <= 0) return;
+      if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+      childrenByParent.get(pid).push(id);
+    });
+    const stack = [editingAdminCategoryId];
+    while (stack.length) {
+      const current = Number(stack.pop() || 0);
+      const children = childrenByParent.get(current) || [];
+      children.forEach((cid) => {
+        if (blockedIds.has(cid)) return;
+        blockedIds.add(cid);
+        stack.push(cid);
+      });
+    }
+  }
+
+  const rows = buildGlobalTreeRows(adminCategoriesCache, {
+    include: (item) => {
+      const id = Number(item?.id || 0);
+      if (id <= 0) return false;
+      if (blockedIds.has(id)) return false;
+      if (String(item?.account_class || "synthetic") !== "synthetic") return false;
+      if (String(item?.type || "") !== String(selectedAdminCategoryType || "")) return false;
+      return true;
+    },
+  });
+  return rows.filter((row) => {
+    if (selectedAdminCategoryClass === "analytic") return Number(row?.has_synthetic_children ?? 0) === 0;
+    return true;
+  });
+}
+
+function ensureSelectedAdminCategoryParentEligible() {
+  if (selectedAdminCategoryParentId <= 0) return;
+  const allowedIds = new Set(adminCategoryParentCandidates().map((row) => Number(row?.id || 0)));
+  if (!allowedIds.has(selectedAdminCategoryParentId)) {
+    selectedAdminCategoryParentId = 0;
+  }
+}
+
 function syncUserCategorySelections() {
-  const globals = globalCategoriesOnly();
+  const globals = buildGlobalTreeRows(globalCategoriesOnly(), {
+    include: (item) => String(item?.account_class || "synthetic") === "synthetic",
+  }).filter((item) => Number(item?.has_synthetic_children ?? 0) === 0);
   if (!globals.length) {
     selectedUserCategoryGlobalId = 0;
   } else if (!globals.some((item) => Number(item?.id || 0) === selectedUserCategoryGlobalId)) {
@@ -2230,7 +2427,7 @@ function syncUserCategorySelections() {
       selectedUserCategoryGlobalEl.textContent = String(selected?.name || "");
       selectedUserCategoryGlobalEl.classList.remove("is-placeholder");
     } else {
-      selectedUserCategoryGlobalEl.textContent = "Selecionar categoria global";
+      selectedUserCategoryGlobalEl.textContent = "Selecionar categoria principal";
       selectedUserCategoryGlobalEl.classList.add("is-placeholder");
     }
   }
@@ -2297,51 +2494,74 @@ function renderUserCategoryGlobalOptions() {
   if (!userCategoryGlobalListEl) return;
   userCategoryGlobalListEl.classList.remove("icon-grid-list");
   const query = normalizeText(userCategoryGlobalSearchInput?.value || "");
-  const globals = globalCategoriesOnly().filter((item) =>
-    normalizeText(item?.name || "").includes(query)
-  );
-  if (!globals.length) {
-    userCategoryGlobalListEl.innerHTML = `<p class="category-empty">Nenhuma categoria global encontrada.</p>`;
+  const globals = buildGlobalTreeRows(globalCategoriesOnly(), {
+    include: (item) => String(item?.account_class || "synthetic") === "synthetic",
+  }).filter((item) => normalizeText(item?.name || "").includes(query));
+  const eligibleGlobals = globals.filter((item) => Number(item?.has_synthetic_children ?? 0) === 0);
+  if (!eligibleGlobals.length) {
+    userCategoryGlobalListEl.innerHTML = `<p class="category-empty">Nenhuma categoria principal encontrada.</p>`;
     return;
   }
-  const groups = [
-    { key: "in", title: "Entrada", icon: "arrow_downward" },
-    { key: "out", title: "Saída", icon: "arrow_upward" },
-  ];
-  const html = groups
-    .map((group) => {
-      const options = globals.filter((item) => String(item?.type || "") === group.key);
-      if (!options.length) return "";
-      const optionsHtml = options
-        .map((category) => {
-          const id = Number(category?.id || 0);
-          const label = String(category?.name || "").trim();
-          const safeLabel = escapeHtml(label);
-          const isSelected = selectedUserCategoryGlobalId === id;
-          return `
-            <button type="button" class="category-option is-${group.key}" data-user-category-global="${id}"${isSelected ? ' aria-current="true"' : ""}>
-              <span class="category-option__lead"><span class="material-symbols-rounded">${group.icon}</span></span>
-              <span class="category-option__text">${safeLabel}</span>
-            </button>
-          `;
-        })
-        .join("");
+  const displayCodeMap = buildAlterdataDisplayCodeMap(globals);
+  userCategoryGlobalListEl.innerHTML = eligibleGlobals
+    .map((category) => {
+      const id = Number(category?.id || 0);
+      const label = String(category?.name || "").trim();
+      const safeLabel = escapeHtml(label);
+      const isSelected = selectedUserCategoryGlobalId === id;
+      const alterDisplay = String(displayCodeMap.get(id) || category?.alterdata_auto || "").trim();
+      const clsLabel = adminCategoryClassLabel(String(category?.account_class || "synthetic"));
+      const alter = escapeHtml(alterDisplay);
       return `
-        <section class="category-group">
-          <h4 class="category-group__title">${group.title}</h4>
-          <div class="category-group__items">${optionsHtml}</div>
-        </section>
+        <button type="button" class="category-option category-option--no-lead is-${String(category?.type || "out")}" data-user-category-global="${id}"${isSelected ? ' aria-current="true"' : ""}>
+          <span class="category-option__text-wrap">
+            <span class="category-tree-line"><span class="category-option__text">${safeLabel}</span></span>
+            <span class="category-option__meta">${escapeHtml(`${adminCategoryTypeLabel(String(category?.type || ""))} · ${clsLabel} · Alterdata: ${alter || "--"}`)}</span>
+          </span>
+        </button>
       `;
     })
     .join("");
+}
 
-  userCategoryGlobalListEl.innerHTML = html || `<p class="category-empty">Nenhuma categoria global encontrada.</p>`;
+function renderAdminCategoryParentOptions() {
+  if (!adminCategoryParentListEl) return;
+  const query = normalizeText(adminCategoryParentSearchInput?.value || "");
+  const rows = adminCategoryParentCandidates().filter((item) => normalizeText(item?.name || "").includes(query));
+  const visibleRows = filterTreeRowsByCollapsed(rows, adminCategoryParentCollapsedIds);
+  const displayCodeMap = buildAlterdataDisplayCodeMap(rows);
+  if (!rows.length && selectedAdminCategoryClass === "analytic") {
+    adminCategoryParentListEl.innerHTML = '<p class="category-empty">Nenhuma conta pai elegível.</p>';
+    return;
+  }
+  const noneOption = selectedAdminCategoryClass !== "analytic" ? `
+    <button type="button" class="category-option category-option--no-lead is-neutral" data-admin-category-parent="0"${selectedAdminCategoryParentId <= 0 ? ' aria-current="true"' : ""}>
+      <span class="category-option__text">Sem conta pai</span>
+    </button>
+  ` : "";
+  adminCategoryParentListEl.innerHTML = noneOption + visibleRows.map((row) => {
+    const id = Number(row?.id || 0);
+    const isSelected = selectedAdminCategoryParentId === id;
+    const depth = Math.max(0, Number(row?.depth || 0));
+    const type = String(row?.type || "");
+    const alter = String(displayCodeMap.get(id) || "").trim();
+    const detail = `${adminCategoryTypeLabel(type)} · ${adminCategoryClassLabel(String(row?.account_class || "synthetic"))} · Alterdata: ${alter || "--"}`;
+    const treeToggle = treeToggleMarkup(row, adminCategoryParentCollapsedIds, "admin-category-parent-toggle");
+    return `
+      <button type="button" class="category-option category-option--no-lead is-${type || "out"}" data-admin-category-parent="${id}"${isSelected ? ' aria-current="true"' : ""}>
+        <span class="category-option__text-wrap">
+          <span class="category-tree-line" style="padding-inline-start:${Math.min(depth * 16, 96)}px">${treeToggle}<span class="category-option__text">${escapeHtml(String(row?.name || ""))}</span></span>
+          <span class="category-option__meta">${escapeHtml(detail)}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
 }
 
 async function openUserCategoryModal() {
   if (!userCategoryModal) return;
   editingUserCategoryId = 0;
-  if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Nova categoria";
+  if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Nova conta";
   if (userCategoryNameInput) userCategoryNameInput.value = "";
   if (userCategoryGlobalSearchInput) userCategoryGlobalSearchInput.value = "";
   selectedUserCategoryIcon = "";
@@ -2352,7 +2572,7 @@ async function openUserCategoryModal() {
 async function openUserCategoryEditModal(category) {
   if (!userCategoryModal) return;
   editingUserCategoryId = Number(category?.id || 0);
-  if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Editar categoria";
+  if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Editar conta";
   if (userCategoryNameInput) userCategoryNameInput.value = String(category?.name || "");
   if (userCategoryGlobalSearchInput) userCategoryGlobalSearchInput.value = "";
   selectedUserCategoryIcon = String(category?.icon || "").trim();
@@ -2391,7 +2611,7 @@ async function createUserCategory() {
   const icon = String(selectedUserCategoryIcon || "").trim();
   const globalCategoryId = Number(selectedUserCategoryGlobalId || 0);
   if (!name || globalCategoryId <= 0 || !String(selectedUserCategoryIcon || "").trim()) {
-    showError("Preencha nome, ícone e categoria global.");
+    showError("Preencha nome, ícone e categoria principal.");
     return;
   }
 
@@ -2417,12 +2637,12 @@ async function createUserCategory() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || (editingUserCategoryId > 0 ? "Não foi possível atualizar categoria." : "Não foi possível criar categoria.")));
+      showError(String(payload?.error || (editingUserCategoryId > 0 ? "Não foi possível atualizar conta." : "Não foi possível criar conta.")));
       return;
     }
     await closeUserCategoryModal();
-    await loadCategories();
     selectedCategoryValue = String(payload?.name || name);
+    await refreshActiveTabAfterMutation({ refreshLookups: true });
     if (selectedCategoryEl) {
       selectedCategoryEl.textContent = selectedCategoryValue;
       selectedCategoryEl.classList.remove("is-placeholder");
@@ -2430,9 +2650,9 @@ async function createUserCategory() {
     setEntryDirectionHint(selectedCategoryValue);
     setEntryTheme(entryTypeFromSelectedCategory() || "neutral");
     updateSaveState();
-    showInfo(editingUserCategoryId > 0 ? "Categoria atualizada com sucesso." : "Categoria criada com sucesso.");
+    showInfo(editingUserCategoryId > 0 ? "Conta atualizada com sucesso." : "Conta criada com sucesso.");
   } catch {
-    showError(editingUserCategoryId > 0 ? "Falha de rede ao atualizar categoria." : "Falha de rede ao criar categoria.");
+    showError(editingUserCategoryId > 0 ? "Falha de rede ao atualizar conta." : "Falha de rede ao criar conta.");
   } finally {
     if (saveUserCategoryBtn) saveUserCategoryBtn.disabled = false;
   }
@@ -2470,10 +2690,8 @@ function updateUserAccountSaveState() {
 
 function resetUserAccountModal() {
   editingUserAccountId = 0;
-  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Nova conta/cartão";
+  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Nova tag";
   if (userAccountNameInput) userAccountNameInput.value = "";
-  if (userAccountInitialBalanceInput) userAccountInitialBalanceInput.value = formatMoneyInput(0);
-  if (userAccountTypeInput) userAccountTypeInput.value = "bank";
   selectedUserAccountIcon = "";
   syncUserAccountSelections();
 }
@@ -2488,13 +2706,11 @@ async function openUserAccountModal() {
 async function openUserAccountEditModal(account) {
   editingUserAccountId = Number(account?.id || 0);
   if (editingUserAccountId <= 0) {
-    showError("Conta/cartão inválido para edição.");
+    showError("Tag inválida para edição.");
     return;
   }
-  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Editar conta/cartão";
+  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Editar tag";
   if (userAccountNameInput) userAccountNameInput.value = String(account?.name || "");
-  if (userAccountInitialBalanceInput) userAccountInitialBalanceInput.value = formatMoneyInput(Number(account?.initial_balance || 0));
-  if (userAccountTypeInput) userAccountTypeInput.value = String(account?.type || "bank");
   selectedUserAccountIcon = String(account?.icon || "account_balance_wallet");
   syncUserAccountSelections();
   await ensureUserCategoryIconCatalogLoaded();
@@ -2565,14 +2781,8 @@ async function closeUserAccountIconModal() {
 async function saveUserAccount() {
   const name = String(userAccountNameInput?.value || "").trim();
   const icon = String(selectedUserAccountIcon || "").trim();
-  const type = String(userAccountTypeInput?.value || "bank").trim();
-  const initialBalance = parseMoneyInput(userAccountInitialBalanceInput?.value || "");
-  if (!name || !icon || !["bank", "card"].includes(type)) {
-    showError("Preencha nome, tipo e ícone da conta/cartão.");
-    return;
-  }
-  if (!Number.isFinite(initialBalance)) {
-    showError("Saldo inicial inválido.");
+  if (!name || !icon) {
+    showError("Preencha nome e ícone da tag.");
     return;
   }
   if (saveUserAccountBtn) saveUserAccountBtn.disabled = true;
@@ -2585,7 +2795,7 @@ async function saveUserAccount() {
         "Content-Type": "application/json",
         Accept: "application/json",
       }),
-      body: JSON.stringify({ name, type, icon, initial_balance: initialBalance }),
+      body: JSON.stringify({ name, icon, type: "bank", initial_balance: 0 }),
     });
     if (response.status === 401) {
       window.location.href = "/";
@@ -2593,15 +2803,14 @@ async function saveUserAccount() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || (editingUserAccountId > 0 ? "Não foi possível atualizar conta/cartão." : "Não foi possível criar conta/cartão.")));
+      showError(String(payload?.error || (editingUserAccountId > 0 ? "Não foi possível atualizar tag." : "Não foi possível criar tag.")));
       return;
     }
     await closeUserAccountModal();
-    await loadAccounts(true);
-    await loadDashboard();
-    showInfo(editingUserAccountId > 0 ? "Conta/cartão atualizado com sucesso." : "Conta/cartão criado com sucesso.");
+    await refreshActiveTabAfterMutation({ refreshLookups: true });
+    showInfo(editingUserAccountId > 0 ? "Tag atualizada com sucesso." : "Tag criada com sucesso.");
   } catch {
-    showError(editingUserAccountId > 0 ? "Falha de rede ao atualizar conta/cartão." : "Falha de rede ao criar conta/cartão.");
+    showError(editingUserAccountId > 0 ? "Falha de rede ao atualizar tag." : "Falha de rede ao criar tag.");
   } finally {
     if (saveUserAccountBtn) saveUserAccountBtn.disabled = false;
   }
@@ -2641,7 +2850,7 @@ function rowTemplate(item, mode) {
   const signed = item.type === "out" ? -Math.abs(amount) : Math.abs(amount);
   const amountClass = toAmountClass(signed);
   const title = escapeHtml(item.description || item.category || "Movimento");
-  const category = escapeHtml(item.category || "Sem categoria");
+  const category = escapeHtml(item.category || "Sem conta");
   if (mode === "entry") {
     const chipTone = item.type === "in" ? "entry-chip--in" : "entry-chip--out";
     const isPending = Number(item?.needs_review || 0) === 1 || String(item?.status || "") === "pending";
@@ -2754,7 +2963,7 @@ function formatFilterPanel() {
   }
   const start = formatIsoDate(entryFilters.startDate);
   const end = formatIsoDate(entryFilters.endDate);
-  filterPanelPeriod.textContent = start && end ? `${start} at\u00e9 ${end}` : "--";
+  filterPanelPeriod.textContent = start && end ? `${start} at\u00e9 ${end}` : "Todos os períodos";
 }
 
 function syncFilterDraftToUi() {
@@ -2810,15 +3019,12 @@ function applyTypeRulesOnDraft(type) {
   }
   if (type === "all") {
     if (previousType === "deleted" || previousType === "pending") {
-      const bounds = currentMonthBounds();
-      draftEntryFilters.startDate = String(lastScopedEntryFilters.startDate || bounds.start);
-      draftEntryFilters.endDate = String(lastScopedEntryFilters.endDate || bounds.end);
-      draftEntryFilters.categories = (lastScopedEntryFilters.categories || []).length
-        ? [...lastScopedEntryFilters.categories]
-        : categories.map((c) => String(c?.name || ""));
+      draftEntryFilters.startDate = String(lastScopedEntryFilters.startDate || "");
+      draftEntryFilters.endDate = String(lastScopedEntryFilters.endDate || "");
+      draftEntryFilters.categories = [...(lastScopedEntryFilters.categories || [])];
       return;
     }
-    draftEntryFilters.categories = categories.map((c) => String(c?.name || ""));
+    draftEntryFilters.categories = [];
     return;
   }
   if (type === "in") {
@@ -2872,7 +3078,7 @@ async function openEntryEditor(entryId) {
   if (entryAmountInput) entryAmountInput.value = formatMoneyInput(Number(entry.amount || 0));
   selectedCategoryValue = String(entry.category || "");
   if (selectedCategoryEl) {
-    selectedCategoryEl.textContent = selectedCategoryValue || "Selecionar categoria";
+    selectedCategoryEl.textContent = selectedCategoryValue || "Selecionar conta";
     selectedCategoryEl.classList.toggle("is-placeholder", !selectedCategoryValue);
   }
   setEntryDirectionHint(selectedCategoryValue);
@@ -2880,7 +3086,7 @@ async function openEntryEditor(entryId) {
   selectedAccountId = Number(entry.account_id || 0);
   if (selectedAccountEl) {
     const accountName = String(entry.account_name || "").trim();
-    selectedAccountEl.textContent = accountName || "Selecionar conta/cartão (opcional)";
+    selectedAccountEl.textContent = accountName || "Selecionar tag (opcional)";
     selectedAccountEl.classList.toggle("is-placeholder", !accountName);
   }
   setEntryModalMode(editingEntryDeleted ? "deleted" : "edit");
@@ -2908,8 +3114,7 @@ function setupEntriesInteractions() {
   cancelEntryFiltersBtn?.addEventListener("click", () => void closeEntryFiltersModal());
 
   clearEntryFiltersBtn?.addEventListener("click", () => {
-    const bounds = currentMonthBounds();
-    draftEntryFilters = { startDate: bounds.start, endDate: bounds.end, type: "all", categories: categories.map((c) => String(c?.name || "")) };
+    draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
     syncFilterDraftToUi();
     entryFilters = { ...draftEntryFilters, categories: [...draftEntryFilters.categories] };
     formatFilterPanel();
@@ -3006,8 +3211,33 @@ function setupEntriesInteractions() {
   categoriesListScreen?.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
+    const toggle = target.closest("[data-cat-tree-toggle]");
+    if (toggle) {
+      event.preventDefault();
+      event.stopPropagation();
+      const nodeKey = String(toggle.getAttribute("data-cat-tree-toggle") || "");
+      if (!nodeKey) return;
+      if (categoriesTreeCollapsedIds.has(nodeKey)) categoriesTreeCollapsedIds.delete(nodeKey);
+      else categoriesTreeCollapsedIds.add(nodeKey);
+      renderCategoriesTab(
+        { by_category: topSummaryState.categorias.current, totals: { balance: Number(topSummaryState.categorias.currentTotal || 0) } },
+        { by_category: topSummaryState.categorias.previous, totals: { balance: Number(topSummaryState.categorias.previousTotal || 0) } }
+      );
+      return;
+    }
     const button = target.closest(".cat-row--button");
     if (!button) return;
+    const nodeKey = String(button.getAttribute("data-cat-node-key") || "");
+    const expandable = String(button.getAttribute("data-cat-expandable") || "") === "1";
+    if (expandable && nodeKey) {
+      if (categoriesTreeCollapsedIds.has(nodeKey)) categoriesTreeCollapsedIds.delete(nodeKey);
+      else categoriesTreeCollapsedIds.add(nodeKey);
+      renderCategoriesTab(
+        { by_category: topSummaryState.categorias.current, totals: { balance: Number(topSummaryState.categorias.currentTotal || 0) } },
+        { by_category: topSummaryState.categorias.previous, totals: { balance: Number(topSummaryState.categorias.previousTotal || 0) } }
+      );
+      return;
+    }
     const encoded = String(button.getAttribute("data-category-name") || "").trim();
     const categoryName = encoded ? decodeURIComponent(encoded) : "";
     if (!categoryName) return;
@@ -3034,12 +3264,12 @@ function setupEntriesInteractions() {
 
   editCategoryFromDetailBtn?.addEventListener("click", () => {
     if (!currentDetailCategoryName || currentDetailEditableCategoryId <= 0) {
-      showError("Somente categorias do usuário podem ser editadas.");
+      showError("Somente contas do usuário podem ser editadas.");
       return;
     }
     const category = categories.find((item) => Number(item?.id || 0) === currentDetailEditableCategoryId);
     if (!category || String(category?.scope || "global") !== "user") {
-      showError("Somente categorias do usuário podem ser editadas.");
+      showError("Somente contas do usuário podem ser editadas.");
       return;
     }
     void closeCategoryDetailModal().then(() => openUserCategoryEditModal(category));
@@ -3055,12 +3285,12 @@ function setupEntriesInteractions() {
 
   editAccountFromDetailBtn?.addEventListener("click", () => {
     if (currentDetailAccountId <= 0) {
-      showError("Conta/cartão inválido para edição.");
+      showError("Tag inválida para edição.");
       return;
     }
     const account = accounts.find((item) => Number(item?.id || 0) === currentDetailAccountId);
     if (!account) {
-      showError("Conta/cartão inválido para edição.");
+      showError("Tag inválida para edição.");
       return;
     }
     void closeAccountDetailModal().then(() => openUserAccountEditModal(account));
@@ -3122,7 +3352,7 @@ function renderCategories(items) {
     .map((item) => {
       const pct = Number(item.share || 0);
       const fill = Math.max(4, Math.min(98, Math.round(pct)));
-      const name = escapeHtml(item.name || "Categoria");
+      const name = escapeHtml(item.name || "Conta");
       return `
         <div class="budget-item" title="${name}">
           <div class="budget-ring">
@@ -3505,8 +3735,8 @@ function buildMonthAggregateFromEntries(entries, monthKey) {
     else totalOut += amount;
     totalCount += 1;
 
-    const categoryNameRaw = String(entry?.category || "").trim() || "Sem categoria";
-    const categoryName = categoryNameRaw || "Sem categoria";
+    const categoryNameRaw = String(entry?.category || "").trim() || "Sem conta";
+    const categoryName = categoryNameRaw || "Sem conta";
     const categoryKey = normalizeLookupText(categoryName);
     if (!byCategoryMap.has(categoryKey)) {
       byCategoryMap.set(categoryKey, { name: categoryName, in: 0, out: 0 });
@@ -3514,7 +3744,7 @@ function buildMonthAggregateFromEntries(entries, monthKey) {
     const category = byCategoryMap.get(categoryKey);
     category[type] += amount;
 
-    const accountName = String(entry?.account_name || entry?.accountName || "").trim() || "Sem conta/cartão";
+    const accountName = String(entry?.account_name || entry?.accountName || "").trim() || "Sem tag";
     const accountType = String(entry?.account_type || entry?.accountType || "bank");
     const accountId = Number(entry?.account_id || entry?.accountId || 0);
     const accountKey = accountId > 0
@@ -3819,7 +4049,7 @@ function renderCategoryDetailModal(categoryName, sourceEntries = null) {
     .join("");
 
   const groups = buildCategoryGroupsForLaunchListPattern(categoryName, sourceEntries);
-  renderEntriesGroupedFromServer(categoryDetailListEl, groups, "Sem lançamentos para esta categoria.");
+  renderEntriesGroupedFromServer(categoryDetailListEl, groups, "Sem lançamentos para esta conta.");
 }
 
 function monthBoundsFromKey(monthKey) {
@@ -3846,7 +4076,7 @@ async function openCategoryDetailModal(categoryName) {
     renderCategoryDetailModal(categoryName, detailEntries);
     await categoryDetailModal?.present();
   } catch {
-    showError("Não foi possível carregar os detalhes da categoria.");
+    showError("Não foi possível carregar os detalhes da conta.");
   }
 }
 
@@ -3877,7 +4107,7 @@ function renderAccountDetailModal(accountId, sourceEntries = null, sourceGroups 
     accountDetailFooterEl.style.display = canManageAccount ? "" : "none";
   }
 
-  accountDetailTitleEl.textContent = currentDetailAccountName || "Conta/Cartão";
+  accountDetailTitleEl.textContent = currentDetailAccountName || "Tag";
   accountDetailTotalEl.textContent = money.format(Number(meta?.currBalance || 0));
   accountDetailTotalEl.classList.remove("pos", "neg");
   accountDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
@@ -3895,10 +4125,10 @@ function renderAccountDetailModal(accountId, sourceEntries = null, sourceGroups 
     .join("");
 
   if (Array.isArray(sourceGroups) && sourceGroups.length) {
-    renderEntriesGroupedFromServer(accountDetailListEl, sourceGroups, "Sem lançamentos para esta conta/cartão.");
+    renderEntriesGroupedFromServer(accountDetailListEl, sourceGroups, "Sem lançamentos para esta tag.");
   } else {
     const groups = buildAccountGroupsForLaunchListPattern(currentDetailAccountName, sourceEntries, currentDetailAccountId);
-    renderEntriesGroupedFromServer(accountDetailListEl, groups, "Sem lançamentos para esta conta/cartão.");
+    renderEntriesGroupedFromServer(accountDetailListEl, groups, "Sem lançamentos para esta tag.");
   }
 }
 
@@ -3927,7 +4157,7 @@ async function openAccountDetailModal(accountId) {
     renderAccountDetailModal(accountId, detailEntries, detailGroups);
     await accountDetailModal?.present();
   } catch {
-    showError("Não foi possível carregar os detalhes da conta/cartão.");
+    showError("Não foi possível carregar os detalhes da tag.");
   }
 }
 
@@ -3939,12 +4169,12 @@ async function closeAccountDetailModal() {
 
 async function deleteUserAccountFromDetail() {
   if (currentDetailAccountId <= 0) {
-    showError("Conta/cartão inválido para exclusão.");
+    showError("Tag inválida para exclusão.");
     return;
   }
   const confirmed = await confirmActionModal({
-    header: "Excluir conta/cartão",
-    message: "Se houver lançamentos vinculados, a conta/cartão será apenas desativada.",
+    header: "Excluir tag",
+    message: "Se houver lançamentos vinculados, a tag será apenas desativada.",
     confirmText: "Excluir",
     cancelText: "Cancelar",
     confirmRole: "destructive",
@@ -3962,35 +4192,34 @@ async function deleteUserAccountFromDetail() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível excluir conta/cartão."));
+      showError(String(payload?.error || "Não foi possível excluir tag."));
       return;
     }
     await closeAccountDetailModal();
-    await loadAccounts(true);
-    await loadDashboard();
+    await refreshActiveTabAfterMutation({ refreshLookups: true });
     if (payload?.deactivated) {
-      showInfo("Conta/cartão desativada porque possui lançamentos vinculados.");
+      showInfo("Tag desativada porque possui lançamentos vinculados.");
     } else {
-      showInfo("Conta/cartão excluído com sucesso.");
+      showInfo("Tag excluído com sucesso.");
     }
   } catch {
-    showError("Falha de rede ao excluir conta/cartão.");
+    showError("Falha de rede ao excluir tag.");
   }
 }
 
 async function deleteUserCategoryFromDetail() {
   if (!currentDetailCategoryName || currentDetailEditableCategoryId <= 0) {
-    showError("Somente categorias do usuário podem ser excluídas.");
+    showError("Somente contas do usuário podem ser excluídas.");
     return;
   }
 
   const globalName = String(currentDetailGlobalCategoryName || "").trim();
   const warning = globalName
-    ? `Os lançamentos desta categoria não serão excluídos. Eles serão movidos para a categoria global <strong>${escapeHtml(globalName)}</strong>.`
-    : "Os lançamentos desta categoria não serão excluídos. Eles serão movidos para a categoria global vinculada.";
+    ? `Os lançamentos desta conta não serão excluídos. Eles serão movidos para a conta global <strong>${escapeHtml(globalName)}</strong>.`
+    : "Os lançamentos desta conta não serão excluídos. Eles serão movidos para a conta global vinculada.";
 
   const confirmed = await confirmActionModal({
-    header: "Excluir categoria",
+    header: "Excluir conta",
     message: warning,
     confirmText: "Excluir",
     cancelText: "Cancelar",
@@ -4010,15 +4239,14 @@ async function deleteUserCategoryFromDetail() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível excluir a categoria."));
+      showError(String(payload?.error || "Não foi possível excluir a conta."));
       return;
     }
     await closeCategoryDetailModal();
-    await loadCategories();
-    await loadDashboard();
-    showInfo("Categoria excluída. Lançamentos movidos para a categoria global.");
+    await refreshActiveTabAfterMutation({ refreshLookups: true });
+    showInfo("Conta excluída. Lançamentos movidos para a conta global.");
   } catch {
-    showError("Falha de rede ao excluir a categoria.");
+    showError("Falha de rede ao excluir a conta.");
   }
 }
 
@@ -4032,26 +4260,145 @@ function renderCategoriesTab(currentAgg, previousAgg) {
   topSummaryState.categorias.currentTotal = Number(currentAgg?.totals?.balance || 0);
   topSummaryState.categorias.previousTotal = Number(previousAgg?.totals?.balance || 0);
   const categoryKey = (value) => normalizeLookupText(String(value || "").trim());
+  const currMap = new Map(currentItems.map((item) => [categoryKey(item?.name), categoryBalance(item)]));
   const prevMap = new Map(previousItems.map((item) => [categoryKey(item?.name), categoryBalance(item)]));
+
+  const categoryTree = Array.isArray(categoriesTreeCache) ? categoriesTreeCache : [];
+  const buildNodeKey = (node) => {
+    const id = Number(node?.id || 0);
+    const scope = String(node?.scope || "global");
+    const nameKey = categoryKey(node?.name || "");
+    return `${scope}:${id > 0 ? id : nameKey}`;
+  };
+  const decorateNode = (rawNode) => {
+    const childrenRaw = Array.isArray(rawNode?.children) ? rawNode.children : [];
+    const children = childrenRaw.map((child) => decorateNode(child));
+    const name = String(rawNode?.name || "").trim();
+    const key = categoryKey(name);
+    const selfCurr = Number(currMap.get(key) || 0);
+    const selfPrev = Number(prevMap.get(key) || 0);
+    const childCurr = children.reduce((sum, child) => sum + Number(child?.currBalance || 0), 0);
+    const childPrev = children.reduce((sum, child) => sum + Number(child?.prevBalance || 0), 0);
+    return {
+      key: buildNodeKey(rawNode),
+      name,
+      scope: String(rawNode?.scope || "global"),
+      accountClass: String(rawNode?.account_class || "synthetic"),
+      type: String(rawNode?.type || "out"),
+      currBalance: selfCurr + childCurr,
+      prevBalance: selfPrev + childPrev,
+      children,
+    };
+  };
+  const flattenTree = (nodes) => {
+    const rows = [];
+    const walk = (node, depth = 0) => {
+      rows.push({
+        ...node,
+        depth,
+        childCount: Array.isArray(node?.children) ? node.children.length : 0,
+      });
+      if (categoriesTreeCollapsedIds.has(String(node?.key || ""))) {
+        return;
+      }
+      (Array.isArray(node?.children) ? node.children : []).forEach((child) => walk(child, depth + 1));
+    };
+    (Array.isArray(nodes) ? nodes : []).forEach((root) => walk(root, 0));
+    return rows;
+  };
+
+  const treeNodes = categoryTree.length ? categoryTree.map((node) => decorateNode(node)) : [];
+  const treeRows = flattenTree(treeNodes);
+  const hasTree = treeRows.length > 0;
+
+  categoryRowsIndex = new Map();
+
+  if (hasTree) {
+    const toneMap = buildCategoryToneMap(treeRows.map((item) => String(item?.name || "")));
+    categoriesListScreen.innerHTML = treeRows
+      .map((item) => {
+        const icon = categoryGlyph(item.name);
+        const tone = toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
+        const toneColor = tone.fg;
+        const chipBg = tone.bg;
+        const safeName = escapeHtml(item.name);
+        const currAbs = Math.abs(item.currBalance);
+        const prevAbs = Math.abs(item.prevBalance);
+        const base = Math.max(currAbs, prevAbs, 1);
+        const currWidth = Math.max(0, Math.min(100, Math.round((currAbs / base) * 100)));
+        const prevWidth = Math.max(0, Math.min(100, Math.round((prevAbs / base) * 100)));
+        const currClass = item.currBalance >= 0 ? "pos" : "neg";
+        const prevClass = item.prevBalance >= 0 ? "pos" : "neg";
+        const encodedName = encodeURIComponent(item.name);
+        const nodeKey = escapeHtml(String(item.key || ""));
+        const depth = Math.max(0, Number(item.depth || 0));
+        const hasChildren = Number(item.childCount || 0) > 0;
+        const collapsed = hasChildren && categoriesTreeCollapsedIds.has(String(item.key || ""));
+        const toggleIcon = collapsed ? "chevron_right" : "expand_more";
+        const toggle = hasChildren
+          ? `<span class="cat-tree-toggle" data-cat-tree-toggle="${escapeHtml(String(item.key || ""))}" role="button" tabindex="0" aria-label="Alternar grupo"><span class="material-symbols-rounded">${toggleIcon}</span></span>`
+          : `<span class="cat-tree-toggle-spacer" aria-hidden="true"></span>`;
+
+        categoryRowsIndex.set(item.name, { currBalance: item.currBalance, prevBalance: item.prevBalance, toneColor, chipBg });
+
+        return `
+          <button type="button" class="cat-row cat-row--button" data-category-name="${encodedName}" data-cat-node-key="${nodeKey}" data-cat-expandable="${hasChildren ? "1" : "0"}">
+            <div class="cat-row__meta">
+              <span class="cat-row__meta-line" style="padding-inline-start:${Math.min(depth * 16, 112)}px">
+                ${toggle}
+                <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
+              </span>
+            </div>
+            <div class="cat-row__curr ${currClass}">${money.format(item.currBalance)}</div>
+            <span class="cat-row__bar" style="--cat-tone:${toneColor}">
+              <span class="cat-row__bar-fill-prev" style="width:${prevWidth}%"></span>
+              <span class="cat-row__bar-fill-curr" style="width:${currWidth}%"></span>
+            </span>
+            <div class="cat-row__prev ${prevClass}">${money.format(item.prevBalance)}</div>
+          </button>
+        `;
+      })
+      .join("");
+    return;
+  }
 
   const toneMap = buildCategoryToneMap([
     ...currentItems.map((item) => String(item?.name || "")),
     ...previousItems.map((item) => String(item?.name || "")),
   ]);
-
-  const listItems = currentItems
-    .map((item) => {
-      const name = String(item?.name || "").trim();
-      const currBalance = categoryBalance(item);
-      const prevBalance = Number(prevMap.get(categoryKey(name)) || 0);
-      return { name, currBalance, prevBalance };
-    })
-    .filter((item) => item.name);
-
-  categoryRowsIndex = new Map();
+  const userAccountNames = (Array.isArray(categories) ? categories : [])
+    .filter((item) => String(item?.scope || "") === "user")
+    .map((item) => String(item?.name || "").trim())
+    .filter((name) => !!name);
+  const allKeys = new Set([
+    ...Array.from(currMap.keys()),
+    ...Array.from(prevMap.keys()),
+    ...userAccountNames.map((name) => categoryKey(name)),
+  ]);
+  const keyToName = new Map();
+  currentItems.forEach((item) => {
+    const name = String(item?.name || "").trim();
+    if (name) keyToName.set(categoryKey(name), name);
+  });
+  previousItems.forEach((item) => {
+    const name = String(item?.name || "").trim();
+    if (name && !keyToName.has(categoryKey(name))) keyToName.set(categoryKey(name), name);
+  });
+  userAccountNames.forEach((name) => {
+    const key = categoryKey(name);
+    if (!keyToName.has(key)) keyToName.set(key, name);
+  });
+  const listItems = Array.from(allKeys)
+    .map((key) => ({
+      name: String(keyToName.get(key) || "").trim(),
+      currBalance: Number(currMap.get(key) || 0),
+      prevBalance: Number(prevMap.get(key) || 0),
+    }))
+    .filter((item) => item.name)
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   if (!listItems.length) {
-    categoriesListScreen.innerHTML = `<p class="cat-empty">Sem dados de categorias no per\u00edodo.</p>`;
+    categoriesListScreen.innerHTML = `<p class="cat-empty">Sem dados de contas no período.</p>`;
     return;
   }
 
@@ -4099,23 +4446,59 @@ function renderAccountsTab(currentAgg, previousAgg) {
   topSummaryState.contas.currentTotal = Number(currentAgg?.totals?.balance || 0);
   topSummaryState.contas.previousTotal = Number(previousAgg?.totals?.balance || 0);
   const accountKey = (item) => buildAccountRowKey(item?.id, item?.name);
+  const currMap = new Map(currentItems.map((item) => [accountKey(item), Number(item?.balance || 0)]));
   const prevMap = new Map(previousItems.map((item) => [accountKey(item), Number(item?.balance || 0)]));
 
-  const listItems = currentItems
-    .map((item) => {
-      const name = String(item?.name || "").trim();
-      const id = Number(item?.id || 0);
-      const type = String(item?.type || "bank");
-      const currBalance = Number(item?.balance || 0);
-      const prevBalance = Number(prevMap.get(accountKey({ id, name })) || 0);
-      const normalizedName = name || "Sem conta/cartão";
-      return { id, type, name: normalizedName, currBalance, prevBalance };
-    })
-    .filter((item) => item.name);
+  const baseFromTags = (Array.isArray(accounts) ? accounts : []).map((item) => {
+    const id = Number(item?.id || 0);
+    const name = String(item?.name || "").trim();
+    const type = String(item?.type || "bank");
+    const key = accountKey({ id, name });
+    return {
+      key,
+      id,
+      type,
+      name: name || "Sem tag",
+      currBalance: Number(currMap.get(key) || 0),
+      prevBalance: Number(prevMap.get(key) || 0),
+    };
+  });
+  const listMap = new Map(baseFromTags.map((item) => [String(item.key), item]));
+  currentItems.forEach((item) => {
+    const id = Number(item?.id || 0);
+    const name = String(item?.name || "").trim();
+    const key = accountKey({ id, name });
+    if (listMap.has(key)) return;
+    listMap.set(key, {
+      key,
+      id,
+      type: String(item?.type || "bank"),
+      name: name || "Sem tag",
+      currBalance: Number(currMap.get(key) || 0),
+      prevBalance: Number(prevMap.get(key) || 0),
+    });
+  });
+  previousItems.forEach((item) => {
+    const id = Number(item?.id || 0);
+    const name = String(item?.name || "").trim();
+    const key = accountKey({ id, name });
+    if (listMap.has(key)) return;
+    listMap.set(key, {
+      key,
+      id,
+      type: String(item?.type || "bank"),
+      name: name || "Sem tag",
+      currBalance: Number(currMap.get(key) || 0),
+      prevBalance: Number(prevMap.get(key) || 0),
+    });
+  });
+  const listItems = Array.from(listMap.values())
+    .filter((item) => item.name)
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
 
   accountRowsIndex = new Map();
   if (!listItems.length) {
-    accountsListScreen.innerHTML = `<p class="cat-empty">Sem dados de contas/cartões no período.</p>`;
+    accountsListScreen.innerHTML = `<p class="cat-empty">Sem dados de tags no período.</p>`;
     return;
   }
 
@@ -4299,7 +4682,7 @@ function buildGroupsFromRecurrences(items) {
 
 function renderRecurrenceGroups(container, groups, emptyText) {
   if (!Array.isArray(groups) || groups.length === 0) {
-    renderEntriesEmptyState(container, emptyText || "Nenhuma recorrência encontrada.");
+    renderEntriesEmptyState(container, emptyText || "Nenhum agendamento encontrado.");
     return;
   }
 
@@ -4315,12 +4698,12 @@ function renderRecurrenceGroups(container, groups, emptyText) {
                   const amountRaw = Number(item?.amount || 0);
                   const signed = String(item?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
                   const amountClass = toAmountClass(signed);
-                  const category = escapeHtml(String(item?.category || "Sem categoria"));
-                  const account = escapeHtml(String(item?.account_name || "Sem conta/cartão"));
+                  const category = escapeHtml(String(item?.category || "Sem conta"));
+                  const account = escapeHtml(String(item?.account_name || "Sem tag"));
                   const frequency = escapeHtml(recurrenceFrequencyLabel(item?.frequency));
                   const tone = String(item?.type || "") === "out" ? "entry-chip--out" : "entry-chip--in";
                   return `
-                    <button type="button" class="entry-row entry-row--button" data-recurrence-id="${id}" aria-label="Abrir recorrência ${category}">
+                    <button type="button" class="entry-row entry-row--button" data-recurrence-id="${id}" aria-label="Abrir agendamento ${category}">
                       <div class="entry-row__title">${category}</div>
                       <div class="entry-row__chips">
                         <span class="entry-chip ${tone}">${account} • ${frequency}</span>
@@ -4366,13 +4749,13 @@ function renderRecurrenceGroups(container, groups, emptyText) {
 
 function syncRecurrencePickers() {
   if (selectedRecurrenceCategoryEl) {
-    selectedRecurrenceCategoryEl.textContent = selectedRecurrenceCategoryValue || "Selecionar categoria";
+    selectedRecurrenceCategoryEl.textContent = selectedRecurrenceCategoryValue || "Selecionar conta";
     selectedRecurrenceCategoryEl.classList.toggle("is-placeholder", !selectedRecurrenceCategoryValue);
   }
   if (selectedRecurrenceAccountEl) {
     const account = accounts.find((item) => Number(item?.id || 0) === Number(selectedRecurrenceAccountId || 0));
     const name = String(account?.name || "");
-    selectedRecurrenceAccountEl.textContent = name || "Selecionar conta/cartão (opcional)";
+    selectedRecurrenceAccountEl.textContent = name || "Selecionar tag (opcional)";
     selectedRecurrenceAccountEl.classList.toggle("is-placeholder", !name);
   }
   if (selectedRecurrenceDateEl) {
@@ -4390,7 +4773,7 @@ function renderRecurrenceCategoryOptions() {
   const query = String(recurrenceCategorySearchInput?.value || "").trim().toLowerCase();
   const searched = categories.filter((item) => String(item?.name || "").toLowerCase().includes(query));
   if (!searched.length) {
-    recurrenceCategoryListEl.innerHTML = `<p class="category-empty">Nenhuma categoria encontrada.</p>`;
+    recurrenceCategoryListEl.innerHTML = `<p class="category-empty">Nenhuma conta encontrada.</p>`;
     return;
   }
   const groups = [
@@ -4423,12 +4806,19 @@ function renderRecurrenceAccountOptions() {
   if (!recurrenceAccountListEl) return;
   const query = String(recurrenceAccountSearchInput?.value || "").trim().toLowerCase();
   const searched = accounts.filter((item) => String(item?.name || "").toLowerCase().includes(query));
-  if (!searched.length) {
-    recurrenceAccountListEl.innerHTML = `<p class="category-empty">Nenhuma conta/cartão encontrada.</p>`;
-    return;
-  }
   const groups = [{ key: "bank" }, { key: "card" }];
-  recurrenceAccountListEl.innerHTML = groups.map((group) => {
+  const optionalOption = `
+    <section class="category-group">
+      <h4 class="category-group__title">Opcional</h4>
+      <div class="category-group__items">
+        <button type="button" class="category-option is-neutral" data-recurrence-account-id="0"${Number(selectedRecurrenceAccountId || 0) <= 0 ? ' aria-current="true"' : ""}>
+          <span class="category-option__lead"><span class="material-symbols-rounded">account_balance_wallet</span></span>
+          <span class="category-option__text">Sem tag</span>
+        </button>
+      </div>
+    </section>
+  `;
+  const accountGroups = groups.map((group) => {
     const options = searched.filter((item) => String(item?.type || "bank") === group.key);
     if (!options.length) return "";
     const optionsHtml = options.map((item) => {
@@ -4449,6 +4839,11 @@ function renderRecurrenceAccountOptions() {
       </section>
     `;
   }).join("");
+  if (!accountGroups.trim() && query) {
+    recurrenceAccountListEl.innerHTML = `${optionalOption}<p class="category-empty">Nenhuma tag encontrada.</p>`;
+    return;
+  }
+  recurrenceAccountListEl.innerHTML = `${optionalOption}${accountGroups}`;
 }
 
 function renderRecurrenceFrequencyOptions() {
@@ -4537,7 +4932,7 @@ async function closeRecurrenceFrequencySheet() {
 
 function resetRecurrenceForm() {
   editingRecurrenceId = 0;
-  if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Nova recorrência";
+  if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Novo agendamento";
   if (recurrenceAmountInput) recurrenceAmountInput.value = formatMoneyInput(0);
   selectedRecurrenceCategoryValue = "";
   selectedRecurrenceAccountId = 0;
@@ -4585,7 +4980,7 @@ async function saveRecurrence() {
   const categoryType = String(categories.find((item) => String(item?.name || "") === category)?.type || "");
 
   if (!["in", "out"].includes(categoryType)) {
-    showError("Selecione uma categoria válida para recorrência.");
+    showError("Selecione uma conta válida para agendamento.");
     return;
   }
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -4623,30 +5018,30 @@ async function saveRecurrence() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível salvar a recorrência."));
+      showError(String(payload?.error || "Não foi possível salvar o agendamento."));
       return;
     }
     if (!isEditingRecurrence) {
       pushUserNotification({
-        title: "Recorrência criada",
+        title: "Agendamento criado",
         message: `${category} • ${recurrenceFrequencyLabel(frequency)} • ${money.format(categoryType === "out" ? -Math.abs(amount) : Math.abs(amount))}`,
         source: "recurrence",
       });
     }
     await closeRecurrenceModal();
-    showInfo(isEditingRecurrence ? "Recorrência atualizada com sucesso." : "Recorrência criada com sucesso.");
-    await loadDashboard();
+    showInfo(isEditingRecurrence ? "Agendamento atualizado com sucesso." : "Agendamento criado com sucesso.");
     navigateToTab("recorrentes", { pushHistory: true, load: false });
+    await refreshActiveTabAfterMutation({ tab: "recorrentes", refreshLookups: false, refreshRecurrences: true });
   } catch {
-    showError("Falha de rede ao salvar a recorrência.");
+    showError("Falha de rede ao salvar o agendamento.");
   }
 }
 
 async function deleteRecurrence() {
   if (editingRecurrenceId <= 0) return;
   const confirmed = await confirmActionModal({
-    header: "Excluir recorrência",
-    message: "A recorrência será removida. Os lançamentos já criados permanecem no histórico.",
+    header: "Excluir agendamento",
+    message: "O agendamento será removido. Os lançamentos já criados permanecem no histórico.",
     confirmText: "Excluir",
     cancelText: "Cancelar",
     confirmRole: "destructive",
@@ -4665,15 +5060,15 @@ async function deleteRecurrence() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível excluir a recorrência."));
+      showError(String(payload?.error || "Não foi possível excluir o agendamento."));
       return;
     }
     await closeRecurrenceModal();
     await closeRecurrenceDetailModal();
-    showInfo("Recorrência excluída com sucesso.");
-    await loadDashboard();
+    showInfo("Agendamento excluído com sucesso.");
+    await refreshActiveTabAfterMutation({ refreshLookups: false, refreshRecurrences: true });
   } catch {
-    showError("Falha de rede ao excluir a recorrência.");
+    showError("Falha de rede ao excluir o agendamento.");
   }
 }
 
@@ -4682,7 +5077,7 @@ function renderRecurrencesTab(items) {
   topSummaryState.recorrencias.current = recurrences;
   const total = recurrences.length;
   if (recurrenceMetaEl) {
-    recurrenceMetaEl.textContent = total === 1 ? "1 recorrência" : `${total} recorrências`;
+    recurrenceMetaEl.textContent = total === 1 ? "1 agendamento" : `${total} agendamentos`;
   }
   if (activeTabName() === "recorrentes") {
     renderTopSummaryForTab("recorrentes");
@@ -4690,11 +5085,11 @@ function renderRecurrencesTab(items) {
 
   if (!recurrencesListScreen) return;
   if (!recurrences.length) {
-    recurrencesListScreen.innerHTML = `<p class="cat-empty">Sem recorrências cadastradas.</p>`;
+    recurrencesListScreen.innerHTML = `<p class="cat-empty">Sem agendamentos cadastrados.</p>`;
     return;
   }
   const groups = buildGroupsFromRecurrences(recurrences);
-  renderRecurrenceGroups(recurrencesListScreen, groups, "Sem recorrências cadastradas.");
+  renderRecurrenceGroups(recurrencesListScreen, groups, "Sem agendamentos cadastrados.");
 }
 
 async function openRecurrenceEditor(recurrenceId) {
@@ -4703,7 +5098,7 @@ async function openRecurrenceEditor(recurrenceId) {
   editingRecurrenceId = Number(item?.id || 0);
   await loadCategories();
   await loadAccounts();
-  if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Editar recorrência";
+  if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Editar agendamento";
   if (recurrenceAmountInput) recurrenceAmountInput.value = formatMoneyInput(Number(item?.amount || 0));
   selectedRecurrenceCategoryValue = String(item?.category || "");
   selectedRecurrenceAccountId = Number(item?.account_id || 0);
@@ -4740,7 +5135,7 @@ async function loadRecurrenceEditorHistory(recurrenceId) {
     if (token !== recurrenceEditorHistoryToken) return;
     const entries = Array.isArray(payload?.entries) ? payload.entries : [];
     const groups = buildGroupsFromFlatEntries(entries);
-    renderEntriesGroupedFromServer(recurrenceEditorHistoryListEl, groups, "Nenhum lançamento criado por esta recorrência.");
+    renderEntriesGroupedFromServer(recurrenceEditorHistoryListEl, groups, "Nenhum lançamento criado por este agendamento.");
   } catch {
     if (token !== recurrenceEditorHistoryToken) return;
     renderEntriesEmptyState(recurrenceEditorHistoryListEl, "Falha de rede ao carregar lançamentos criados.");
@@ -4756,12 +5151,12 @@ async function openRecurrenceDetailModal(recurrenceId) {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível carregar a recorrência."));
+      showError(String(payload?.error || "Não foi possível carregar o agendamento."));
       return;
     }
 
     if (recurrenceDetailTitleEl) {
-      recurrenceDetailTitleEl.textContent = String(payload?.category || "Recorrência");
+      recurrenceDetailTitleEl.textContent = String(payload?.category || "Agendamento");
     }
     if (recurrenceDetailNextDateEl) {
       recurrenceDetailNextDateEl.textContent = formatIsoDate(String(payload?.next_entry?.date || payload?.next_run_date || ""));
@@ -4776,16 +5171,16 @@ async function openRecurrenceDetailModal(recurrenceId) {
     }
     if (recurrenceDetailNextMetaEl) {
       const frequency = recurrenceFrequencyLabel(payload?.frequency);
-      const account = String(payload?.next_entry?.account_name || payload?.account_name || "Sem conta/cartão");
+      const account = String(payload?.next_entry?.account_name || payload?.account_name || "Sem tag");
       recurrenceDetailNextMetaEl.textContent = `${frequency} • ${account}`;
     }
     const entries = Array.isArray(payload?.entries) ? payload.entries : [];
     const groups = buildGroupsFromFlatEntries(entries);
-    renderEntriesGroupedFromServer(recurrenceDetailListEl, groups, "Nenhum lançamento criado por esta recorrência.");
+    renderEntriesGroupedFromServer(recurrenceDetailListEl, groups, "Nenhum lançamento criado por este agendamento.");
     editingRecurrenceId = Number(payload?.id || 0);
     await recurrenceDetailModal?.present();
   } catch {
-    showError("Falha de rede ao carregar a recorrência.");
+    showError("Falha de rede ao carregar o agendamento.");
   }
 }
 
@@ -4873,8 +5268,7 @@ function setupRecurrenceInteractions() {
     const button = target.closest("[data-recurrence-account-id]");
     if (!button) return;
     const accountId = Number(button.getAttribute("data-recurrence-account-id") || 0);
-    if (accountId <= 0) return;
-    selectedRecurrenceAccountId = accountId;
+    selectedRecurrenceAccountId = Number.isFinite(accountId) && accountId > 0 ? accountId : 0;
     syncRecurrencePickers();
     void closeRecurrenceAccountSheet();
   });
@@ -4974,22 +5368,34 @@ async function loadCategories() {
     }
     if (!response.ok) {
       categories = [];
+      categoriesTreeCache = [];
       renderCategoryOptions("");
       syncRecurrencePickers();
       return;
     }
     const data = await response.json();
     categories = Array.isArray(data) ? data : [];
-    if (!entryFilters.categories.length) {
-      entryFilters.categories = categories.map((item) => String(item?.name || ""));
-      draftEntryFilters.categories = [...entryFilters.categories];
-      formatFilterPanel();
+    try {
+      const treeResponse = await authFetch("/api/categories/tree");
+      if (treeResponse.ok) {
+        const treePayload = await safeJson(treeResponse, []);
+        categoriesTreeCache = Array.isArray(treePayload) ? treePayload : [];
+        categoriesTreeCollapsedIds.clear();
+      } else {
+        categoriesTreeCache = [];
+        categoriesTreeCollapsedIds.clear();
+      }
+    } catch {
+      categoriesTreeCache = [];
+      categoriesTreeCollapsedIds.clear();
     }
     renderCategoryOptions("");
     syncUserCategorySelections();
     syncRecurrencePickers();
   } catch {
     categories = [];
+    categoriesTreeCache = [];
+    categoriesTreeCollapsedIds.clear();
     renderCategoryOptions("");
     syncUserCategorySelections();
     syncRecurrencePickers();
@@ -5089,7 +5495,7 @@ function entryMatchesAccount(entry, accountId, accountName) {
 
 function buildAccountRowKey(accountId, accountName = "") {
   const id = Number(accountId || 0);
-  const normalizedName = String(accountName || "").trim() || "Sem conta/cartão";
+  const normalizedName = String(accountName || "").trim() || "Sem tag";
   if (id > 0) return `id:${id}`;
   return `name:${normalizeLookupText(normalizedName)}`;
 }
@@ -5139,13 +5545,13 @@ function resetEntryForm() {
   selectedCategoryValue = "";
   if (categorySearchInput) categorySearchInput.value = "";
   if (selectedCategoryEl) {
-    selectedCategoryEl.textContent = "Selecionar categoria";
+    selectedCategoryEl.textContent = "Selecionar conta";
     selectedCategoryEl.classList.add("is-placeholder");
   }
   selectedAccountId = 0;
   if (accountSearchInput) accountSearchInput.value = "";
   if (selectedAccountEl) {
-    selectedAccountEl.textContent = "Selecionar conta/cartão (opcional)";
+    selectedAccountEl.textContent = "Selecionar tag (opcional)";
     selectedAccountEl.classList.add("is-placeholder");
   }
   setEntryDirectionHint("");
@@ -5206,7 +5612,7 @@ async function createEntry() {
     return;
   }
   if (!category) {
-    showError("Categoria \u00e9 obrigat\u00f3ria.");
+    showError("Conta é obrigatória.");
     return;
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -5261,8 +5667,7 @@ async function createEntry() {
 
     await closeEntryModal();
     showInfo(editingEntryId ? "Lan\u00e7amento atualizado com sucesso." : "Entrada adicionada com sucesso.");
-    await loadDashboard();
-    navigateToTab("lancamentos", { pushHistory: true, load: false });
+    await refreshActiveTabAfterMutation({ refreshLookups: false });
   } catch {
     showError("Falha de rede ao salvar a entrada.");
   } finally {
@@ -5285,7 +5690,7 @@ async function approvePendingEntry() {
   const description = String(entryDescriptionInput?.value || "").trim();
 
   if (!["in", "out"].includes(type)) {
-    showError("Selecione uma categoria válida antes de aprovar.");
+    showError("Selecione uma conta válida antes de aprovar.");
     return;
   }
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -5293,7 +5698,7 @@ async function approvePendingEntry() {
     return;
   }
   if (!category) {
-    showError("Categoria é obrigatória para aprovar.");
+    showError("Conta é obrigatória para aprovar.");
     return;
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -5304,26 +5709,10 @@ async function approvePendingEntry() {
   savingEntry = true;
   setSaveButtonVisualState("saving");
   try {
-    const usingImpersonationAdminToken = Boolean(
-      Boolean(currentProfile?.impersonation?.active)
-      && String(currentProfile?.role || "") !== "admin"
-    );
-    const adminToken = usingImpersonationAdminToken ? getImpersonationAdminToken() : "";
-    if (usingImpersonationAdminToken && !adminToken) {
-      showError("Token do administrador não encontrado para aprovar em personificação.");
-      return;
-    }
-    const headers = usingImpersonationAdminToken
-      ? {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${adminToken}`,
-          "X-Auth-Token": adminToken,
-        }
-      : authHeaders({
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        });
+    const headers = authHeaders({
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    });
 
     const attachmentPath = selectedAttachmentFile
       ? await uploadAttachment(selectedAttachmentFile)
@@ -5365,8 +5754,7 @@ async function approvePendingEntry() {
 
     await closeEntryModal();
     showInfo("Lan\u00e7amento aprovado com sucesso.");
-    await loadDashboard();
-    navigateToTab("lancamentos", { pushHistory: true, load: false });
+    await refreshActiveTabAfterMutation({ refreshLookups: false });
   } catch {
     showError("Falha de rede ao aprovar o lan\u00e7amento.");
   } finally {
@@ -5393,7 +5781,7 @@ async function restoreEntry() {
     }
     await closeEntryModal();
     showInfo("Lan\u00e7amento restaurado com sucesso.");
-    await loadDashboard();
+    await refreshActiveTabAfterMutation({ refreshLookups: false });
   } catch {
     showError("Falha de rede ao restaurar o lan\u00e7amento.");
   }
@@ -5426,7 +5814,7 @@ async function deleteEntry() {
     }
     await closeEntryModal();
     showInfo("Lan\u00e7amento exclu\u00eddo com sucesso.");
-    await loadDashboard();
+    await refreshActiveTabAfterMutation({ refreshLookups: false });
   } catch {
     showError("Falha de rede ao excluir o lan\u00e7amento.");
   }
@@ -5527,7 +5915,7 @@ function setupEntryModal() {
     if (current !== selectedCategoryValue) {
       selectedCategoryValue = "";
       if (selectedCategoryEl) {
-        selectedCategoryEl.textContent = "Selecionar categoria";
+        selectedCategoryEl.textContent = "Selecionar conta";
         selectedCategoryEl.classList.add("is-placeholder");
       }
       updateSaveState();
@@ -5570,7 +5958,7 @@ function setupEntryModal() {
     if (selected && typed && typed !== String(selected?.name || "")) {
       selectedAccountId = 0;
       if (selectedAccountEl) {
-        selectedAccountEl.textContent = "Selecionar conta/cartão (opcional)";
+        selectedAccountEl.textContent = "Selecionar tag (opcional)";
         selectedAccountEl.classList.add("is-placeholder");
       }
       updateSaveState();
@@ -5584,14 +5972,17 @@ function setupEntryModal() {
     const button = target.closest("[data-account-id]");
     if (!button) return;
     const accountId = Number(button.getAttribute("data-account-id") || 0);
-    if (accountId <= 0) return;
     const account = accounts.find((item) => Number(item?.id || 0) === accountId);
-    if (!account) return;
-    selectedAccountId = accountId;
-    if (accountSearchInput) accountSearchInput.value = String(account?.name || "");
+    selectedAccountId = Number.isFinite(accountId) && accountId > 0 ? accountId : 0;
+    if (accountSearchInput) accountSearchInput.value = selectedAccountId > 0 ? String(account?.name || "") : "";
     if (selectedAccountEl) {
-      selectedAccountEl.textContent = String(account?.name || "");
-      selectedAccountEl.classList.remove("is-placeholder");
+      if (selectedAccountId > 0) {
+        selectedAccountEl.textContent = String(account?.name || "");
+        selectedAccountEl.classList.remove("is-placeholder");
+      } else {
+        selectedAccountEl.textContent = "Selecionar tag (opcional)";
+        selectedAccountEl.classList.add("is-placeholder");
+      }
     }
     updateSaveState();
     void closeAccountSheet();
@@ -5638,18 +6029,6 @@ function setupEntryModal() {
   });
 
   userAccountNameInput?.addEventListener("ionInput", () => {
-    updateUserAccountSaveState();
-  });
-
-  userAccountInitialBalanceInput?.addEventListener("ionInput", (event) => {
-    const raw = event?.detail?.value ?? userAccountInitialBalanceInput.value ?? "";
-    const value = parseMoneyInput(String(raw));
-    if (userAccountInitialBalanceInput) {
-      userAccountInitialBalanceInput.value = formatMoneyInput(Number.isFinite(value) ? value : 0);
-    }
-  });
-
-  userAccountTypeInput?.addEventListener("ionChange", () => {
     updateUserAccountSaveState();
   });
 
@@ -5918,7 +6297,7 @@ function renderNotifications(items) {
     notificationsListEl.innerHTML = `
       <div class="settings-empty">
         <p class="settings-empty__title">Sem notificações</p>
-        <p class="settings-empty__text">Novidades de recorrências e mensagens aparecerão aqui.</p>
+        <p class="settings-empty__text">Novidades de agendamentos e mensagens aparecerão aqui.</p>
       </div>
     `;
     return;
@@ -6395,9 +6774,9 @@ function supportAttachOptions() {
   return [
     { key: "file", label: "Imagem / Captura de tela", icon: "image" },
     { key: "entry", label: "Lançamento", icon: "receipt_long" },
-    { key: "category", label: "Categoria", icon: "category" },
-    { key: "account", label: "Conta / Cartão", icon: "account_balance_wallet" },
-    { key: "recurrence", label: "Recorrência", icon: "event_repeat" },
+    { key: "category", label: "Conta", icon: "category" },
+    { key: "account", label: "Tag", icon: "account_balance_wallet" },
+    { key: "recurrence", label: "Agendamento", icon: "event_repeat" },
   ];
 }
 
@@ -6470,7 +6849,7 @@ function supportEntityRowsByType(type) {
       key: `recurrence:${Number(row?.id || 0)}`,
       refType: "recurrence",
       id: Number(row?.id || 0),
-      title: String(row?.description || row?.category || `Recorrência #${row?.id || ""}`),
+      title: String(row?.description || row?.category || `Agendamento #${row?.id || ""}`),
       meta: `${formatIsoDate(String(row?.next_run_date || row?.start_date || "").slice(0, 10)) || "--"} · ${money.format(Number(row?.amount || 0))}`,
     })).filter((row) => row.id > 0);
   }
@@ -6480,9 +6859,9 @@ function supportEntityRowsByType(type) {
 function supportEntityTitle(type) {
   return ({
     entry: "Selecionar lançamento",
-    category: "Selecionar categoria",
-    account: "Selecionar conta/cartão",
-    recurrence: "Selecionar recorrência",
+    category: "Selecionar conta",
+    account: "Selecionar tag",
+    recurrence: "Selecionar agendamento",
   })[type] || "Selecionar item";
 }
 
@@ -6512,7 +6891,7 @@ async function openSupportEntityModal(type) {
   const thread = supportCurrentThread();
   const targetUserId = Number(thread?.user_id || 0);
   const canUseAdminThreadContext = targetUserId > 0
-    && (String(currentProfile?.role || "") === "admin" || Boolean(getImpersonationAdminToken()));
+    && hasAdminPrivileges();
   const hasThreadContext = targetUserId > 0;
   if (supportEntityPickerType === "entry") {
     if (!hasThreadContext) {
@@ -6928,12 +7307,23 @@ async function saveAccountPassword() {
 
 function resetAdminCategoryForm() {
   editingAdminCategoryId = 0;
+  adminCategoryCollapsedIds.clear();
+  adminCategoryParentCollapsedIds.clear();
+  lastAdminCategoryParentCode = "";
   if (adminCategoryNameInput) adminCategoryNameInput.value = "";
   selectedAdminCategoryType = "out";
+  selectedAdminCategoryClass = "synthetic";
+  selectedAdminCategoryParentId = 0;
+  if (adminCategoryClassInput) adminCategoryClassInput.value = "synthetic";
   if (adminCategoryAlterdataInput) adminCategoryAlterdataInput.value = "";
+  if (adminCategoryAlterdataPrefixEl) {
+    adminCategoryAlterdataPrefixEl.hidden = true;
+    adminCategoryAlterdataPrefixEl.textContent = "";
+  }
   if (deleteAdminCategoryModalBtn) deleteAdminCategoryModalBtn.hidden = true;
   syncAdminCategoryTypeLabel();
-  if (adminCategoryStatsEl) adminCategoryStatsEl.innerHTML = '<p class="category-empty">Selecione uma categoria para ver o resumo.</p>';
+  syncAdminCategoryParentLabel();
+  if (adminCategoryStatsEl) adminCategoryStatsEl.innerHTML = '<p class="category-empty">Selecione uma conta para ver o resumo.</p>';
 }
 
 function resetAdminUserForm() {
@@ -6981,6 +7371,10 @@ function adminCategoryTypeLabel(value) {
   return value === "in" ? "Entrada" : "Saída";
 }
 
+function adminCategoryClassLabel(value) {
+  return String(value || "") === "analytic" ? "Analítica" : "Sintética";
+}
+
 function adminUserRoleLabel(value) {
   return value === "admin" ? "Administrador" : "Usuário";
 }
@@ -7004,13 +7398,13 @@ function adminAlterdataFieldLabel(scope, field) {
       amount: "Valor",
       type: "Tipo",
       type_code: "Tipo (E/S)",
-      category: "Categoria",
+      category: "Conta",
       description: "Descrição",
-      account_name: "Conta/cartão",
-      account_id: "ID da conta/cartão",
+      account_name: "Tag",
+      account_id: "ID da tag",
     },
     category: {
-      id: "ID da categoria",
+      id: "ID da conta",
       name: "Nome",
       type: "Tipo",
       alterdata_auto: "Código Alterdata",
@@ -7036,6 +7430,56 @@ function adminAlterdataColumnDescription(column) {
 
 function syncAdminCategoryTypeLabel() {
   if (selectedAdminCategoryTypeEl) selectedAdminCategoryTypeEl.textContent = adminCategoryTypeLabel(selectedAdminCategoryType);
+}
+
+function syncAdminCategoryParentLabel() {
+  if (!selectedAdminCategoryParentEl) return;
+  if (selectedAdminCategoryParentId <= 0) {
+    selectedAdminCategoryParentEl.textContent = "Selecionar conta pai";
+    selectedAdminCategoryParentEl.classList.add("is-placeholder");
+    return;
+  }
+  const row = adminCategoriesCache.find((item) => Number(item?.id || 0) === selectedAdminCategoryParentId);
+  const label = String(row?.name || "").trim();
+  if (label) {
+    selectedAdminCategoryParentEl.textContent = label;
+    selectedAdminCategoryParentEl.classList.remove("is-placeholder");
+    return;
+  }
+  selectedAdminCategoryParentEl.textContent = "Selecionar conta pai";
+  selectedAdminCategoryParentEl.classList.add("is-placeholder");
+}
+
+function adminCategoryParentCodeById(id) {
+  if (!id || id <= 0) return "";
+  const row = adminCategoriesCache.find((item) => Number(item?.id || 0) === Number(id));
+  return String(row?.alterdata_auto || "").trim();
+}
+
+function extractAlterdataSuffix(fullCode, parentCode = "") {
+  const full = String(fullCode || "").trim();
+  const parent = String(parentCode || "").trim();
+  if (!full) return "";
+  if (parent && full.startsWith(`${parent}.`)) {
+    return full.slice(parent.length + 1).trim();
+  }
+  const parts = full.split(".").map((part) => part.trim()).filter((part) => part.length > 0);
+  return parts.length ? String(parts[parts.length - 1]) : full;
+}
+
+function syncAdminAlterdataPrefixByParent() {
+  if (!adminCategoryAlterdataInput) return;
+  const parentCode = adminCategoryParentCodeById(selectedAdminCategoryParentId);
+  if (adminCategoryAlterdataPrefixEl) {
+    if (parentCode) {
+      adminCategoryAlterdataPrefixEl.hidden = false;
+      adminCategoryAlterdataPrefixEl.textContent = `${parentCode}.`;
+    } else {
+      adminCategoryAlterdataPrefixEl.hidden = true;
+      adminCategoryAlterdataPrefixEl.textContent = "";
+    }
+  }
+  lastAdminCategoryParentCode = parentCode;
 }
 
 function syncAdminUserRoleLabel() {
@@ -7081,21 +7525,28 @@ function syncAdminExportLabels() {
 
 function renderAdminCategoriesList(items) {
   if (!adminCategoriesListEl) return;
-  const rows = Array.isArray(items) ? items : [];
+  const rows = buildGlobalTreeRows(Array.isArray(items) ? items : []);
+  const visibleRows = filterTreeRowsByCollapsed(rows, adminCategoryCollapsedIds);
+  const displayCodeMap = buildAlterdataDisplayCodeMap(rows);
   if (!rows.length) {
-    adminCategoriesListEl.innerHTML = '<p class="category-empty">Nenhuma categoria global.</p>';
+    adminCategoriesListEl.innerHTML = '<p class="category-empty">Nenhuma conta global.</p>';
     return;
   }
-  adminCategoriesListEl.innerHTML = rows.map((row) => {
+  adminCategoriesListEl.innerHTML = visibleRows.map((row) => {
     const id = Number(row?.id || 0);
     const name = escapeHtml(String(row?.name || ""));
     const type = adminCategoryTypeLabel(String(row?.type || ""));
-    const alter = escapeHtml(String(row?.alterdata_auto || ""));
-    const detail = `${type} · ${alter ? alter : "Sem código"}`;
+    const accountClass = adminCategoryClassLabel(String(row?.account_class || "synthetic"));
+    const alter = escapeHtml(String(displayCodeMap.get(id) || ""));
+    const detail = `${type} · ${accountClass} · Alterdata: ${alter ? alter : "--"}`;
+    const depth = Math.max(0, Number(row?.depth || 0));
+    const treeToggle = treeToggleMarkup(row, adminCategoryCollapsedIds, "admin-category-tree-toggle");
     return `
-      <button type="button" class="category-option category-option--admin-row is-neutral" data-admin-category-select="${id}">
-        <span class="category-option__lead"><span class="material-symbols-rounded">category</span></span>
-        <span class="category-option__text">${name} · ${escapeHtml(detail)}</span>
+      <button type="button" class="category-option category-option--admin-row category-option--no-lead is-neutral" data-admin-category-select="${id}">
+        <span class="category-option__text-wrap">
+          <span class="category-tree-line" style="padding-inline-start:${Math.min(depth * 16, 96)}px">${treeToggle}<span class="category-option__text">${name}</span></span>
+          <span class="category-option__meta">${escapeHtml(detail)}</span>
+        </span>
         <span class="material-symbols-rounded category-option__trail">chevron_right</span>
       </button>
     `;
@@ -7369,7 +7820,7 @@ function renderAdminPendingEntriesList(items, users) {
       const type = String(entry?.type || "") === "in" ? "in" : "out";
       const icon = type === "in" ? "arrow_downward" : "arrow_upward";
       const title = escapeHtml(String(entry?.description || entry?.category || "Lançamento"));
-      const meta = escapeHtml(`${String(entry?.category || "Sem categoria")} · ${formatIsoDate(String(entry?.date || "").slice(0, 10)) || "--"}`);
+      const meta = escapeHtml(`${String(entry?.category || "Sem conta")} · ${formatIsoDate(String(entry?.date || "").slice(0, 10)) || "--"}`);
       const amount = Number(entry?.amount || 0);
       const signed = type === "out" ? -Math.abs(amount) : Math.abs(amount);
       return `
@@ -7398,11 +7849,26 @@ async function fetchAdminCategories() {
   }
   const payload = await safeJson(response, []);
   if (!response.ok) {
-    showError(String(payload?.error || "Não foi possível carregar categorias globais."));
+    showError(String(payload?.error || "Não foi possível carregar contas globais."));
     return [];
   }
   adminCategoriesCache = Array.isArray(payload) ? payload : [];
   return adminCategoriesCache;
+}
+
+async function fetchAdminCategoriesTree() {
+  const response = await authFetch("/api/admin/categories/tree");
+  if (response.status === 401) {
+    window.location.href = "/";
+    return [];
+  }
+  const payload = await safeJson(response, []);
+  if (!response.ok) {
+    showError(String(payload?.error || "Não foi possível carregar árvore de contas globais."));
+    return [];
+  }
+  adminCategoriesTreeCache = Array.isArray(payload) ? payload : [];
+  return adminCategoriesTreeCache;
 }
 
 async function fetchAdminCloseMonthHistory() {
@@ -7526,7 +7992,7 @@ async function fetchAdminCategoryStats(categoryId) {
   const response = await authFetch(`/api/admin/categories/${Number(categoryId || 0)}/stats`);
   const payload = await safeJson(response, {});
   if (!response.ok) {
-    showError(String(payload?.error || "Não foi possível carregar o resumo da categoria."));
+    showError(String(payload?.error || "Não foi possível carregar o resumo da conta."));
     return null;
   }
   return payload;
@@ -7549,9 +8015,9 @@ function renderAdminCategoryStats(stats) {
     return;
   }
   adminCategoryStatsEl.innerHTML = `
-    <article class="settings-item"><p class="settings-item__text">Categorias filhas: <strong>${Number(stats?.child_categories || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Contas filhas: <strong>${Number(stats?.child_categories || 0)}</strong></p></article>
     <article class="settings-item"><p class="settings-item__text">Lançamentos vinculados: <strong>${Number(stats?.entries || 0)}</strong></p></article>
-    <article class="settings-item"><p class="settings-item__text">Recorrências ativas: <strong>${Number(stats?.recurrences || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Agendamentos ativos: <strong>${Number(stats?.recurrences || 0)}</strong></p></article>
     <article class="settings-item"><p class="settings-item__text">Usuários com vínculo: <strong>${Number(stats?.users || 0)}</strong></p></article>
   `;
 }
@@ -7564,15 +8030,18 @@ function renderAdminUserStats(stats) {
   }
   adminUserStatsEl.innerHTML = `
     <article class="settings-item"><p class="settings-item__text">Lançamentos: <strong>${Number(stats?.entries || 0)}</strong></p></article>
-    <article class="settings-item"><p class="settings-item__text">Recorrências ativas: <strong>${Number(stats?.recurrences || 0)}</strong></p></article>
-    <article class="settings-item"><p class="settings-item__text">Contas/cartões ativos: <strong>${Number(stats?.accounts || 0)}</strong></p></article>
-    <article class="settings-item"><p class="settings-item__text">Categorias filhas: <strong>${Number(stats?.categories || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Agendamentos ativos: <strong>${Number(stats?.recurrences || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Tags ativas: <strong>${Number(stats?.accounts || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Contas filhas: <strong>${Number(stats?.categories || 0)}</strong></p></article>
     <article class="settings-item"><p class="settings-item__text">Pendentes de revisão: <strong>${Number(stats?.pending_review || 0)}</strong></p></article>
   `;
 }
 
 async function openAdminCategoriesModal() {
-  const items = await fetchAdminCategories();
+  const [items] = await Promise.all([
+    fetchAdminCategories(),
+    fetchAdminCategoriesTree(),
+  ]);
   renderAdminCategoriesList(items);
   await adminCategoriesModal?.present();
 }
@@ -7600,13 +8069,20 @@ async function closeAdminCategoryEditorModal() {
 async function saveAdminCategory() {
   const name = String(adminCategoryNameInput?.value || "").trim();
   const type = String(selectedAdminCategoryType || "out");
-  const alterdataAuto = String(adminCategoryAlterdataInput?.value || "").trim();
+  const accountClass = String(selectedAdminCategoryClass || "synthetic");
+  const parentCategoryId = Number(selectedAdminCategoryParentId || 0);
+  const parentCode = adminCategoryParentCodeById(parentCategoryId);
+  const alterdataAuto = extractAlterdataSuffix(String(adminCategoryAlterdataInput?.value || "").trim(), parentCode);
   if (!name) {
-    showError("Informe o nome da categoria global.");
+    showError("Informe o nome da conta global.");
+    return;
+  }
+  if (accountClass === "analytic" && parentCategoryId <= 0) {
+    showError("Conta analítica exige conta pai sintética.");
     return;
   }
   if (!alterdataAuto) {
-    showError("Código Alterdata é obrigatório para categoria global.");
+    showError("Código Alterdata é obrigatório para conta global.");
     return;
   }
   if (saveAdminCategoryModalBtn) saveAdminCategoryModalBtn.disabled = true;
@@ -7623,21 +8099,26 @@ async function saveAdminCategory() {
       body: JSON.stringify({
         name,
         type,
+        account_class: accountClass,
+        parent_category_id: parentCategoryId > 0 ? parentCategoryId : null,
         alterdata_auto: alterdataAuto,
       }),
     });
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível salvar a categoria global."));
+      showError(String(payload?.error || "Não foi possível salvar a conta global."));
       return;
     }
-    showInfo(editingAdminCategoryId > 0 ? "Categoria global atualizada." : "Categoria global criada.");
+    showInfo(editingAdminCategoryId > 0 ? "Conta global atualizada." : "Conta global criada.");
     resetAdminCategoryForm();
-    const items = await fetchAdminCategories();
+    const [items] = await Promise.all([
+      fetchAdminCategories(),
+      fetchAdminCategoriesTree(),
+    ]);
     renderAdminCategoriesList(items);
     await closeAdminCategoryEditorModal();
   } catch {
-    showError("Falha de rede ao salvar categoria global.");
+    showError("Falha de rede ao salvar conta global.");
   } finally {
     if (saveAdminCategoryModalBtn) saveAdminCategoryModalBtn.disabled = false;
   }
@@ -7645,7 +8126,7 @@ async function saveAdminCategory() {
 
 async function deleteAdminCategory(id) {
   const confirmed = await confirmActionModal({
-    header: "Excluir categoria global",
+    header: "Excluir conta global",
     message: "Esta ação não pode ser desfeita.",
     confirmText: "Excluir",
     cancelText: "Cancelar",
@@ -7659,11 +8140,14 @@ async function deleteAdminCategory(id) {
   });
   const payload = await safeJson(response, {});
   if (!response.ok) {
-    showError(String(payload?.error || "Não foi possível excluir a categoria global."));
+    showError(String(payload?.error || "Não foi possível excluir a conta global."));
     return;
   }
-  showInfo("Categoria global excluída.");
-  const items = await fetchAdminCategories();
+  showInfo("Conta global excluída.");
+  const [items] = await Promise.all([
+    fetchAdminCategories(),
+    fetchAdminCategoriesTree(),
+  ]);
   renderAdminCategoriesList(items);
   resetAdminCategoryForm();
   await closeAdminCategoryEditorModal();
@@ -7789,13 +8273,6 @@ async function impersonateAdminUser(userId, options = {}) {
   const id = Number(userId || 0);
   if (id <= 0) return;
   const silent = Boolean(options?.silent);
-  const currentToken = getStoredAuthToken();
-  const baseAdminToken = getImpersonationAdminToken();
-  const tokenForRestore = baseAdminToken || currentToken;
-  if (!tokenForRestore) {
-    if (!silent) showError("Sessão inválida para personificação.");
-    return;
-  }
   if (saveAdminImpersonateModalBtn) saveAdminImpersonateModalBtn.disabled = true;
   try {
     const response = await fetch(`/api/admin/users/${id}/impersonate`, {
@@ -7808,20 +8285,6 @@ async function impersonateAdminUser(userId, options = {}) {
       if (!silent) showError(String(payload?.error || "Não foi possível iniciar personificação."));
       return;
     }
-    const nextToken = String(payload?.token || "");
-    if (!nextToken) {
-      if (!silent) showError("Token de personificação inválido.");
-      return;
-    }
-    try {
-      // Preserve original admin token across nested impersonations.
-      if (!baseAdminToken) {
-        localStorage.setItem(IMPERSONATION_ADMIN_TOKEN_KEY, tokenForRestore);
-      }
-    } catch {
-      // ignore storage errors
-    }
-    setStoredAuthToken(nextToken);
     const userName = String(payload?.user?.name || payload?.user?.email || "usuário");
     if (!silent) showInfo(`Personificação iniciada: ${userName}.`);
     await closeAdminImpersonateModal();
@@ -7866,21 +8329,20 @@ async function deleteAdminUser(id) {
 
 async function stopImpersonation(options = {}) {
   const silent = Boolean(options?.silent);
-  let adminToken = "";
   try {
-    adminToken = String(localStorage.getItem(IMPERSONATION_ADMIN_TOKEN_KEY) || "");
+    const response = await fetch("/api/admin/impersonation/stop", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: authHeaders({ Accept: "application/json" }),
+    });
+    const payload = await safeJson(response, {});
+    if (!response.ok) {
+      if (!silent) showError(String(payload?.error || "Não foi possível encerrar a personificação."));
+      return;
+    }
   } catch {
-    adminToken = "";
-  }
-  if (!adminToken) {
-    if (!silent) showError("Token do administrador não encontrado para encerrar personificação.");
+    if (!silent) showError("Falha de rede ao encerrar personificação.");
     return;
-  }
-  setStoredAuthToken(adminToken);
-  try {
-    localStorage.removeItem(IMPERSONATION_ADMIN_TOKEN_KEY);
-  } catch {
-    // ignore storage errors
   }
   if (!silent) showInfo("Personificação encerrada.");
   await loadDashboard();
@@ -8270,12 +8732,12 @@ async function closeAdminExportUserModal() {
 }
 
 async function loadDashboard() {
+  const token = ++dashboardLoadToken;
+  dashboardLoadsInFlight += 1;
   hideMessages();
   if (refreshBtn) refreshBtn.disabled = true;
 
-  if (!categories.length) {
-    await loadCategories();
-  }
+  await loadCategories();
   normalizeAppliedEntryFilters();
   formatFilterPanel();
 
@@ -8312,13 +8774,6 @@ async function loadDashboard() {
         admin: impersonationPayload?.admin || null,
       },
     };
-    if (!currentProfile.impersonation.active) {
-      try {
-        localStorage.removeItem(IMPERSONATION_ADMIN_TOKEN_KEY);
-      } catch {
-        // ignore storage errors
-      }
-    }
     if (userTitleEl) userTitleEl.textContent = displayName;
     syncAdminAreaAccess();
     syncImpersonationBanner();
@@ -8356,6 +8811,7 @@ async function loadDashboard() {
       safeJson(entriesRes, []),
       safeJson(entryGroupsRes, {}),
     ]);
+    if (token !== dashboardLoadToken) return;
 
     dashboardEntriesCache = Array.isArray(entries) ? entries : [];
     const monthAggSafe = (monthAgg && typeof monthAgg === "object") ? monthAgg : {};
@@ -8385,6 +8841,7 @@ async function loadDashboard() {
       }
       if (monthGroupsRes.ok) {
         const monthGroupsPayload = await safeJson(monthGroupsRes, {});
+        if (token !== dashboardLoadToken) return;
         const monthGroups = Array.isArray(monthGroupsPayload?.groups) ? monthGroupsPayload.groups : [];
         const monthEntries = extractEntriesFromGroups(monthGroups);
         Object.assign(monthAggSafe, buildMonthAggregateFromEntries(monthEntries, month));
@@ -8405,11 +8862,13 @@ async function loadDashboard() {
       }
       if (prevGroupsRes.ok) {
         const prevGroupsPayload = await safeJson(prevGroupsRes, {});
+        if (token !== dashboardLoadToken) return;
         const prevGroups = Array.isArray(prevGroupsPayload?.groups) ? prevGroupsPayload.groups : [];
         const prevEntriesFromGroups = extractEntriesFromGroups(prevGroups);
         Object.assign(prevMonthAggSafe, buildMonthAggregateFromEntries(prevEntriesFromGroups, prevMonth));
       }
     }
+    if (token !== dashboardLoadToken) return;
 
     const totals = monthAggSafe?.totals || {};
     const balance = Number(totals.balance || 0);
@@ -8465,8 +8924,11 @@ async function loadDashboard() {
     }
 
     await loadCategories();
+    if (token !== dashboardLoadToken) return;
     await loadAccounts(true);
+    if (token !== dashboardLoadToken) return;
     await loadRecurrences();
+    if (token !== dashboardLoadToken) return;
     showInfo(`Atualizado com dados de ${periodLabel()}`);
     requestAnimationFrame(updateOverlayPositioning);
   } catch (error) {
@@ -8487,7 +8949,8 @@ async function loadDashboard() {
         }, 500);
       }
     }
-    if (refreshBtn) refreshBtn.disabled = false;
+    dashboardLoadsInFlight = Math.max(0, dashboardLoadsInFlight - 1);
+    if (refreshBtn && dashboardLoadsInFlight === 0) refreshBtn.disabled = false;
   }
 }
 
@@ -8499,12 +8962,6 @@ async function logout() {
       headers: authHeaders({ Accept: "application/json" }),
     });
   } finally {
-    setStoredAuthToken("");
-    try {
-      localStorage.removeItem(IMPERSONATION_ADMIN_TOKEN_KEY);
-    } catch {
-      // ignore storage errors
-    }
     window.location.href = "/";
   }
 }
@@ -8805,6 +9262,18 @@ closeAdminCategoryTypeModalBtn?.addEventListener("click", () => {
 adminCategoriesListEl?.addEventListener("click", (event) => {
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (!target) return;
+  const toggle = target.closest("[data-admin-category-tree-toggle]");
+  if (toggle) {
+    event.preventDefault();
+    event.stopPropagation();
+    const id = Number(toggle.getAttribute("data-admin-category-tree-toggle") || 0);
+    if (id > 0) {
+      if (adminCategoryCollapsedIds.has(id)) adminCategoryCollapsedIds.delete(id);
+      else adminCategoryCollapsedIds.add(id);
+      renderAdminCategoriesList(adminCategoriesCache);
+    }
+    return;
+  }
   const selectBtn = target.closest("[data-admin-category-select]");
   const selectedIdRaw = selectBtn ? selectBtn.getAttribute("data-admin-category-select") : "";
   if (!selectedIdRaw) return;
@@ -8814,8 +9283,19 @@ adminCategoriesListEl?.addEventListener("click", (event) => {
   editingAdminCategoryId = id;
   if (adminCategoryNameInput) adminCategoryNameInput.value = String(item?.name || "");
   selectedAdminCategoryType = String(item?.type || "out");
+  selectedAdminCategoryClass = String(item?.account_class || "synthetic");
+  selectedAdminCategoryParentId = Number(item?.parent_category_id || 0);
+  lastAdminCategoryParentCode = adminCategoryParentCodeById(selectedAdminCategoryParentId);
+  if (adminCategoryClassInput) adminCategoryClassInput.value = selectedAdminCategoryClass;
   syncAdminCategoryTypeLabel();
-  if (adminCategoryAlterdataInput) adminCategoryAlterdataInput.value = String(item?.alterdata_auto || "");
+  syncAdminCategoryParentLabel();
+  if (adminCategoryAlterdataInput) {
+    adminCategoryAlterdataInput.value = extractAlterdataSuffix(
+      String(item?.alterdata_auto || ""),
+      adminCategoryParentCodeById(selectedAdminCategoryParentId)
+    );
+  }
+  syncAdminAlterdataPrefixByParent();
   if (deleteAdminCategoryModalBtn) deleteAdminCategoryModalBtn.hidden = false;
   void openAdminCategoryEditorModal();
   void fetchAdminCategoryStats(id).then(renderAdminCategoryStats);
@@ -8828,8 +9308,65 @@ adminCategoryTypeListEl?.addEventListener("click", (event) => {
   const value = btn ? String(btn.getAttribute("data-admin-category-type") || "") : "";
   if (!value) return;
   selectedAdminCategoryType = value;
+  ensureSelectedAdminCategoryParentEligible();
   syncAdminCategoryTypeLabel();
+  syncAdminCategoryParentLabel();
+  renderAdminCategoryParentOptions();
   void closeAdminCategoryTypeModal();
+});
+
+openAdminCategoryParentBtn?.addEventListener("click", () => {
+  renderAdminCategoryParentOptions();
+  void adminCategoryParentModal?.present();
+});
+
+closeAdminCategoryParentModalBtn?.addEventListener("click", () => {
+  void adminCategoryParentModal?.dismiss();
+});
+
+adminCategoryParentSearchInput?.addEventListener("ionInput", () => {
+  renderAdminCategoryParentOptions();
+});
+
+adminCategoryParentListEl?.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const toggle = target.closest("[data-admin-category-parent-toggle]");
+  if (toggle) {
+    event.preventDefault();
+    event.stopPropagation();
+    const id = Number(toggle.getAttribute("data-admin-category-parent-toggle") || 0);
+    if (id > 0) {
+      if (adminCategoryParentCollapsedIds.has(id)) adminCategoryParentCollapsedIds.delete(id);
+      else adminCategoryParentCollapsedIds.add(id);
+      renderAdminCategoryParentOptions();
+    }
+    return;
+  }
+  const btn = target.closest("[data-admin-category-parent]");
+  if (!btn) return;
+  const id = Number(btn.getAttribute("data-admin-category-parent") || 0);
+  selectedAdminCategoryParentId = id > 0 ? id : 0;
+  syncAdminAlterdataPrefixByParent();
+  syncAdminCategoryParentLabel();
+  void adminCategoryParentModal?.dismiss();
+});
+
+adminCategoryClassInput?.addEventListener("ionChange", (event) => {
+  const value = String(event?.detail?.value || adminCategoryClassInput?.value || "synthetic");
+  selectedAdminCategoryClass = value === "analytic" ? "analytic" : "synthetic";
+  ensureSelectedAdminCategoryParentEligible();
+  syncAdminAlterdataPrefixByParent();
+  syncAdminCategoryParentLabel();
+  renderAdminCategoryParentOptions();
+});
+
+adminCategoryAlterdataInput?.addEventListener("ionBlur", () => {
+  const parentCode = adminCategoryParentCodeById(selectedAdminCategoryParentId);
+  if (adminCategoryAlterdataInput) {
+    adminCategoryAlterdataInput.value = extractAlterdataSuffix(String(adminCategoryAlterdataInput.value || ""), parentCode);
+  }
+  syncAdminAlterdataPrefixByParent();
 });
 
 closeAdminUsersModalBtn?.addEventListener("click", () => {
@@ -9235,6 +9772,13 @@ adminCategoryTypeModal?.addEventListener("ionModalDidPresent", () => {
   refreshPickerLayerState();
 });
 
+adminCategoryParentModal?.addEventListener("ionModalDidDismiss", () => {
+  refreshPickerLayerState();
+});
+adminCategoryParentModal?.addEventListener("ionModalDidPresent", () => {
+  refreshPickerLayerState();
+});
+
 adminUserRoleModal?.addEventListener("ionModalDidDismiss", () => {
   refreshPickerLayerState();
 });
@@ -9310,7 +9854,7 @@ function registerPwaServiceWorker() {
   if (!window.isSecureContext) return;
 
   navigator.serviceWorker
-    .register("/service-worker.js")
+    .register(`/service-worker.js?v=${APP_ASSET_VERSION}`)
     .catch(() => {
       // Service worker should not block app usage.
     });
@@ -9322,18 +9866,10 @@ if (document.readyState === "complete") {
   window.addEventListener("load", registerPwaServiceWorker, { once: true });
 }
 
-
-
-
-
-
-
-
-  if (deleteAdminUserModalBtn) deleteAdminUserModalBtn.hidden = true;
-      if (deleteAdminUserModalBtn) deleteAdminUserModalBtn.hidden = false;
 deleteAdminUserModalBtn?.addEventListener("click", () => {
   if (editingAdminUserId > 0) {
     void deleteAdminUser(editingAdminUserId);
   }
 });
+
 

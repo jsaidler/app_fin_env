@@ -118,6 +118,7 @@ class AuthController extends BaseController
             'samesite' => 'Lax',
             'secure' => $secure,
         ]);
+        $this->setCsrfCookie();
     }
 
     private function clearAuthCookie(): void
@@ -130,6 +131,7 @@ class AuthController extends BaseController
             'samesite' => 'Lax',
             'secure' => $secure,
         ]);
+        $this->clearCsrfCookie();
     }
 
     private function loginThrottle(): LoginThrottle

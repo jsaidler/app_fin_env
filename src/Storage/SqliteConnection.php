@@ -110,7 +110,7 @@ class SqliteConnection
             type TEXT NOT NULL,
             amount REAL NOT NULL,
             category TEXT NOT NULL,
-            account_id INTEGER NOT NULL,
+            account_id INTEGER,
             description TEXT,
             frequency TEXT NOT NULL,
             start_date TEXT NOT NULL,
@@ -124,6 +124,25 @@ class SqliteConnection
         )');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrences_user_active_next ON recurrences(user_id, active, next_run_date)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrences_account ON recurrences(account_id)');
+
+        $pdo->exec('CREATE TABLE IF NOT EXISTS recurrence_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            recurrence_id INTEGER NOT NULL,
+            scheduled_date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT "pending",
+            entry_id INTEGER,
+            executed_at TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(recurrence_id) REFERENCES recurrences(id) ON DELETE CASCADE,
+            FOREIGN KEY(entry_id) REFERENCES entries(id) ON DELETE SET NULL
+        )');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrence_runs_user_date ON recurrence_runs(user_id, scheduled_date DESC)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrence_runs_recurrence ON recurrence_runs(recurrence_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrence_runs_status ON recurrence_runs(status)');
+        $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_recurrence_runs_unique ON recurrence_runs(recurrence_id, scheduled_date)');
 
         $pdo->exec('CREATE TABLE IF NOT EXISTS month_locks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -227,6 +246,10 @@ class SqliteConnection
 
         self::ensureColumn($pdo, 'users', 'alterdata_code', 'TEXT');
         self::ensureColumn($pdo, 'categories', 'alterdata_auto', 'TEXT');
+        self::ensureColumn($pdo, 'categories', 'account_class', 'TEXT NOT NULL DEFAULT "synthetic"');
+        self::ensureColumn($pdo, 'categories', 'parent_category_id', 'INTEGER');
+        self::ensureColumn($pdo, 'categories', 'allows_analytic_children', 'INTEGER NOT NULL DEFAULT 1');
+        self::ensureColumn($pdo, 'categories', 'owner_user_id', 'INTEGER');
         self::ensureColumn($pdo, 'user_accounts', 'initial_balance', 'REAL NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'entries', 'account_id', 'INTEGER');
         self::ensureColumn($pdo, 'entries', 'needs_review', 'INTEGER NOT NULL DEFAULT 0');
@@ -237,14 +260,106 @@ class SqliteConnection
         self::ensureColumn($pdo, 'entries', 'last_modified_at', 'TEXT');
         self::ensureColumn($pdo, 'categories', 'last_modified_by_user_id', 'INTEGER');
         self::ensureColumn($pdo, 'categories', 'last_modified_at', 'TEXT');
+        self::ensureColumn($pdo, 'user_categories', 'account_class', 'TEXT NOT NULL DEFAULT "analytic"');
         self::ensureColumn($pdo, 'user_categories', 'last_modified_by_user_id', 'INTEGER');
         self::ensureColumn($pdo, 'user_categories', 'last_modified_at', 'TEXT');
+        self::migrateRecurrencesOptionalAccount($pdo);
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_account_id ON entries(account_id)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_recurrence_id ON entries(recurrence_id)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entries_last_modified_by ON entries(last_modified_by_user_id)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_categories_last_modified_by ON categories(last_modified_by_user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_category_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_categories_owner ON categories(owner_user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_categories_allows_analytic_children ON categories(allows_analytic_children)');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_categories_last_modified_by ON user_categories(last_modified_by_user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_user_categories_account_class ON user_categories(account_class)');
+        $pdo->exec("UPDATE categories SET allows_analytic_children = 0 WHERE lower(coalesce(account_class,'')) = 'analytic'");
+        $pdo->exec('UPDATE categories SET allows_analytic_children = 1 WHERE allows_analytic_children IS NULL');
         self::backfillSupportThreads($pdo);
+    }
+
+    private static function migrateRecurrencesOptionalAccount(PDO $pdo): void
+    {
+        $stmt = $pdo->query('PRAGMA table_info(recurrences)');
+        $columns = $stmt ? $stmt->fetchAll() : [];
+        if (!$columns) {
+            return;
+        }
+
+        $accountColumn = null;
+        foreach ($columns as $column) {
+            if (($column['name'] ?? '') === 'account_id') {
+                $accountColumn = $column;
+                break;
+            }
+        }
+        if (!$accountColumn) {
+            return;
+        }
+
+        $isNotNull = (int)($accountColumn['notnull'] ?? 0) === 1;
+        if (!$isNotNull) {
+            return;
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $pdo->exec('PRAGMA foreign_keys = OFF');
+
+            $pdo->exec('CREATE TABLE recurrences_tmp (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                amount REAL NOT NULL,
+                category TEXT NOT NULL,
+                account_id INTEGER,
+                description TEXT,
+                frequency TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                next_run_date TEXT NOT NULL,
+                last_run_date TEXT,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY(account_id) REFERENCES user_accounts(id) ON DELETE CASCADE
+            )');
+
+            $pdo->exec('INSERT INTO recurrences_tmp (
+                id, user_id, type, amount, category, account_id, description,
+                frequency, start_date, next_run_date, last_run_date, active, created_at, updated_at
+            )
+            SELECT
+                id,
+                user_id,
+                type,
+                amount,
+                category,
+                CASE WHEN account_id IS NULL OR account_id <= 0 THEN NULL ELSE account_id END,
+                description,
+                frequency,
+                start_date,
+                next_run_date,
+                last_run_date,
+                active,
+                created_at,
+                updated_at
+            FROM recurrences');
+
+            $pdo->exec('DROP TABLE recurrences');
+            $pdo->exec('ALTER TABLE recurrences_tmp RENAME TO recurrences');
+            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrences_user_active_next ON recurrences(user_id, active, next_run_date)');
+            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_recurrences_account ON recurrences(account_id)');
+
+            $pdo->exec('PRAGMA foreign_keys = ON');
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $pdo->exec('PRAGMA foreign_keys = ON');
+            throw $e;
+        }
     }
 
     private static function backfillSupportThreads(PDO $pdo): void

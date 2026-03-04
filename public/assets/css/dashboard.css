@@ -1330,7 +1330,7 @@ ion-content::part(scroll) {
 .cat-list-head {
   margin-top: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px minmax(86px, 1fr) 116px;
+  grid-template-columns: minmax(0, 1fr) 116px 116px;
   gap: 10px;
   align-items: center;
   font-size: 11px;
@@ -1348,11 +1348,11 @@ ion-content::part(scroll) {
 }
 
 .cat-list-head__prev {
-  text-align: left;
+  text-align: right;
 }
 
 .cat-list-head__bar {
-  display: block;
+  display: none;
 }
 
 .cat-list {
@@ -1363,7 +1363,7 @@ ion-content::part(scroll) {
 
 .cat-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px minmax(86px, 1fr) 116px;
+  grid-template-columns: minmax(0, 1fr) 116px 116px;
   gap: 10px;
   align-items: center;
   width: 100%;
@@ -1382,6 +1382,34 @@ ion-content::part(scroll) {
 .cat-row__meta {
   min-width: 0;
   display: block;
+}
+
+.cat-row__meta-line {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.cat-tree-toggle,
+.cat-tree-toggle-spacer {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cat-tree-toggle {
+  border-radius: 4px;
+  color: #7d8ca4;
+}
+
+.cat-tree-toggle .material-symbols-rounded {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .cat-chip {
@@ -1424,7 +1452,7 @@ ion-content::part(scroll) {
 }
 
 .cat-row__prev {
-  text-align: left;
+  text-align: right;
 }
 
 .cat-row__curr.pos,
@@ -1438,12 +1466,7 @@ ion-content::part(scroll) {
 }
 
 .cat-row__bar {
-  width: 100%;
-  height: 5px;
-  border-radius: 999px;
-  background: #d8dde7;
-  overflow: hidden;
-  position: relative;
+  display: none;
 }
 
 .cat-row__bar-fill-prev,
@@ -2863,6 +2886,14 @@ ion-input.amount-input {
   align-items: start;
 }
 
+.category-option--no-lead {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.category-option--no-lead .category-option__lead {
+  display: none;
+}
+
 .category-option.is-in .category-option__text {
   color: #1f6a46;
 }
@@ -2913,6 +2944,45 @@ ion-input.amount-input {
   min-width: 0;
   display: grid;
   gap: 2px;
+  width: 100%;
+}
+
+.category-tree-line {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.category-tree-line .category-option__text {
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.category-tree-toggle,
+.category-tree-toggle-spacer {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-tree-toggle {
+  cursor: pointer;
+  color: #7d8ca4;
+  border-radius: 4px;
+}
+
+.category-tree-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.category-tree-toggle .material-symbols-rounded {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .category-option__meta {
@@ -2951,6 +3021,15 @@ ion-input.amount-input {
 
 .category-option--admin-row {
   grid-template-columns: 20px minmax(0, 1fr) 20px;
+  padding: 6px 6px;
+}
+
+.category-option--admin-row.category-option--no-lead {
+  grid-template-columns: minmax(0, 1fr) 20px;
+}
+
+.category-option--admin-row .category-option__text-wrap {
+  min-width: 0;
 }
 
 .category-option--admin-text-only {
@@ -2997,10 +3076,61 @@ ion-input.amount-input {
   font-size: 18px;
 }
 
+.entry-stage__helper {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7d8ca4;
+}
+
+.entry-alterdata-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  min-width: 0;
+  border-bottom: 1px solid var(--cp-line);
+  padding: 0 2px 6px;
+}
+
+.entry-alterdata-inline__prefix {
+  flex: 0 0 auto;
+  padding: 0 2px 0 0;
+  font-size: var(--cp-type-body-strong);
+  line-height: 1.2;
+  font-weight: 700;
+  color: #7d8ca4;
+  white-space: nowrap;
+}
+
+.entry-alterdata-inline__input {
+  flex: 1 1 auto;
+  min-width: 56px;
+  --border-color: transparent;
+  --padding-bottom: 0;
+}
+
+.entry-alterdata-inline__input::part(native) {
+  padding: 0;
+  min-height: 0 !important;
+}
+
+.entry-alterdata-inline__input ion-input {
+  --padding-start: 0;
+  --padding-bottom: 0;
+}
+
 .category-empty {
   padding: 14px 0;
   font-size: var(--cp-type-body);
   color: var(--cp-muted);
+}
+
+#admin-categories-list.category-list {
+  gap: 8px;
+}
+
+#admin-categories-list .category-option__text-wrap {
+  gap: 1px;
 }
 
 #entry-date-modal ion-datetime,
@@ -3624,7 +3754,7 @@ ion-input.amount-input {
 
   .cat-list-head,
   .cat-row {
-    grid-template-columns: minmax(0, 1fr) 100px minmax(62px, 1fr) 100px;
+    grid-template-columns: minmax(0, 1fr) 100px 100px;
     gap: 6px;
   }
 
@@ -3657,3 +3787,4 @@ ion-input.amount-input {
     transition: none !important;
   }
 }
+
