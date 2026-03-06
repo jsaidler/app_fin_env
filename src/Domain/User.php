@@ -13,6 +13,7 @@ class User
     public string $role = 'user'; // user|admin
     public string $theme = 'dark'; // dark|light
     public string $alterdataCode = '';
+    public int $tokenVersion = 0;
 
     public static function fromArray(array $data): self
     {
@@ -25,6 +26,7 @@ class User
         $u->role = $data['role'] ?? 'user';
         $u->theme = $data['theme'] ?? 'dark';
         $u->alterdataCode = $data['alterdata_code'] ?? '';
+        $u->tokenVersion = (int)($data['token_version'] ?? 0);
         return $u;
     }
 
@@ -39,6 +41,7 @@ class User
             'role' => $this->role,
             'theme' => $this->theme,
             'alterdata_code' => $this->alterdataCode,
+            'token_version' => $this->tokenVersion,
         ];
     }
 }

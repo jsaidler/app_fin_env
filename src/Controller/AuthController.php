@@ -39,6 +39,13 @@ class AuthController extends BaseController
 
     public function logout(): void
     {
+        $uid = $this->requireAuth();
+        $impBy = isset($this->authPayload['imp_by']) ? (int)$this->authPayload['imp_by'] : 0;
+        if ($impBy > 0) {
+            $this->userRepo()->incrementTokenVersion($impBy);
+        } else {
+            $this->userRepo()->incrementTokenVersion($uid);
+        }
         $this->clearAuthCookie();
         Response::json(['ok' => true]);
     }

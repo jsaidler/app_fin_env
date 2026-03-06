@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Repository\Sqlite\SqliteCategoryRepository;
 use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteRecurrenceRepository;
 use App\Repository\Sqlite\SqliteRecurrenceRunRepository;
@@ -78,6 +79,7 @@ class RecurrenceController extends BaseController
             new SqliteRecurrenceRepository($this->db()),
             new SqliteRecurrenceRunRepository($this->db()),
             new SqliteEntryRepository($this->db()),
+            new SqliteCategoryRepository($this->db()),
             new SqliteUserAccountRepository($this->db())
         );
     }

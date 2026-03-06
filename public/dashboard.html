@@ -55,7 +55,7 @@
             <span>Contas</span>
           </button>
           <button type="button" class="dash-tab" data-tab="contas" aria-selected="false">
-            <span>Tags</span>
+            <span>Marcadores</span>
           </button>
           <button type="button" class="dash-tab" data-tab="recorrentes" aria-selected="false">
             <span>Agendamentos</span>
@@ -75,7 +75,7 @@
         </div>
       </div>
 
-      <div id="cat-summary-overlay" class="cat-summary-overlay" aria-label="Resumo de contas e tags">
+      <div id="cat-summary-overlay" class="cat-summary-overlay" aria-label="Resumo de contas e marcadores">
         <div class="cat-summary">
           <div class="cat-summary__metric">
             <div id="cat-so-far" class="cat-summary__value">R$ 0,00</div>
@@ -174,8 +174,8 @@
           <div id="categories-list-screen" class="cat-list"></div>
         </section>
 
-        <section id="sec-contas" class="dash-section dash-categories" data-tab-content="contas" aria-label="Resumo por tags" hidden>
-          <button id="open-user-account-modal" type="button" class="tx-add-cta">Adicionar tag</button>
+        <section id="sec-contas" class="dash-section dash-categories" data-tab-content="contas" aria-label="Resumo por marcadores" hidden>
+          <button id="open-user-account-modal" type="button" class="tx-add-cta">Adicionar marcador</button>
 
           <div class="cat-list-head" aria-hidden="true">
             <span class="cat-list-head__name"></span>
@@ -351,15 +351,15 @@
           <div class="settings-list">
             <article class="settings-item">
               <h4 class="settings-item__title">Primeiro acesso: por onde começo?</h4>
-              <p class="settings-item__text">Cadastre suas contas e tags principais. Depois registre os lançamentos do mês para gerar os resumos.</p>
+              <p class="settings-item__text">Cadastre suas contas e marcadores principais. Depois registre os lançamentos do mês para gerar os resumos.</p>
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Como lançar receitas e despesas?</h4>
-              <p class="settings-item__text">Toque no +, escolha tipo, informe valor, conta e data. Tag é opcional quando o lançamento não precisa dessa classificação.</p>
+              <p class="settings-item__text">Toque no +, escolha tipo, informe valor, conta e data. Marcador é opcional quando o lançamento não precisa dessa classificação.</p>
             </article>
             <article class="settings-item">
-              <h4 class="settings-item__title">Contas x Tags: qual a diferença?</h4>
-              <p class="settings-item__text">Conta representa a natureza do lançamento no plano. Tag é uma classificação auxiliar para organização.</p>
+              <h4 class="settings-item__title">Contas x Marcadores: qual a diferença?</h4>
+              <p class="settings-item__text">Conta representa a natureza do lançamento no plano. Marcador é uma classificação auxiliar para organização.</p>
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Como funcionam agendamentos?</h4>
@@ -371,7 +371,7 @@
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Fechamento mensal e mês anterior</h4>
-              <p class="settings-item__text">As abas de contas/tags exibem atual x anterior com base no período ativo. Confira os totais antes de fechar o mês.</p>
+              <p class="settings-item__text">As abas de contas/marcadores exibem atual x anterior com base no período ativo. Confira os totais antes de fechar o mês.</p>
             </article>
             <article class="settings-item">
               <h4 class="settings-item__title">Boas práticas de segurança</h4>
@@ -1178,8 +1178,8 @@
 
             <div class="entry-field-set">
               <button id="open-account" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Tag (opcional)</span>
-                <span id="selected-account" class="entry-picker-row__value is-placeholder">Selecionar tag (opcional)</span>
+                <span class="entry-picker-row__label">Marcador (opcional)</span>
+                <span id="selected-account" class="entry-picker-row__value is-placeholder">Selecionar marcador (opcional)</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
             </div>
@@ -1283,8 +1283,8 @@
 
             <div class="entry-field-set">
               <button id="open-recurrence-account" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Tag (opcional)</span>
-                <span id="selected-recurrence-account" class="entry-picker-row__value is-placeholder">Selecionar tag (opcional)</span>
+                <span class="entry-picker-row__label">Marcador (opcional)</span>
+                <span id="selected-recurrence-account" class="entry-picker-row__value is-placeholder">Selecionar marcador (opcional)</span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>
             </div>
@@ -1350,7 +1350,7 @@
     <ion-modal id="recurrence-account-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar tag</ion-title>
+          <ion-title class="entry-title">Selecionar marcador</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
             <ion-button id="close-recurrence-account-modal" aria-label="Fechar contas do agendamento">
               <span class="material-symbols-rounded">close</span>
@@ -1359,7 +1359,7 @@
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding">
-        <ion-searchbar id="recurrence-account-search" mode="md" placeholder="Buscar tag"></ion-searchbar>
+        <ion-searchbar id="recurrence-account-search" mode="md" placeholder="Buscar marcador"></ion-searchbar>
         <div id="recurrence-account-list" class="category-list"></div>
       </div>
     </ion-modal>
@@ -1456,16 +1456,16 @@
     <ion-modal id="entry-account-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Selecionar tag</ion-title>
+          <ion-title class="entry-title">Selecionar marcador</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-account-modal" aria-label="Fechar tags">
+            <ion-button id="close-account-modal" aria-label="Fechar marcadores">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding">
-        <ion-searchbar id="account-search" mode="md" placeholder="Buscar tag"></ion-searchbar>
+        <ion-searchbar id="account-search" mode="md" placeholder="Buscar marcador"></ion-searchbar>
         <div id="account-list" class="category-list"></div>
       </div>
     </ion-modal>
@@ -1489,15 +1489,9 @@
               <ion-input id="user-category-name" type="text" placeholder="Nome da conta"></ion-input>
             </ion-item>
 
-            <div class="entry-field-set">
-              <button id="open-user-category-icon-modal" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Ícone</span>
-                <span class="entry-picker-row__value-wrap">
-                  <span id="selected-user-category-icon-glyph" class="entry-picker-row__direction material-symbols-rounded" aria-hidden="true" hidden>label</span>
-                  <span id="selected-user-category-icon-text" class="entry-picker-row__value is-placeholder">Selecione um ícone</span>
-                </span>
-                <span class="material-symbols-rounded">chevron_right</span>
-              </button>
+            <div class="entry-field-set inline-color-selector">
+              <p class="entry-stage__title">Cor</p>
+              <div id="user-category-color-list" class="category-list color-grid-list" aria-label="Selecionar cor da conta"></div>
             </div>
 
             <div class="entry-field-set">
@@ -1523,9 +1517,9 @@
     <ion-modal id="user-account-modal" class="sheet-modal entry-picker-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title id="user-account-modal-title" class="entry-title">Nova tag</ion-title>
+          <ion-title id="user-account-modal-title" class="entry-title">Novo marcador</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-user-account-modal" aria-label="Fechar tag">
+            <ion-button id="close-user-account-modal" aria-label="Fechar marcador">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
@@ -1533,21 +1527,15 @@
       </ion-header>
       <div class="entry-content ion-padding">
         <div class="entry-fields">
-          <section class="entry-stage" aria-label="Dados da tag">
+          <section class="entry-stage" aria-label="Dados do marcador">
             <p class="entry-stage__title">Nome</p>
             <ion-item class="entry-text-field entry-text-field--no-label">
-              <ion-input id="user-account-name" type="text" placeholder="Nome da tag"></ion-input>
+              <ion-input id="user-account-name" type="text" placeholder="Nome do marcador"></ion-input>
             </ion-item>
 
-            <div class="entry-field-set">
-              <button id="open-user-account-icon-modal" type="button" class="entry-picker-row" aria-expanded="false">
-                <span class="entry-picker-row__label">Ícone</span>
-                <span class="entry-picker-row__value-wrap">
-                  <span id="selected-user-account-icon-glyph" class="entry-picker-row__direction material-symbols-rounded" aria-hidden="true" hidden>account_balance_wallet</span>
-                  <span id="selected-user-account-icon-text" class="entry-picker-row__value is-placeholder">Selecione um ícone</span>
-                </span>
-                <span class="material-symbols-rounded">chevron_right</span>
-              </button>
+            <div class="entry-field-set inline-color-selector">
+              <p class="entry-stage__title">Cor</p>
+              <div id="user-account-color-list" class="category-list color-grid-list" aria-label="Selecionar cor do marcador"></div>
             </div>
           </section>
         </div>
@@ -1562,35 +1550,19 @@
       </ion-footer>
     </ion-modal>
 
-    <ion-modal id="user-account-icon-modal" class="sheet-modal entry-picker-sheet">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title class="entry-title">Selecionar ícone</ion-title>
-          <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-user-account-icon-modal" aria-label="Fechar seleção de ícones da tag">
-              <span class="material-symbols-rounded">close</span>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <div class="entry-content ion-padding">
-        <div id="user-account-icon-list" class="category-list"></div>
-      </div>
-    </ion-modal>
-
     <ion-modal id="account-detail-modal" class="sheet-modal entry-picker-sheet category-detail-sheet">
       <ion-header>
         <ion-toolbar>
-          <ion-title class="entry-title">Tag</ion-title>
+          <ion-title class="entry-title">Marcador</ion-title>
           <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-account-detail-modal" aria-label="Fechar detalhes da tag">
+            <ion-button id="close-account-detail-modal" aria-label="Fechar detalhes do marcador">
               <span class="material-symbols-rounded">close</span>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <div class="entry-content ion-padding category-detail-content">
-        <h3 id="account-detail-title" class="category-detail-title">Tag</h3>
+        <h3 id="account-detail-title" class="category-detail-title">Marcador</h3>
 
         <section class="category-detail-kpi">
           <p class="category-detail-kpi__label">Movimentações do mês</p>
@@ -1611,27 +1583,11 @@
       <ion-footer class="entry-actions">
         <ion-toolbar>
           <div class="modal-actions">
-            <ion-button id="delete-account-from-detail" fill="outline" color="danger">Excluir tag</ion-button>
-            <ion-button id="edit-account-from-detail" fill="outline">Editar tag</ion-button>
+            <ion-button id="delete-account-from-detail" fill="outline" color="danger">Excluir marcador</ion-button>
+            <ion-button id="edit-account-from-detail" fill="outline">Editar marcador</ion-button>
           </div>
         </ion-toolbar>
       </ion-footer>
-    </ion-modal>
-
-    <ion-modal id="user-category-icon-modal" class="sheet-modal entry-picker-sheet">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title class="entry-title">Selecionar ícone</ion-title>
-          <ion-buttons slot="end" class="toolbar-actions">
-            <ion-button id="close-user-category-icon-modal" aria-label="Fechar seleção de ícones">
-              <span class="material-symbols-rounded">close</span>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <div class="entry-content ion-padding">
-        <div id="user-category-icon-list" class="category-list"></div>
-      </div>
     </ion-modal>
 
     <ion-modal id="user-category-global-modal" class="sheet-modal entry-picker-sheet">

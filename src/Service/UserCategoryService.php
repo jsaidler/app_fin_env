@@ -5,6 +5,8 @@ namespace App\Service;
 
 use App\Repository\CategoryRepositoryInterface;
 use App\Repository\EntryRepositoryInterface;
+use App\Repository\RecurrenceRepositoryInterface;
+use App\Repository\UserAccountRepositoryInterface;
 use App\Repository\UserCategoryRepositoryInterface;
 use App\Util\Response;
 use App\Util\Validator;
@@ -14,15 +16,21 @@ class UserCategoryService
     private CategoryRepositoryInterface $globalCategories;
     private UserCategoryRepositoryInterface $userCategories;
     private EntryRepositoryInterface $entries;
+    private ?RecurrenceRepositoryInterface $recurrences;
+    private ?UserAccountRepositoryInterface $accounts;
 
     public function __construct(
         CategoryRepositoryInterface $globalCategories,
         UserCategoryRepositoryInterface $userCategories,
-        EntryRepositoryInterface $entries
+        EntryRepositoryInterface $entries,
+        ?RecurrenceRepositoryInterface $recurrences = null,
+        ?UserAccountRepositoryInterface $accounts = null
     ) {
         $this->globalCategories = $globalCategories;
         $this->userCategories = $userCategories;
         $this->entries = $entries;
+        $this->recurrences = $recurrences;
+        $this->accounts = $accounts;
     }
 
     public function listMergedForUser(int $userId): array
@@ -31,9 +39,10 @@ class UserCategoryService
             $data = $item->toArray();
             $data['scope'] = 'global';
             $data['icon'] = $data['icon'] ?? '';
+            $data['color'] = '';
             $data['global_category_id'] = (int)$data['id'];
             return $data;
-        }, $this->globalCategories->listForUser($userId));
+        }, $this->visibleGlobalCategoriesForUser($userId));
 
         $users = array_map(function ($item) {
             $data = $item->toArray();
@@ -41,15 +50,7 @@ class UserCategoryService
             return $data;
         }, $this->userCategories->listByUser($userId));
 
-        $byName = [];
-        foreach ($globals as $global) {
-            $byName[strtolower((string)$global['name'])] = $global;
-        }
-        foreach ($users as $userCategory) {
-            $byName[strtolower((string)$userCategory['name'])] = $userCategory;
-        }
-
-        $merged = array_values($byName);
+        $merged = array_merge($globals, $users);
         usort($merged, fn($a, $b) => strcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? '')));
         return $merged;
     }
@@ -61,7 +62,7 @@ class UserCategoryService
 
     public function listTreeForUser(int $userId): array
     {
-        $globals = array_map(fn($item) => $item->toArray(), $this->globalCategories->listForUser($userId));
+        $globals = array_map(fn($item) => $item->toArray(), $this->visibleGlobalCategoriesForUser($userId));
         $users = array_map(fn($item) => $item->toArray(), $this->userCategories->listByUser($userId));
 
         $globalById = [];
@@ -119,6 +120,7 @@ class UserCategoryService
     {
         $name = trim((string)($input['name'] ?? ''));
         $icon = $this->normalizeIcon($input['icon'] ?? '');
+        $color = $this->normalizeColor($input['color'] ?? '');
         $globalCategoryId = (int)($input['global_category_id'] ?? 0);
         $accountClass = strtolower(trim((string)($input['account_class'] ?? 'analytic')));
         if (!Validator::nonEmpty($name) || $globalCategoryId <= 0) {
@@ -134,8 +136,9 @@ class UserCategoryService
         }
         $this->assertGlobalParentEligible($globalCategoryId, $global);
         $this->assertNameAvailable($userId, $name);
+        $this->assertColorAvailable($userId, $color);
 
-        $created = $this->userCategories->create($userId, $name, $icon, $globalCategoryId, [
+        $created = $this->userCategories->create($userId, $name, $icon, $color, $globalCategoryId, [
             'account_class' => 'analytic',
         ]);
         if ($modifiedByUserId && $modifiedByUserId > 0) {
@@ -155,6 +158,7 @@ class UserCategoryService
 
         $name = array_key_exists('name', $input) ? trim((string)$input['name']) : $existing->name;
         $icon = array_key_exists('icon', $input) ? $this->normalizeIcon($input['icon']) : $existing->icon;
+        $color = array_key_exists('color', $input) ? $this->normalizeColor($input['color']) : $this->normalizeColor($existing->color);
         $globalCategoryId = array_key_exists('global_category_id', $input)
             ? (int)$input['global_category_id']
             : $existing->globalCategoryId;
@@ -176,15 +180,23 @@ class UserCategoryService
         $this->assertGlobalParentEligible($globalCategoryId, $global);
 
         $this->assertNameAvailable($userId, $name, $id);
+        if (strcasecmp($color, (string)$existing->color) !== 0) {
+            $this->assertColorAvailable($userId, $color, $id);
+        }
         $updated = $this->userCategories->updateForUser($id, $userId, [
             'name' => $name,
             'icon' => $icon,
+            'color' => $color,
             'global_category_id' => $globalCategoryId,
             'account_class' => 'analytic',
             'last_modified_by_user_id' => ($modifiedByUserId && $modifiedByUserId > 0) ? (int)$modifiedByUserId : null,
         ]);
         if (!$updated) {
             Response::json(['error' => 'Conta do usuario nao encontrada'], 404);
+        }
+        if (strcasecmp((string)$existing->name, $name) !== 0) {
+            $this->entries->reassignCategoryForUser($userId, (string)$existing->name, $name);
+            $this->recurrences?->reassignCategoryForUser($userId, (string)$existing->name, $name);
         }
         return $updated->toArray();
     }
@@ -202,6 +214,7 @@ class UserCategoryService
         }
 
         $this->entries->reassignCategoryForUser($userId, (string)$existing->name, (string)$global->name);
+        $this->recurrences?->reassignCategoryForUser($userId, (string)$existing->name, (string)$global->name);
 
         $ok = $this->userCategories->deleteForUser($id, $userId);
         if (!$ok) {
@@ -222,9 +235,41 @@ class UserCategoryService
         return strtolower($icon);
     }
 
+    private function normalizeColor($value): string
+    {
+        $color = strtoupper(trim((string)$value));
+        if ($color === '') {
+            Response::json(['error' => 'Cor obrigatoria'], 422);
+        }
+        if (!preg_match('/^#[0-9A-F]{6}$/', $color)) {
+            Response::json(['error' => 'Cor invalida'], 422);
+        }
+        return $color;
+    }
+
+    private function assertColorAvailable(int $userId, string $color, ?int $ignoreUserCategoryId = null): void
+    {
+        foreach ($this->userCategories->listByUser($userId) as $item) {
+            if ($ignoreUserCategoryId !== null && (int)$item->id === $ignoreUserCategoryId) {
+                continue;
+            }
+            if (strcasecmp((string)$item->color, $color) === 0) {
+                Response::json(['error' => 'Cor ja utilizada em outra conta'], 409);
+            }
+        }
+        if (!$this->accounts) {
+            return;
+        }
+        foreach ($this->accounts->listByUser($userId, true) as $item) {
+            if (strcasecmp((string)$item->color, $color) === 0) {
+                Response::json(['error' => 'Cor ja utilizada em outra tag'], 409);
+            }
+        }
+    }
+
     private function assertNameAvailable(int $userId, string $name, ?int $ignoreUserCategoryId = null): void
     {
-        foreach ($this->globalCategories->listForUser($userId) as $global) {
+        foreach ($this->visibleGlobalCategoriesForUser($userId) as $global) {
             if (strcasecmp((string)$global->name, $name) === 0) {
                 Response::json(['error' => 'Nome ja existe em contas globais'], 409);
             }
@@ -250,5 +295,14 @@ class UserCategoryService
                 Response::json(['error' => 'Conta pai com filhas sinteticas nao pode receber conta analitica'], 422);
             }
         }
+    }
+
+    private function visibleGlobalCategoriesForUser(int $userId): array
+    {
+        return array_values(array_filter($this->globalCategories->listForUser($userId), function ($item) use ($userId): bool {
+            $ownerId = (int)($item->ownerUserId ?? 0);
+            $accountClass = strtolower((string)($item->accountClass ?? 'synthetic'));
+            return !($ownerId === $userId && $accountClass === 'analytic');
+        }));
     }
 }

@@ -18,9 +18,10 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
 
     public function listByUser(int $userId, bool $activeOnly = false): array
     {
-        $sql = 'SELECT r.*, ua.name AS account_name, ua.type AS account_type
+        $sql = 'SELECT r.*, ua.name AS account_name, ua.type AS account_type, c.name AS category_live
                 FROM recurrences r
                 LEFT JOIN user_accounts ua ON ua.id = r.account_id
+                LEFT JOIN categories c ON c.id = r.category_id
                 WHERE r.user_id = :uid';
         if ($activeOnly) {
             $sql .= ' AND r.active = 1';
@@ -35,9 +36,10 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
     public function findForUser(int $id, int $userId): ?Recurrence
     {
         $stmt = $this->pdo->prepare(
-            'SELECT r.*, ua.name AS account_name, ua.type AS account_type
+            'SELECT r.*, ua.name AS account_name, ua.type AS account_type, c.name AS category_live
              FROM recurrences r
              LEFT JOIN user_accounts ua ON ua.id = r.account_id
+             LEFT JOIN categories c ON c.id = r.category_id
              WHERE r.id = :id AND r.user_id = :uid
              LIMIT 1'
         );
@@ -53,9 +55,11 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
         $stmt = $this->pdo->prepare(
             'INSERT INTO recurrences (
                 user_id, type, amount, category, account_id, description,
+                category_id,
                 frequency, start_date, next_run_date, last_run_date, active, created_at, updated_at
             ) VALUES (
                 :uid, :type, :amount, :category, :account_id, :description,
+                :category_id,
                 :frequency, :start_date, :next_run_date, :last_run_date, :active, :created_at, :updated_at
             )'
         );
@@ -65,6 +69,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
             'amount' => (float)$data['amount'],
             'category' => $data['category'],
             'account_id' => $accountId > 0 ? $accountId : null,
+            'category_id' => isset($data['category_id']) ? (int)$data['category_id'] : null,
             'description' => (string)($data['description'] ?? ''),
             'frequency' => $data['frequency'],
             'start_date' => $data['start_date'],
@@ -82,6 +87,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
             'type' => $data['type'],
             'amount' => (float)$data['amount'],
             'category' => $data['category'],
+            'category_id' => isset($data['category_id']) ? (int)$data['category_id'] : null,
             'account_id' => $accountId > 0 ? $accountId : null,
             'description' => (string)($data['description'] ?? ''),
             'frequency' => $data['frequency'],
@@ -110,6 +116,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
              SET type = :type,
                  amount = :amount,
                  category = :category,
+                 category_id = :category_id,
                  account_id = :account_id,
                  description = :description,
                  frequency = :frequency,
@@ -125,6 +132,7 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
             'type' => $merged['type'],
             'amount' => (float)$merged['amount'],
             'category' => $merged['category'],
+            'category_id' => isset($merged['category_id']) ? (int)$merged['category_id'] : null,
             'account_id' => $accountId > 0 ? $accountId : null,
             'description' => (string)($merged['description'] ?? ''),
             'frequency' => $merged['frequency'],
@@ -150,9 +158,10 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
     public function listDueByUser(int $userId, string $dateIso): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT r.*, ua.name AS account_name, ua.type AS account_type
+            'SELECT r.*, ua.name AS account_name, ua.type AS account_type, c.name AS category_live
              FROM recurrences r
              LEFT JOIN user_accounts ua ON ua.id = r.account_id
+             LEFT JOIN categories c ON c.id = r.category_id
              WHERE r.user_id = :uid
                AND r.active = 1
                AND r.next_run_date <= :date_iso
@@ -164,5 +173,35 @@ class SqliteRecurrenceRepository implements RecurrenceRepositoryInterface
         ]);
         $rows = $stmt->fetchAll();
         return array_map(fn($row) => Recurrence::fromArray($row), $rows);
+    }
+
+    public function reassignCategoryForUser(int $userId, string $fromCategory, string $toCategory): int
+    {
+        $from = trim($fromCategory);
+        $to = trim($toCategory);
+        if ($userId <= 0 || $from === '' || $to === '' || strcasecmp($from, $to) === 0) {
+            return 0;
+        }
+        $stmt = $this->pdo->prepare(
+            'UPDATE recurrences
+             SET category = :to_category,
+                 category_id = (
+                     SELECT c.id
+                     FROM categories c
+                     WHERE lower(c.name) = lower(:to_category)
+                     ORDER BY CASE WHEN c.owner_user_id IS NULL THEN 0 ELSE 1 END, c.id
+                     LIMIT 1
+                 ),
+                 updated_at = :updated_at
+             WHERE user_id = :uid
+               AND lower(category) = lower(:from_category)'
+        );
+        $stmt->execute([
+            'to_category' => $to,
+            'updated_at' => date('c'),
+            'uid' => $userId,
+            'from_category' => $from,
+        ]);
+        return (int)$stmt->rowCount();
     }
 }

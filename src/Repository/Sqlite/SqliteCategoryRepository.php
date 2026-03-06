@@ -41,6 +41,7 @@ class SqliteCategoryRepository implements CategoryRepositoryInterface
     public function create(string $name, string $type, ?string $alterdataAuto = null, array $meta = []): Category
     {
         $now = date('c');
+        $icon = trim((string)($meta['icon'] ?? ''));
         $accountClass = (string)($meta['account_class'] ?? 'synthetic');
         $parentCategoryId = isset($meta['parent_category_id']) && (int)$meta['parent_category_id'] > 0 ? (int)$meta['parent_category_id'] : null;
         $allowsAnalyticChildren = isset($meta['allows_analytic_children']) && (int)$meta['allows_analytic_children'] === 0 ? 0 : 1;
@@ -48,9 +49,11 @@ class SqliteCategoryRepository implements CategoryRepositoryInterface
         $stmt = $this->pdo->prepare(
             'INSERT INTO categories (
                 name, type, account_class, parent_category_id, allows_analytic_children, owner_user_id, alterdata_auto,
+                icon,
                 created_at, updated_at, last_modified_by_user_id, last_modified_at
             ) VALUES (
                 :name,:type,:account_class,:parent_category_id,:allows_analytic_children,:owner_user_id,:auto,
+                :icon,
                 :created,:updated,:last_modified_by,:last_modified_at
             )'
         );
@@ -62,6 +65,7 @@ class SqliteCategoryRepository implements CategoryRepositoryInterface
             'allows_analytic_children' => $allowsAnalyticChildren,
             'owner_user_id' => $ownerUserId,
             'auto' => $alterdataAuto,
+            'icon' => $icon,
             'created' => $now,
             'updated' => $now,
             'last_modified_by' => null,
@@ -72,6 +76,7 @@ class SqliteCategoryRepository implements CategoryRepositoryInterface
             'id' => $id,
             'name' => $name,
             'type' => $type,
+            'icon' => $icon,
             'account_class' => $accountClass,
             'parent_category_id' => $parentCategoryId,
             'allows_analytic_children' => $allowsAnalyticChildren,
@@ -101,6 +106,7 @@ class SqliteCategoryRepository implements CategoryRepositoryInterface
                 allows_analytic_children=:allows_analytic_children,
                 owner_user_id=:owner_user_id,
                 alterdata_auto=:auto,
+                icon=:icon,
                 updated_at=:updated,
                 last_modified_by_user_id = COALESCE(:last_modified_by,last_modified_by_user_id),
                 last_modified_at = COALESCE(:last_modified_at,last_modified_at)
@@ -114,6 +120,7 @@ class SqliteCategoryRepository implements CategoryRepositoryInterface
             'allows_analytic_children' => isset($merged['allows_analytic_children']) && (int)$merged['allows_analytic_children'] === 0 ? 0 : 1,
             'owner_user_id' => isset($merged['owner_user_id']) && (int)$merged['owner_user_id'] > 0 ? (int)$merged['owner_user_id'] : null,
             'auto' => $merged['alterdata_auto'] ?? '',
+            'icon' => trim((string)($merged['icon'] ?? '')),
             'updated' => $merged['updated_at'],
             'last_modified_by' => $modifierId && $modifierId > 0 ? $modifierId : null,
             'last_modified_at' => $modifiedAt,

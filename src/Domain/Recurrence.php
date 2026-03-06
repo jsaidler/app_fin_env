@@ -10,6 +10,7 @@ class Recurrence
     public string $type;
     public float $amount;
     public string $category;
+    public ?int $categoryId = null;
     public int $accountId;
     public string $accountName = '';
     public string $accountType = '';
@@ -29,7 +30,8 @@ class Recurrence
         $item->userId = (int)($data['user_id'] ?? 0);
         $item->type = (string)($data['type'] ?? 'out');
         $item->amount = (float)($data['amount'] ?? 0);
-        $item->category = (string)($data['category'] ?? '');
+        $item->category = (string)($data['category_live'] ?? $data['category'] ?? '');
+        $item->categoryId = array_key_exists('category_id', $data) && $data['category_id'] !== null ? (int)$data['category_id'] : null;
         $item->accountId = (int)($data['account_id'] ?? 0);
         $item->accountName = (string)($data['account_name'] ?? '');
         $item->accountType = (string)($data['account_type'] ?? '');
@@ -54,6 +56,7 @@ class Recurrence
             'type' => $this->type,
             'amount' => $this->amount,
             'category' => $this->category,
+            'category_id' => $this->categoryId,
             'account_id' => $this->accountId,
             'account_name' => $this->accountName,
             'account_type' => $this->accountType,

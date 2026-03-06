@@ -5,6 +5,8 @@ namespace App\Controller;
 
 use App\Repository\Sqlite\SqliteCategoryRepository;
 use App\Repository\Sqlite\SqliteEntryRepository;
+use App\Repository\Sqlite\SqliteRecurrenceRepository;
+use App\Repository\Sqlite\SqliteUserAccountRepository;
 use App\Repository\Sqlite\SqliteUserCategoryRepository;
 use App\Service\CategoryService;
 use App\Service\UserCategoryService;
@@ -15,21 +17,21 @@ class CategoryController extends BaseController
     public function list(): void
     {
         $uid = $this->requireAuth();
-        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
+        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo(), $this->recurrenceRepo(), $this->accountRepo());
         Response::json($service->listMergedForUser($uid));
     }
 
     public function tree(): void
     {
         $uid = $this->requireAuth();
-        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
+        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo(), $this->recurrenceRepo(), $this->accountRepo());
         Response::json($service->listTreeForUser($uid));
     }
 
     public function listUserCategories(): void
     {
         $uid = $this->requireAuth();
-        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
+        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo(), $this->recurrenceRepo(), $this->accountRepo());
         Response::json($service->listUserCategories($uid));
     }
 
@@ -37,7 +39,7 @@ class CategoryController extends BaseController
     {
         $uid = $this->requireAuth();
         $modifierUserId = $this->actorModifierId($uid);
-        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
+        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo(), $this->recurrenceRepo(), $this->accountRepo());
         $item = $service->createForUser($uid, $this->jsonInput(), $modifierUserId);
         Response::json($item, 201);
     }
@@ -47,7 +49,7 @@ class CategoryController extends BaseController
         $uid = $this->requireAuth();
         $modifierUserId = $this->actorModifierId($uid);
         $id = (int)($params['id'] ?? 0);
-        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
+        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo(), $this->recurrenceRepo(), $this->accountRepo());
         $item = $service->updateForUser($id, $uid, $this->jsonInput(), $modifierUserId);
         Response::json($item);
     }
@@ -56,7 +58,7 @@ class CategoryController extends BaseController
     {
         $uid = $this->requireAuth();
         $id = (int)($params['id'] ?? 0);
-        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo());
+        $service = new UserCategoryService($this->categoryRepo(), $this->userCategoryRepo(), $this->entryRepo(), $this->recurrenceRepo(), $this->accountRepo());
         $result = $service->deleteForUser($id, $uid);
         Response::json($result);
     }
@@ -74,6 +76,16 @@ class CategoryController extends BaseController
     private function entryRepo()
     {
         return new SqliteEntryRepository($this->db());
+    }
+
+    private function recurrenceRepo()
+    {
+        return new SqliteRecurrenceRepository($this->db());
+    }
+
+    private function accountRepo()
+    {
+        return new SqliteUserAccountRepository($this->db());
     }
 
     private function actorModifierId(int $defaultUserId): int

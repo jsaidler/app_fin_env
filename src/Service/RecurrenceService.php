@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Domain\Recurrence;
+use App\Repository\CategoryRepositoryInterface;
 use App\Repository\EntryRepositoryInterface;
 use App\Repository\RecurrenceRepositoryInterface;
 use App\Repository\RecurrenceRunRepositoryInterface;
@@ -20,17 +21,20 @@ class RecurrenceService
     private RecurrenceRepositoryInterface $recurrences;
     private RecurrenceRunRepositoryInterface $runs;
     private EntryRepositoryInterface $entries;
+    private CategoryRepositoryInterface $categories;
     private UserAccountRepositoryInterface $accounts;
 
     public function __construct(
         RecurrenceRepositoryInterface $recurrences,
         RecurrenceRunRepositoryInterface $runs,
         EntryRepositoryInterface $entries,
+        CategoryRepositoryInterface $categories,
         UserAccountRepositoryInterface $accounts
     ) {
         $this->recurrences = $recurrences;
         $this->runs = $runs;
         $this->entries = $entries;
+        $this->categories = $categories;
         $this->accounts = $accounts;
     }
 
@@ -123,17 +127,19 @@ class RecurrenceService
         if (!in_array($type, ['in', 'out'], true)) {
             Response::json(['error' => 'Tipo invalido'], 422);
         }
-        $category = trim((string)($input['category'] ?? $recurrence->category));
-        if (!Validator::nonEmpty($category)) {
-            Response::json(['error' => 'Categoria obrigatoria'], 422);
-        }
+        $resolvedCategory = $this->resolveCategory([
+            'category_id' => $input['category_id'] ?? $recurrence->categoryId,
+            'category' => $input['category'] ?? $recurrence->category,
+            'type' => $input['type'] ?? $recurrence->type,
+        ], $userId);
         $accountId = $this->normalizeAccountId($input['account_id'] ?? $recurrence->accountId, $userId);
         $description = trim((string)($input['description'] ?? $recurrence->description));
 
         $entry = $this->entries->create($userId, [
-            'type' => $type,
+            'type' => (string)($resolvedCategory['type'] ?? $type),
             'amount' => (float)$amount,
-            'category' => $category,
+            'category' => $resolvedCategory['name'],
+            'category_id' => $resolvedCategory['id'],
             'account_id' => $accountId > 0 ? $accountId : null,
             'description' => $description,
             'date' => $entryDate,
@@ -218,7 +224,7 @@ class RecurrenceService
     {
         $type = trim((string)($input['type'] ?? ''));
         $amount = $input['amount'] ?? null;
-        $category = trim((string)($input['category'] ?? ''));
+        $resolvedCategory = $this->resolveCategory($input, $userId);
         $accountId = $this->normalizeAccountId($input['account_id'] ?? null, $userId);
         $description = trim((string)($input['description'] ?? ''));
         $frequency = $this->normalizeFrequency((string)($input['frequency'] ?? ''));
@@ -230,9 +236,6 @@ class RecurrenceService
         }
         if (!Validator::positiveNumber($amount)) {
             Response::json(['error' => 'Valor invalido'], 422);
-        }
-        if (!Validator::nonEmpty($category)) {
-            Response::json(['error' => 'Categoria obrigatoria'], 422);
         }
         if ($startDate === '') {
             $startDate = $isUpdate && $existing ? $existing->startDate : date('Y-m-d');
@@ -255,9 +258,10 @@ class RecurrenceService
         }
 
         return [
-            'type' => $type,
+            'type' => (string)($resolvedCategory['type'] ?? $type),
             'amount' => (float)$amount,
-            'category' => $category,
+            'category' => $resolvedCategory['name'],
+            'category_id' => $resolvedCategory['id'],
             'account_id' => $accountId,
             'description' => $description,
             'frequency' => $frequency,
@@ -282,6 +286,51 @@ class RecurrenceService
             Response::json(['error' => 'Conta/cartao invalido'], 422);
         }
         return $accountId;
+    }
+
+    /** @return array{id:int,name:string,type:string} */
+    private function resolveCategory(array $input, int $userId): array
+    {
+        $categoryId = isset($input['category_id']) ? (int)$input['category_id'] : 0;
+        $categoryName = trim((string)($input['category'] ?? ''));
+        $visible = $this->categories->listForUser($userId);
+        if ($categoryId > 0) {
+            foreach ($visible as $category) {
+                if ((int)($category->id ?? 0) !== $categoryId) {
+                    continue;
+                }
+                return [
+                    'id' => $categoryId,
+                    'name' => trim((string)($category->name ?? $categoryName)),
+                    'type' => (string)($category->type ?? ($input['type'] ?? '')),
+                ];
+            }
+            Response::json(['error' => 'Categoria invalida'], 422);
+        }
+        if ($categoryName === '') {
+            Response::json(['error' => 'Categoria obrigatoria'], 422);
+        }
+        $needle = function_exists('mb_strtolower') ? mb_strtolower($categoryName, 'UTF-8') : strtolower($categoryName);
+        foreach ($visible as $category) {
+            $name = trim((string)($category->name ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $candidate = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
+            if ($candidate === $needle) {
+                return [
+                    'id' => (int)($category->id ?? 0),
+                    'name' => $name,
+                    'type' => (string)($category->type ?? ($input['type'] ?? '')),
+                ];
+            }
+        }
+        // Backward compatibility for legacy user_categories names not yet migrated.
+        return [
+            'id' => 0,
+            'name' => $categoryName,
+            'type' => in_array((string)($input['type'] ?? ''), ['in', 'out'], true) ? (string)$input['type'] : 'out',
+        ];
     }
 
     private function normalizeFrequency(string $value): string
@@ -342,6 +391,7 @@ class RecurrenceService
             'amount' => $item->amount,
             'type' => $item->type,
             'category' => $item->category,
+            'category_id' => $item->categoryId,
             'description' => $item->description,
             'account_id' => $item->accountId,
             'account_name' => $item->accountName,

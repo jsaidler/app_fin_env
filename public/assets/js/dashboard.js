@@ -277,12 +277,7 @@ const cancelUserCategoryBtn = document.getElementById("cancel-user-category");
 const saveUserCategoryBtn = document.getElementById("save-user-category");
 const userCategoryModalTitleEl = document.getElementById("user-category-modal-title");
 const userCategoryNameInput = document.getElementById("user-category-name");
-const openUserCategoryIconModalBtn = document.getElementById("open-user-category-icon-modal");
-const selectedUserCategoryIconGlyphEl = document.getElementById("selected-user-category-icon-glyph");
-const selectedUserCategoryIconTextEl = document.getElementById("selected-user-category-icon-text");
-const userCategoryIconModal = document.getElementById("user-category-icon-modal");
-const closeUserCategoryIconModalBtn = document.getElementById("close-user-category-icon-modal");
-const userCategoryIconListEl = document.getElementById("user-category-icon-list");
+const userCategoryColorListEl = document.getElementById("user-category-color-list");
 const openUserCategoryGlobalModalBtn = document.getElementById("open-user-category-global-modal");
 const selectedUserCategoryGlobalEl = document.getElementById("selected-user-category-global");
 const userCategoryGlobalModal = document.getElementById("user-category-global-modal");
@@ -295,12 +290,7 @@ const cancelUserAccountBtn = document.getElementById("cancel-user-account");
 const saveUserAccountBtn = document.getElementById("save-user-account");
 const userAccountModalTitleEl = document.getElementById("user-account-modal-title");
 const userAccountNameInput = document.getElementById("user-account-name");
-const openUserAccountIconModalBtn = document.getElementById("open-user-account-icon-modal");
-const selectedUserAccountIconGlyphEl = document.getElementById("selected-user-account-icon-glyph");
-const selectedUserAccountIconTextEl = document.getElementById("selected-user-account-icon-text");
-const userAccountIconModal = document.getElementById("user-account-icon-modal");
-const closeUserAccountIconModalBtn = document.getElementById("close-user-account-icon-modal");
-const userAccountIconListEl = document.getElementById("user-account-icon-list");
+const userAccountColorListEl = document.getElementById("user-account-color-list");
 const categoryDetailModal = document.getElementById("category-detail-modal");
 const closeCategoryDetailModalBtn = document.getElementById("close-category-detail-modal");
 const editCategoryFromDetailBtn = document.getElementById("edit-category-from-detail");
@@ -400,9 +390,9 @@ const infiniteListTargets = [
   { el: categoryListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
   { el: accountListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
   { el: entryRecurrenceListEl, selector: ":scope > .category-option", chunkSize: 24 },
-  { el: userCategoryIconListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: userCategoryColorListEl, selector: ":scope > .color-grid-option", chunkSize: 24 },
   { el: userCategoryGlobalListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
-  { el: userAccountIconListEl, selector: ":scope > .category-option", chunkSize: 24 },
+  { el: userAccountColorListEl, selector: ":scope > .color-grid-option", chunkSize: 24 },
   { el: recurrenceCategoryListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
   { el: recurrenceAccountListEl, selector: ":scope > .category-group, :scope > .category-option", chunkSize: 24 },
   { el: recurrenceFrequencyListEl, selector: ":scope > .category-option", chunkSize: 24 },
@@ -431,6 +421,8 @@ const infiniteListState = new WeakMap();
 const infiniteListObservers = [];
 let selectedDateISO = "";
 let selectedCategoryValue = "";
+let selectedCategoryId = 0;
+let selectedCategoryScope = "";
 let selectedAccountId = 0;
 let accounts = [];
 let selectedAttachmentFile = null;
@@ -439,6 +431,8 @@ let categoriesTreeCache = [];
 let recurrences = [];
 let selectedEntryRecurrenceFrequency = "";
 let selectedRecurrenceCategoryValue = "";
+let selectedRecurrenceCategoryId = 0;
+let selectedRecurrenceCategoryScope = "";
 let selectedRecurrenceAccountId = 0;
 let selectedRecurrenceStartDateISO = "";
 let selectedRecurrenceFrequencyValue = "monthly";
@@ -461,23 +455,21 @@ const topSummaryState = {
   contas: { current: [], previous: [], currentTotal: null, previousTotal: null },
   recorrencias: { current: [] },
 };
-let selectedUserCategoryIcon = "";
+let selectedUserCategoryColor = "";
 let selectedUserCategoryGlobalId = 0;
-let userCategoryIconCatalog = [];
-let userCategoryIconCatalogLoaded = false;
 let dashboardEntriesCache = [];
-let dashboardEntriesCacheRequest = null;
 let dashboardGroupedEntriesCache = [];
 let categoryRowsIndex = new Map();
 const categoriesTreeCollapsedIds = new Set();
 let currentDetailCategoryName = "";
+let currentDetailCategoryId = 0;
 let currentDetailEditableCategoryId = 0;
 let currentDetailGlobalCategoryName = "";
 let editingUserCategoryId = 0;
 let accountRowsIndex = new Map();
 let currentDetailAccountId = 0;
 let currentDetailAccountName = "";
-let selectedUserAccountIcon = "";
+let selectedUserAccountColor = "";
 let editingUserAccountId = 0;
 let confirmActionResolver = null;
 let confirmActionConfirmRole = "destructive";
@@ -520,6 +512,25 @@ let supportRecordingTimer = null;
 let dashboardLoadToken = 0;
 let dashboardLoadsInFlight = 0;
 let aggregateLoadToken = 0;
+let entriesGroupsLoadToken = 0;
+let lastEntriesGroupsQuery = "";
+let lastEntriesGroupsPayload = null;
+let lastEntriesGroupsLoadedAt = 0;
+const IS_DEV_RUNTIME = /^(localhost|127\.0\.0\.1)$/i.test(String(window.location.hostname || ""));
+const TAB_RELOAD_TTL_MS = IS_DEV_RUNTIME ? 0 : 60_000;
+const ENTRIES_GROUPS_CACHE_TTL_MS = IS_DEV_RUNTIME ? 0 : 5_000;
+const CATEGORIES_CACHE_TTL_MS = IS_DEV_RUNTIME ? 0 : 60_000;
+const CATEGORIES_TREE_CACHE_TTL_MS = IS_DEV_RUNTIME ? 0 : 60_000;
+let dashboardLastLoadedAt = 0;
+let aggregateLastLoadedAt = 0;
+let recurrencesLastLoadedAt = 0;
+let categoriesLastLoadedAt = 0;
+let categoriesLoadPromise = null;
+let categoriesTreeLastLoadedAt = 0;
+let categoriesTreeLoadPromise = null;
+let dashboardDirty = true;
+let aggregateDirty = true;
+let recurrencesDirty = true;
 const ADMIN_ALTERDATA_COLUMNS_META = [
   { column: "A", description: "Código do lançamento automático" },
   { column: "B", description: "Conta débito" },
@@ -546,6 +557,32 @@ const ENTRY_RECURRENCE_OPTIONS = [
   { value: "biweekly", label: "Quinzenal", icon: "calendar_view_week" },
   { value: "monthly", label: "Mensal", icon: "calendar_month" },
   { value: "annual", label: "Anual", icon: "event_repeat" },
+];
+const USER_ENTITY_COLOR_SEED = [
+  "#1F8A70",
+  "#2F80ED",
+  "#8E44AD",
+  "#E67E22",
+  "#D35400",
+  "#C0392B",
+  "#16A085",
+  "#27AE60",
+  "#F1C40F",
+  "#7F8C8D",
+  "#34495E",
+  "#E84393",
+  "#0E7490",
+  "#2563EB",
+  "#7C3AED",
+  "#CA8A04",
+  "#DC2626",
+  "#15803D",
+  "#0F766E",
+  "#9333EA",
+  "#C2410C",
+  "#BE185D",
+  "#334155",
+  "#64748B",
 ];
 
 const money = new Intl.NumberFormat("pt-BR", {
@@ -1149,6 +1186,7 @@ function destroyInfiniteListState(container) {
   const state = infiniteListState.get(container);
   if (!state) return;
   if (state?.observer) state.observer.disconnect();
+  if (typeof state?.detachScrollBindings === "function") state.detachScrollBindings();
   if (state?.sentinel && state.sentinel.parentNode === container) {
     state.sentinel.remove();
   }
@@ -1160,6 +1198,28 @@ function destroyInfiniteListState(container) {
     }
   });
   infiniteListState.delete(container);
+}
+
+function resolveInfiniteScrollRoot(container) {
+  if (!(container instanceof HTMLElement)) return null;
+  const ionContent = container.closest("ion-content");
+  if (ionContent && ionContent.shadowRoot) {
+    const inner = ionContent.shadowRoot.querySelector(".inner-scroll");
+    if (inner instanceof HTMLElement) {
+      return inner;
+    }
+  }
+  let node = container.parentElement;
+  while (node && node !== document.body) {
+    const style = window.getComputedStyle(node);
+    const overflowY = String(style.overflowY || "").toLowerCase();
+    const canScroll = overflowY === "auto" || overflowY === "scroll";
+    if (canScroll && node.scrollHeight > node.clientHeight + 1) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
 }
 
 function applyInfiniteList(container, selector = ":scope > *", chunkSize = 24) {
@@ -1188,6 +1248,7 @@ function applyInfiniteList(container, selector = ":scope > *", chunkSize = 24) {
     chunkSize: Math.max(1, chunkSize),
     sentinel,
     observer: null,
+    detachScrollBindings: null,
   };
 
   const revealNextChunk = () => {
@@ -1202,8 +1263,22 @@ function applyInfiniteList(container, selector = ":scope > *", chunkSize = 24) {
     state.shown = nextShown;
     if (state.shown >= state.items.length) {
       if (state.observer) state.observer.disconnect();
+      if (typeof state.detachScrollBindings === "function") state.detachScrollBindings();
       if (state.sentinel.parentNode === container) state.sentinel.remove();
       infiniteListState.delete(container);
+    }
+  };
+
+  const scrollRoot = resolveInfiniteScrollRoot(container);
+  const evaluateVisibility = () => {
+    if (!state.sentinel || !state.sentinel.isConnected) return;
+    if (state.shown >= state.items.length) return;
+    const sentinelRect = state.sentinel.getBoundingClientRect();
+    const rootBottom = scrollRoot
+      ? scrollRoot.getBoundingClientRect().bottom
+      : window.innerHeight;
+    if ((sentinelRect.top - rootBottom) <= 240) {
+      revealNextChunk();
     }
   };
 
@@ -1212,12 +1287,21 @@ function applyInfiniteList(container, selector = ":scope > *", chunkSize = 24) {
       revealNextChunk();
     }
   }, {
-    root: null,
-    rootMargin: "0px 0px 220px 0px",
+    root: scrollRoot,
+    rootMargin: "0px 0px 320px 0px",
     threshold: 0.01,
   });
   state.observer.observe(sentinel);
+  const scrollTarget = scrollRoot || window;
+  const onScroll = () => evaluateVisibility();
+  scrollTarget.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  state.detachScrollBindings = () => {
+    scrollTarget.removeEventListener("scroll", onScroll);
+    window.removeEventListener("resize", onScroll);
+  };
   infiniteListState.set(container, state);
+  window.requestAnimationFrame(evaluateVisibility);
 }
 
 function initInfiniteLists() {
@@ -1263,63 +1347,59 @@ function setupTabNav() {
 async function loadAggregateSections() {
   const token = ++aggregateLoadToken;
   const month = monthRange();
-  const prevMonth = previousMonthRange(month);
-  const monthBounds = monthBoundsFromKey(month);
-  const prevMonthBounds = monthBoundsFromKey(prevMonth);
-
-  const monthGroupsQuery = buildEntriesGroupsQueryString({
-    type: "all",
-    startDate: monthBounds.start,
-    endDate: monthBounds.end,
-    categories: [],
-  }, "");
-  const prevGroupsQuery = buildEntriesGroupsQueryString({
-    type: "all",
-    startDate: prevMonthBounds.start,
-    endDate: prevMonthBounds.end,
-    categories: [],
-  }, "");
-
-  const [monthGroupsRes, prevGroupsRes] = await Promise.all([
-    authFetch(`/api/reports/entries-groups?${monthGroupsQuery}`),
-    authFetch(`/api/reports/entries-groups?${prevGroupsQuery}`),
-  ]);
-
-  if ([monthGroupsRes, prevGroupsRes].some((response) => response.status === 401)) {
+  const response = await authFetch(`/api/reports/dashboard?month=${encodeURIComponent(month)}&type=all`);
+  if (response.status === 401) {
     window.location.href = "/";
     return;
   }
-  if ([monthGroupsRes, prevGroupsRes].some((response) => !response.ok)) {
-    showError("Não foi possível carregar contas/tags.");
+  if (!response.ok) {
+    showError("Não foi possível carregar contas/marcadores.");
     return;
   }
-
-  const [monthGroupsPayload, prevGroupsPayload] = await Promise.all([
-    safeJson(monthGroupsRes, {}),
-    safeJson(prevGroupsRes, {}),
-  ]);
+  const payload = await safeJson(response, {});
   if (token !== aggregateLoadToken) return;
-  const monthGroups = Array.isArray(monthGroupsPayload?.groups) ? monthGroupsPayload.groups : [];
-  const prevGroups = Array.isArray(prevGroupsPayload?.groups) ? prevGroupsPayload.groups : [];
-  const monthAggSafe = buildMonthAggregateFromEntries(extractEntriesFromGroups(monthGroups), month);
-  const prevMonthAggSafe = buildMonthAggregateFromEntries(extractEntriesFromGroups(prevGroups), prevMonth);
+  const monthAggSafe = (payload?.month_aggregate && typeof payload.month_aggregate === "object")
+    ? payload.month_aggregate
+    : {};
+  const prevMonthAggSafe = (payload?.previous_month_aggregate && typeof payload.previous_month_aggregate === "object")
+    ? payload.previous_month_aggregate
+    : {};
 
   renderCategoriesTab(monthAggSafe, prevMonthAggSafe);
   renderAccountsTab(monthAggSafe, prevMonthAggSafe);
   renderTopSummaryForTab(activeTabName());
+  aggregateLastLoadedAt = Date.now();
+  aggregateDirty = false;
+}
+
+function shouldRefreshTabData(lastLoadedAt, dirty) {
+  if (TAB_RELOAD_TTL_MS <= 0) return true;
+  if (dirty) return true;
+  if (!lastLoadedAt || !Number.isFinite(lastLoadedAt)) return true;
+  return (Date.now() - lastLoadedAt) > TAB_RELOAD_TTL_MS;
 }
 
 async function loadDataForTab(tabName) {
   const tab = String(tabName || activeTabName() || "").trim();
   if (tab === "lancamentos") {
+    if (!shouldRefreshTabData(dashboardLastLoadedAt, dashboardDirty)) return;
     await loadDashboard();
     return;
   }
   if (tab === "categorias" || tab === "contas") {
+    if (tab === "categorias") {
+      await ensureCategoriesTreeLoaded();
+      renderCategoriesTab(
+        { by_category: topSummaryState.categorias.current, totals: { balance: Number(topSummaryState.categorias.currentTotal || 0) } },
+        { by_category: topSummaryState.categorias.previous, totals: { balance: Number(topSummaryState.categorias.previousTotal || 0) } }
+      );
+    }
+    if (!shouldRefreshTabData(aggregateLastLoadedAt, aggregateDirty)) return;
     await loadAggregateSections();
     return;
   }
   if (tab === "recorrentes") {
+    if (!shouldRefreshTabData(recurrencesLastLoadedAt, recurrencesDirty)) return;
     await loadRecurrences();
     return;
   }
@@ -1329,18 +1409,36 @@ async function refreshActiveTabAfterMutation(options = {}) {
   const tab = String(options?.tab || activeTabName() || "").trim();
   const refreshLookups = options?.refreshLookups !== false;
   const refreshRecurrences = Boolean(options?.refreshRecurrences);
+  let recurrencesLoaded = false;
+  dashboardDirty = true;
+  aggregateDirty = true;
+  if (refreshRecurrences) {
+    recurrencesDirty = true;
+  }
 
   if (tab === "lancamentos" || tab === "administracao") {
+    if (tab === "lancamentos" && !refreshLookups) {
+      await loadDashboardSnapshotOnly();
+      return;
+    }
     await loadDashboard();
     return;
   }
 
   if (refreshLookups) {
-    const tasks = [loadCategories(), loadAccounts(true)];
-    if (refreshRecurrences) tasks.push(loadRecurrences());
+    const tasks = [loadCategories(true), loadAccounts(true)];
+    if (refreshRecurrences) {
+      tasks.push(loadRecurrences().then(() => {
+        recurrencesLoaded = true;
+      }));
+    }
     await Promise.all(tasks);
+    if (tab === "categorias") {
+      await ensureCategoriesTreeLoaded(true);
+    }
   } else if (refreshRecurrences) {
     await loadRecurrences();
+    recurrencesLoaded = true;
   }
 
   if (tab === "categorias" || tab === "contas") {
@@ -1350,7 +1448,9 @@ async function refreshActiveTabAfterMutation(options = {}) {
   }
 
   if (tab === "recorrentes") {
-    await loadRecurrences();
+    if (!recurrencesLoaded) {
+      await loadRecurrences();
+    }
     renderTopSummaryForTab(tab);
     return;
   }
@@ -1454,10 +1554,19 @@ function currentMonthBounds() {
   return { start: toIso(start), end: toIso(end) };
 }
 
+function defaultEntryDateScope() {
+  const bounds = currentMonthBounds();
+  return {
+    startDate: bounds.start,
+    endDate: bounds.end,
+  };
+}
+
 function initEntryFilters() {
-  entryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
+  const scope = defaultEntryDateScope();
+  entryFilters = { startDate: scope.startDate, endDate: scope.endDate, type: "all", categories: [] };
   draftEntryFilters = { ...entryFilters, categories: [...entryFilters.categories] };
-  lastScopedEntryFilters = { startDate: "", endDate: "", categories: [] };
+  lastScopedEntryFilters = { startDate: scope.startDate, endDate: scope.endDate, categories: [] };
 }
 
 function normalizeAppliedEntryFilters() {
@@ -1474,6 +1583,12 @@ function normalizeAppliedEntryFilters() {
 
   if (!Array.isArray(entryFilters.categories)) {
     entryFilters.categories = [];
+  }
+
+  if (!entryFilters.startDate || !entryFilters.endDate) {
+    const scope = defaultEntryDateScope();
+    entryFilters.startDate = scope.startDate;
+    entryFilters.endDate = scope.endDate;
   }
 }
 
@@ -1497,7 +1612,11 @@ function buildEntriesGroupsQueryString(filters, searchTerm) {
 function setEntryDirectionHint(categoryName) {
   const directionEl = document.getElementById("selected-category-direction");
   const categoryValueEl = document.getElementById("selected-category");
-  const category = categories.find((item) => String(item?.name || "") === String(categoryName || ""));
+  const normalizedId = Number(selectedCategoryId || 0);
+  const normalizedScope = String(selectedCategoryScope || "").trim();
+  const category = normalizedId > 0
+    ? categories.find((item) => Number(item?.id || 0) === normalizedId && String(item?.scope || "global") === (normalizedScope || "global"))
+    : categories.find((item) => String(item?.name || "") === String(categoryName || ""));
   const type = String(category?.type || "");
   if (!directionEl || !type) {
     if (directionEl) directionEl.hidden = true;
@@ -1515,7 +1634,11 @@ function setEntryDirectionHint(categoryName) {
 }
 
 function entryTypeFromSelectedCategory() {
-  const category = categories.find((item) => String(item?.name || "") === String(selectedCategoryValue || ""));
+  const normalizedId = Number(selectedCategoryId || 0);
+  const normalizedScope = String(selectedCategoryScope || "").trim();
+  const category = normalizedId > 0
+    ? categories.find((item) => Number(item?.id || 0) === normalizedId && String(item?.scope || "global") === (normalizedScope || "global"))
+    : categories.find((item) => String(item?.name || "") === String(selectedCategoryValue || ""));
   return String(category?.type || "");
 }
 
@@ -1661,6 +1784,29 @@ function syncDashMenuUserSummary() {
   if (dashMenuUserNameEl) dashMenuUserNameEl.textContent = name;
   if (dashMenuUserEmailEl) dashMenuUserEmailEl.textContent = email;
   if (dashMenuUserMetaEl) dashMenuUserMetaEl.textContent = meta;
+}
+
+function applySessionProfile(profilePayload) {
+  const profile = profilePayload && typeof profilePayload === "object" ? profilePayload : {};
+  const displayName = profile?.name || profile?.email || "Usuário";
+  const impersonationPayload = profile?.impersonation && typeof profile.impersonation === "object"
+    ? profile.impersonation
+    : { active: false };
+  currentProfile = {
+    id: Number(profile?.id || 0),
+    name: String(profile?.name || ""),
+    email: String(profile?.email || ""),
+    role: String(profile?.role || ""),
+    alterdataCode: String(profile?.alterdata_code || ""),
+    impersonation: {
+      active: Boolean(impersonationPayload?.active),
+      admin: impersonationPayload?.admin || null,
+    },
+  };
+  if (userTitleEl) userTitleEl.textContent = displayName;
+  syncAdminAreaAccess();
+  syncImpersonationBanner();
+  syncDashMenuUserSummary();
 }
 
 function setAttachmentPreview(file) {
@@ -1909,7 +2055,7 @@ function renderRecurrenceTopSummary(items) {
   } else {
     const category = String(nextRecurrence?.category || "Agendamento");
     const frequency = recurrenceFrequencyLabel(nextRecurrence?.frequency);
-    const account = String(nextRecurrence?.account_name || "Sem tag");
+    const account = String(nextRecurrence?.account_name || "Sem marcador");
     const amountRaw = Number(nextRecurrence?.amount || 0);
     const signedAmount = String(nextRecurrence?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
     const amountClass = toAmountClass(signedAmount);
@@ -2107,12 +2253,16 @@ function renderCategoryOptions(type = "") {
       if (!options.length) return "";
       const optionsHtml = options
         .map((category) => {
+          const id = Number(category?.id || 0);
+          const scope = String(category?.scope || "global");
           const label = String(category?.name || "").trim();
           const safeLabel = escapeHtml(label);
           const encodedLabel = encodeURIComponent(label);
-          const isSelected = selectedCategoryValue === label;
+          const isSelected = Number(selectedCategoryId || 0) > 0
+            ? (Number(selectedCategoryId || 0) === id && String(selectedCategoryScope || "global") === scope)
+            : selectedCategoryValue === label;
           return `
-            <button type="button" class="category-option is-${group.key}" data-category="${encodedLabel}"${isSelected ? ' aria-current="true"' : ""}>
+            <button type="button" class="category-option is-${group.key}" data-category-id="${id}" data-category-scope="${escapeHtml(scope)}" data-category="${encodedLabel}"${isSelected ? ' aria-current="true"' : ""}>
               <span class="category-option__lead"><span class="material-symbols-rounded">${group.icon}</span></span>
               <span class="category-option__text">${safeLabel}</span>
             </button>
@@ -2132,7 +2282,7 @@ function renderCategoryOptions(type = "") {
 }
 
 function accountTypeLabel(value) {
-  return "Tags";
+  return "Marcadores";
 }
 
 function accountTypeIcon(value) {
@@ -2155,7 +2305,7 @@ function renderAccountOptions() {
       <div class="category-group__items">
         <button type="button" class="category-option is-neutral" data-account-id="0"${Number(selectedAccountId || 0) <= 0 ? ' aria-current="true"' : ""}>
           <span class="category-option__lead"><span class="material-symbols-rounded">account_balance_wallet</span></span>
-          <span class="category-option__text">Sem tag</span>
+          <span class="category-option__text">Sem marcador</span>
         </button>
       </div>
     </section>
@@ -2188,7 +2338,7 @@ function renderAccountOptions() {
     .join("");
 
   if (!html.trim() && query) {
-    accountListEl.innerHTML = `${optionalOption}<p class="category-empty">Nenhuma tag encontrada.</p>`;
+    accountListEl.innerHTML = `${optionalOption}<p class="category-empty">Nenhum marcador encontrado.</p>`;
     return;
   }
   accountListEl.innerHTML = `${optionalOption}${html}`;
@@ -2393,32 +2543,19 @@ function ensureSelectedAdminCategoryParentEligible() {
 }
 
 function syncUserCategorySelections() {
+  const selectedGlobalId = Number(selectedUserCategoryGlobalId || 0);
   const globals = buildGlobalTreeRows(globalCategoriesOnly(), {
     include: (item) => String(item?.account_class || "synthetic") === "synthetic",
-  }).filter((item) => Number(item?.has_synthetic_children ?? 0) === 0);
+  }).filter((item) => {
+    const id = Number(item?.id || 0);
+    if (Number(item?.has_synthetic_children ?? 0) === 0) return true;
+    // Preserve legacy/existing parent in edit mode to avoid silent reassignment.
+    return selectedGlobalId > 0 && id === selectedGlobalId;
+  });
   if (!globals.length) {
     selectedUserCategoryGlobalId = 0;
   } else if (!globals.some((item) => Number(item?.id || 0) === selectedUserCategoryGlobalId)) {
     selectedUserCategoryGlobalId = Number(globals[0]?.id || 0);
-  }
-
-  if (selectedUserCategoryIconGlyphEl) {
-    if (selectedUserCategoryIcon) {
-      selectedUserCategoryIconGlyphEl.textContent = selectedUserCategoryIcon;
-      selectedUserCategoryIconGlyphEl.hidden = false;
-    } else {
-      selectedUserCategoryIconGlyphEl.textContent = "label";
-      selectedUserCategoryIconGlyphEl.hidden = true;
-    }
-  }
-  if (selectedUserCategoryIconTextEl) {
-    if (selectedUserCategoryIcon) {
-      selectedUserCategoryIconTextEl.textContent = "Ícone selecionado";
-      selectedUserCategoryIconTextEl.classList.remove("is-placeholder");
-    } else {
-      selectedUserCategoryIconTextEl.textContent = "Selecione um ícone";
-      selectedUserCategoryIconTextEl.classList.add("is-placeholder");
-    }
   }
 
   if (selectedUserCategoryGlobalEl) {
@@ -2431,60 +2568,74 @@ function syncUserCategorySelections() {
       selectedUserCategoryGlobalEl.classList.add("is-placeholder");
     }
   }
+  renderUserCategoryColorOptions();
   updateUserCategorySaveState();
 }
 
 function updateUserCategorySaveState() {
   if (!saveUserCategoryBtn) return;
   const name = String(userCategoryNameInput?.value || "").trim();
-  saveUserCategoryBtn.disabled = !(name && selectedUserCategoryGlobalId > 0 && selectedUserCategoryIcon);
+  saveUserCategoryBtn.disabled = !(name && selectedUserCategoryGlobalId > 0 && selectedUserCategoryColor);
 }
 
-async function ensureUserCategoryIconCatalogLoaded() {
-  if (userCategoryIconCatalogLoaded) return;
-  const fallback = Object.values(CATEGORY_GLYPH).filter((value, idx, arr) => value && arr.indexOf(value) === idx);
-  try {
-    const response = await fetch("/assets/data/material-symbols-rounded.json", {
-      method: "GET",
-      credentials: "same-origin",
-      headers: authHeaders({ Accept: "application/json" }),
-    });
-    if (response.ok) {
-      const payload = await safeJson(response, []);
-      const normalized = Array.isArray(payload)
-        ? payload
-            .map((item) => String(item || "").trim())
-            .filter((item, idx, arr) => item && arr.indexOf(item) === idx)
-        : [];
-      userCategoryIconCatalog = normalized.length ? normalized : fallback;
-    } else {
-      userCategoryIconCatalog = fallback;
-    }
-  } catch {
-    userCategoryIconCatalog = fallback;
-  } finally {
-    userCategoryIconCatalogLoaded = true;
-  }
+function normalizeEntityColor(value) {
+  const raw = String(value || "").trim().toUpperCase();
+  if (!raw || !/^#[0-9A-F]{6}$/.test(raw)) return "";
+  return raw;
 }
 
-function renderUserCategoryIconOptions() {
-  if (!userCategoryIconListEl) return;
-  userCategoryIconListEl.classList.add("icon-grid-list");
-  const source = userCategoryIconCatalog.length ? userCategoryIconCatalog : ["label"];
-  const filtered = source.slice(0, 600);
-  if (!filtered.length) {
-    userCategoryIconListEl.innerHTML = `<p class="category-empty">Nenhum ícone encontrado.</p>`;
-    return;
+function collectUsedEntityColors({ excludeCategoryId = 0, excludeAccountId = 0 } = {}) {
+  const used = new Set();
+  (Array.isArray(categories) ? categories : []).forEach((item) => {
+    if (String(item?.scope || "") !== "user") return;
+    if (Number(item?.id || 0) === Number(excludeCategoryId || 0)) return;
+    const color = normalizeEntityColor(item?.color || "");
+    if (color) used.add(color);
+  });
+  (Array.isArray(accounts) ? accounts : []).forEach((item) => {
+    if (Number(item?.id || 0) === Number(excludeAccountId || 0)) return;
+    const color = normalizeEntityColor(item?.color || "");
+    if (color) used.add(color);
+  });
+  return used;
+}
+
+function buildAvailableEntityColorPalette(usedColors, count = 8) {
+  const targetCount = Math.max(8, Number(count || 8));
+  const blocked = new Set(Array.from(usedColors || []).map((color) => normalizeEntityColor(color)).filter(Boolean));
+  const palette = [];
+  const seen = new Set(blocked);
+
+  USER_ENTITY_COLOR_SEED.forEach((color) => {
+    const normalized = normalizeEntityColor(color);
+    if (!normalized || seen.has(normalized) || palette.length >= targetCount) return;
+    palette.push(normalized);
+    seen.add(normalized);
+  });
+
+  for (let i = 0; palette.length < targetCount && i < 1200; i += 1) {
+    const hue = (i * 137.508) % 360;
+    const sat = [76, 68, 82][i % 3];
+    const lig = [42, 36, 50, 46][i % 4];
+    const generated = rgbBytesToHex(...hslToRgbBytes(hue, sat, lig)).toUpperCase();
+    if (seen.has(generated)) continue;
+    palette.push(generated);
+    seen.add(generated);
   }
-  userCategoryIconListEl.innerHTML = filtered
-    .map((iconName) => {
-      const safe = escapeHtml(iconName);
-      const encoded = encodeURIComponent(iconName);
-      const isSelected = selectedUserCategoryIcon === iconName;
+
+  return sortColorsForSelector(palette.slice(0, targetCount));
+}
+
+function renderUserCategoryColorOptions() {
+  if (!userCategoryColorListEl) return;
+  userCategoryColorListEl.classList.add("color-grid-list");
+  const used = collectUsedEntityColors({ excludeCategoryId: editingUserCategoryId, excludeAccountId: editingUserAccountId });
+  const palette = buildAvailableEntityColorPalette(used, 8);
+  userCategoryColorListEl.innerHTML = palette
+    .map((color) => {
+      const isSelected = selectedUserCategoryColor === color;
       return `
-        <button type="button" class="icon-grid-option" data-user-category-icon="${encoded}" aria-label="${safe}" title="${safe}"${isSelected ? ' aria-current="true"' : ""}>
-          <span class="material-symbols-rounded">${safe}</span>
-        </button>
+        <button type="button" class="color-grid-option" style="background:${color}" data-user-category-color="${color}" aria-label="Selecionar cor ${color}" title="${color}"${isSelected ? ' aria-current="true"' : ""}></button>
       `;
     })
     .join("");
@@ -2492,12 +2643,18 @@ function renderUserCategoryIconOptions() {
 
 function renderUserCategoryGlobalOptions() {
   if (!userCategoryGlobalListEl) return;
-  userCategoryGlobalListEl.classList.remove("icon-grid-list");
+  userCategoryGlobalListEl.classList.remove("color-grid-list");
   const query = normalizeText(userCategoryGlobalSearchInput?.value || "");
+  const selectedGlobalId = Number(selectedUserCategoryGlobalId || 0);
   const globals = buildGlobalTreeRows(globalCategoriesOnly(), {
     include: (item) => String(item?.account_class || "synthetic") === "synthetic",
   }).filter((item) => normalizeText(item?.name || "").includes(query));
-  const eligibleGlobals = globals.filter((item) => Number(item?.has_synthetic_children ?? 0) === 0);
+  const eligibleGlobals = globals.filter((item) => {
+    const id = Number(item?.id || 0);
+    if (Number(item?.has_synthetic_children ?? 0) === 0) return true;
+    // Keep selected parent visible if it is legacy/not currently eligible.
+    return selectedGlobalId > 0 && id === selectedGlobalId;
+  });
   if (!eligibleGlobals.length) {
     userCategoryGlobalListEl.innerHTML = `<p class="category-empty">Nenhuma categoria principal encontrada.</p>`;
     return;
@@ -2564,7 +2721,7 @@ async function openUserCategoryModal() {
   if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Nova conta";
   if (userCategoryNameInput) userCategoryNameInput.value = "";
   if (userCategoryGlobalSearchInput) userCategoryGlobalSearchInput.value = "";
-  selectedUserCategoryIcon = "";
+  selectedUserCategoryColor = "";
   syncUserCategorySelections();
   await userCategoryModal.present();
 }
@@ -2575,7 +2732,7 @@ async function openUserCategoryEditModal(category) {
   if (userCategoryModalTitleEl) userCategoryModalTitleEl.textContent = "Editar conta";
   if (userCategoryNameInput) userCategoryNameInput.value = String(category?.name || "");
   if (userCategoryGlobalSearchInput) userCategoryGlobalSearchInput.value = "";
-  selectedUserCategoryIcon = String(category?.icon || "").trim();
+  selectedUserCategoryColor = normalizeEntityColor(category?.color || "");
   selectedUserCategoryGlobalId = Number(category?.global_category_id || 0);
   syncUserCategorySelections();
   await userCategoryModal.present();
@@ -2583,17 +2740,6 @@ async function openUserCategoryEditModal(category) {
 
 async function closeUserCategoryModal() {
   await userCategoryModal?.dismiss();
-}
-
-async function openUserCategoryIconModal() {
-  if (!userCategoryIconModal) return;
-  await ensureUserCategoryIconCatalogLoaded();
-  renderUserCategoryIconOptions();
-  await userCategoryIconModal.present();
-}
-
-async function closeUserCategoryIconModal() {
-  await userCategoryIconModal?.dismiss();
 }
 
 async function openUserCategoryGlobalModal() {
@@ -2608,10 +2754,10 @@ async function closeUserCategoryGlobalModal() {
 
 async function createUserCategory() {
   const name = String(userCategoryNameInput?.value || "").trim();
-  const icon = String(selectedUserCategoryIcon || "").trim();
+  const color = normalizeEntityColor(selectedUserCategoryColor);
   const globalCategoryId = Number(selectedUserCategoryGlobalId || 0);
-  if (!name || globalCategoryId <= 0 || !String(selectedUserCategoryIcon || "").trim()) {
-    showError("Preencha nome, ícone e categoria principal.");
+  if (!name || globalCategoryId <= 0 || !color) {
+    showError("Preencha nome, cor e categoria principal.");
     return;
   }
 
@@ -2627,7 +2773,7 @@ async function createUserCategory() {
       }),
       body: JSON.stringify({
         name,
-        icon,
+        color,
         global_category_id: globalCategoryId,
       }),
     });
@@ -2641,6 +2787,8 @@ async function createUserCategory() {
       return;
     }
     await closeUserCategoryModal();
+    selectedCategoryId = 0;
+    selectedCategoryScope = "user";
     selectedCategoryValue = String(payload?.name || name);
     await refreshActiveTabAfterMutation({ refreshLookups: true });
     if (selectedCategoryEl) {
@@ -2659,62 +2807,41 @@ async function createUserCategory() {
 }
 
 function syncUserAccountSelections() {
-  if (selectedUserAccountIconGlyphEl) {
-    if (selectedUserAccountIcon) {
-      selectedUserAccountIconGlyphEl.textContent = selectedUserAccountIcon;
-      selectedUserAccountIconGlyphEl.hidden = false;
-    } else {
-      selectedUserAccountIconGlyphEl.textContent = "account_balance_wallet";
-      selectedUserAccountIconGlyphEl.hidden = true;
-    }
-  }
-  if (selectedUserAccountIconTextEl) {
-    if (selectedUserAccountIcon) {
-      selectedUserAccountIconTextEl.textContent = "Ícone selecionado";
-      selectedUserAccountIconTextEl.classList.remove("is-placeholder");
-    } else {
-      selectedUserAccountIconTextEl.textContent = "Selecione um ícone";
-      selectedUserAccountIconTextEl.classList.add("is-placeholder");
-    }
-  }
+  renderUserAccountColorOptions();
   updateUserAccountSaveState();
 }
 
 function updateUserAccountSaveState() {
   const hasName = String(userAccountNameInput?.value || "").trim().length > 0;
-  const hasIcon = String(selectedUserAccountIcon || "").trim().length > 0;
+  const hasColor = String(selectedUserAccountColor || "").trim().length > 0;
   if (saveUserAccountBtn) {
-    saveUserAccountBtn.disabled = !(hasName && hasIcon);
+    saveUserAccountBtn.disabled = !(hasName && hasColor);
   }
 }
 
 function resetUserAccountModal() {
   editingUserAccountId = 0;
-  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Nova tag";
+  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Novo marcador";
   if (userAccountNameInput) userAccountNameInput.value = "";
-  selectedUserAccountIcon = "";
+  selectedUserAccountColor = "";
   syncUserAccountSelections();
 }
 
 async function openUserAccountModal() {
   resetUserAccountModal();
-  await ensureUserCategoryIconCatalogLoaded();
-  renderUserAccountIconOptions();
   await userAccountModal?.present();
 }
 
 async function openUserAccountEditModal(account) {
   editingUserAccountId = Number(account?.id || 0);
   if (editingUserAccountId <= 0) {
-    showError("Tag inválida para edição.");
+    showError("Marcador inválido para edição.");
     return;
   }
-  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Editar tag";
+  if (userAccountModalTitleEl) userAccountModalTitleEl.textContent = "Editar marcador";
   if (userAccountNameInput) userAccountNameInput.value = String(account?.name || "");
-  selectedUserAccountIcon = String(account?.icon || "account_balance_wallet");
+  selectedUserAccountColor = normalizeEntityColor(account?.color || "");
   syncUserAccountSelections();
-  await ensureUserCategoryIconCatalogLoaded();
-  renderUserAccountIconOptions();
   await userAccountModal?.present();
 }
 
@@ -2723,66 +2850,26 @@ async function closeUserAccountModal() {
   resetUserAccountModal();
 }
 
-function renderUserAccountIconOptions() {
-  if (!userAccountIconListEl) return;
-  userAccountIconListEl.classList.add("icon-grid-list");
-  const preferred = [
-    "account_balance_wallet",
-    "account_balance",
-    "credit_card",
-    "wallet",
-    "savings",
-    "payments",
-    "paid",
-    "attach_money",
-    "currency_exchange",
-    "receipt_long",
-    "point_of_sale",
-    "storefront",
-    "shopping_cart",
-    "local_atm",
-    "calculate",
-  ];
-  const base = userCategoryIconCatalog.length
-    ? userCategoryIconCatalog
-    : preferred;
-  const preferredAvailable = preferred.filter((icon) => base.includes(icon));
-  const remaining = base.filter((icon) => !preferredAvailable.includes(icon));
-  const ordered = [...preferredAvailable, ...remaining];
-  const withSelected = selectedUserAccountIcon && !ordered.includes(selectedUserAccountIcon)
-    ? [selectedUserAccountIcon, ...ordered]
-    : ordered;
-  const items = withSelected.slice(0, 600);
-  userAccountIconListEl.innerHTML = items
-    .map((iconName) => {
-      const safe = escapeHtml(iconName);
-      const encoded = encodeURIComponent(iconName);
-      const isSelected = selectedUserAccountIcon === iconName;
+function renderUserAccountColorOptions() {
+  if (!userAccountColorListEl) return;
+  userAccountColorListEl.classList.add("color-grid-list");
+  const used = collectUsedEntityColors({ excludeCategoryId: editingUserCategoryId, excludeAccountId: editingUserAccountId });
+  const palette = buildAvailableEntityColorPalette(used, 8);
+  userAccountColorListEl.innerHTML = palette
+    .map((color) => {
+      const isSelected = selectedUserAccountColor === color;
       return `
-        <button type="button" class="icon-grid-option" data-user-account-icon="${encoded}" aria-label="${safe}" title="${safe}"${isSelected ? ' aria-current="true"' : ""}>
-          <span class="material-symbols-rounded">${safe}</span>
-        </button>
+        <button type="button" class="color-grid-option" style="background:${color}" data-user-account-color="${color}" aria-label="Selecionar cor ${color}" title="${color}"${isSelected ? ' aria-current="true"' : ""}></button>
       `;
     })
     .join("");
 }
 
-async function openUserAccountIconModal() {
-  if (!userAccountIconModal) return;
-  await ensureUserCategoryIconCatalogLoaded();
-  renderUserAccountIconOptions();
-  await userAccountIconModal.present();
-}
-
-async function closeUserAccountIconModal() {
-  await userAccountIconModal?.dismiss();
-}
-
 async function saveUserAccount() {
   const name = String(userAccountNameInput?.value || "").trim();
-  const icon = String(selectedUserAccountIcon || "").trim();
-  if (!name || !icon) {
-    showError("Preencha nome e ícone da tag.");
+  const color = normalizeEntityColor(selectedUserAccountColor);
+  if (!name || !color) {
+    showError("Preencha nome e cor do marcador.");
     return;
   }
   if (saveUserAccountBtn) saveUserAccountBtn.disabled = true;
@@ -2795,7 +2882,7 @@ async function saveUserAccount() {
         "Content-Type": "application/json",
         Accept: "application/json",
       }),
-      body: JSON.stringify({ name, icon, type: "bank", initial_balance: 0 }),
+      body: JSON.stringify({ name, color, type: "bank", initial_balance: 0 }),
     });
     if (response.status === 401) {
       window.location.href = "/";
@@ -2803,14 +2890,14 @@ async function saveUserAccount() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || (editingUserAccountId > 0 ? "Não foi possível atualizar tag." : "Não foi possível criar tag.")));
+      showError(String(payload?.error || (editingUserAccountId > 0 ? "Não foi possível atualizar marcador." : "Não foi possível criar marcador.")));
       return;
     }
     await closeUserAccountModal();
     await refreshActiveTabAfterMutation({ refreshLookups: true });
-    showInfo(editingUserAccountId > 0 ? "Tag atualizada com sucesso." : "Tag criada com sucesso.");
+    showInfo(editingUserAccountId > 0 ? "Marcador atualizado com sucesso." : "Marcador criado com sucesso.");
   } catch {
-    showError(editingUserAccountId > 0 ? "Falha de rede ao atualizar tag." : "Falha de rede ao criar tag.");
+    showError(editingUserAccountId > 0 ? "Falha de rede ao atualizar marcador." : "Falha de rede ao criar marcador.");
   } finally {
     if (saveUserAccountBtn) saveUserAccountBtn.disabled = false;
   }
@@ -2820,6 +2907,16 @@ function toAmountClass(value) {
   if (value < 0) return "neg";
   if (value > 0) return "pos";
   return "";
+}
+
+function amountClassByTypeAndValue(value, type) {
+  const numeric = Number(value || 0);
+  if (numeric < 0) return "neg";
+  if (numeric > 0) return "pos";
+  const normalizedType = String(type || "").trim().toLowerCase();
+  if (normalizedType === "out") return "neg";
+  if (normalizedType === "in") return "pos";
+  return "pos";
 }
 
 function polylinePoints(series) {
@@ -3039,7 +3136,7 @@ function applyTypeRulesOnDraft(type) {
 function startSearchDebouncedReload() {
   if (searchDebounceTimer) window.clearTimeout(searchDebounceTimer);
   searchDebounceTimer = window.setTimeout(() => {
-    void loadDashboard();
+    void loadEntriesGroupsForCurrentFilters();
   }, 220);
 }
 
@@ -3076,7 +3173,15 @@ async function openEntryEditor(entryId) {
   editingEntryPending = Number(entry?.needs_review || 0) === 1 || status === "pending";
   editingEntryTypeFallback = String(entry?.type || "");
   if (entryAmountInput) entryAmountInput.value = formatMoneyInput(Number(entry.amount || 0));
+  selectedCategoryId = Number(entry.category_id || 0);
+  selectedCategoryScope = selectedCategoryId > 0 ? "global" : "";
   selectedCategoryValue = String(entry.category || "");
+  if (selectedCategoryId <= 0 && selectedCategoryValue) {
+    const matchedCategory = categories.find((item) => String(item?.name || "") === selectedCategoryValue && String(item?.scope || "") === "user")
+      || categories.find((item) => String(item?.name || "") === selectedCategoryValue);
+    selectedCategoryId = Number(matchedCategory?.id || 0);
+    selectedCategoryScope = matchedCategory ? String(matchedCategory?.scope || "global") : "";
+  }
   if (selectedCategoryEl) {
     selectedCategoryEl.textContent = selectedCategoryValue || "Selecionar conta";
     selectedCategoryEl.classList.toggle("is-placeholder", !selectedCategoryValue);
@@ -3086,7 +3191,7 @@ async function openEntryEditor(entryId) {
   selectedAccountId = Number(entry.account_id || 0);
   if (selectedAccountEl) {
     const accountName = String(entry.account_name || "").trim();
-    selectedAccountEl.textContent = accountName || "Selecionar tag (opcional)";
+    selectedAccountEl.textContent = accountName || "Selecionar marcador (opcional)";
     selectedAccountEl.classList.toggle("is-placeholder", !accountName);
   }
   setEntryModalMode(editingEntryDeleted ? "deleted" : "edit");
@@ -3114,12 +3219,14 @@ function setupEntriesInteractions() {
   cancelEntryFiltersBtn?.addEventListener("click", () => void closeEntryFiltersModal());
 
   clearEntryFiltersBtn?.addEventListener("click", () => {
-    draftEntryFilters = { startDate: "", endDate: "", type: "all", categories: [] };
+    const scope = defaultEntryDateScope();
+    draftEntryFilters = { startDate: scope.startDate, endDate: scope.endDate, type: "all", categories: [] };
     syncFilterDraftToUi();
     entryFilters = { ...draftEntryFilters, categories: [...draftEntryFilters.categories] };
+    lastScopedEntryFilters = { startDate: scope.startDate, endDate: scope.endDate, categories: [] };
     formatFilterPanel();
     void closeEntryFiltersModal();
-    void loadDashboard();
+    void loadEntriesGroupsForCurrentFilters();
   });
 
   applyEntryFiltersBtn?.addEventListener("click", () => {
@@ -3130,7 +3237,7 @@ function setupEntriesInteractions() {
     }
     formatFilterPanel();
     void closeEntryFiltersModal();
-    void loadDashboard();
+    void loadEntriesGroupsForCurrentFilters();
   });
 
   entriesFilterType?.addEventListener("ionChange", (event) => {
@@ -3240,8 +3347,9 @@ function setupEntriesInteractions() {
     }
     const encoded = String(button.getAttribute("data-category-name") || "").trim();
     const categoryName = encoded ? decodeURIComponent(encoded) : "";
+    const categoryId = Number(button.getAttribute("data-category-id") || 0);
     if (!categoryName) return;
-    void openCategoryDetailModal(categoryName);
+    void openCategoryDetailModal(categoryName, categoryId);
   });
 
   accountsListScreen?.addEventListener("click", (event) => {
@@ -3285,12 +3393,12 @@ function setupEntriesInteractions() {
 
   editAccountFromDetailBtn?.addEventListener("click", () => {
     if (currentDetailAccountId <= 0) {
-      showError("Tag inválida para edição.");
+      showError("Marcador inválido para edição.");
       return;
     }
     const account = accounts.find((item) => Number(item?.id || 0) === currentDetailAccountId);
     if (!account) {
-      showError("Tag inválida para edição.");
+      showError("Marcador inválido para edição.");
       return;
     }
     void closeAccountDetailModal().then(() => openUserAccountEditModal(account));
@@ -3420,6 +3528,41 @@ function hexToRgb(hex) {
     Number.parseInt(clean.slice(2, 4), 16),
     Number.parseInt(clean.slice(4, 6), 16),
   ];
+}
+
+function rgbToHsl(rByte, gByte, bByte) {
+  const r = clampByte(rByte) / 255;
+  const g = clampByte(gByte) / 255;
+  const b = clampByte(bByte) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+
+  if (delta !== 0) {
+    s = delta / (1 - Math.abs((2 * l) - 1));
+    if (max === r) h = ((g - b) / delta) % 6;
+    else if (max === g) h = ((b - r) / delta) + 2;
+    else h = ((r - g) / delta) + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  return { h, s, l };
+}
+
+function sortColorsForSelector(colors) {
+  return [...(Array.isArray(colors) ? colors : [])].sort((a, b) => {
+    const [ar, ag, ab] = hexToRgb(a);
+    const [br, bg, bb] = hexToRgb(b);
+    const ahsl = rgbToHsl(ar, ag, ab);
+    const bhsl = rgbToHsl(br, bg, bb);
+    if (Math.abs(ahsl.h - bhsl.h) > 0.001) return ahsl.h - bhsl.h;
+    if (Math.abs(ahsl.s - bhsl.s) > 0.001) return bhsl.s - ahsl.s;
+    return ahsl.l - bhsl.l;
+  });
 }
 
 function srgbToLinear(channelByte) {
@@ -3669,7 +3812,7 @@ function dayGroupLabel(dayNode) {
   return String(dayNode?.label || "").trim().toUpperCase();
 }
 
-function buildCategoryMonthlyBars(categoryName, sourceEntries = null) {
+function buildCategoryMonthlyBars(categoryName, sourceEntries = null, categoryId = 0) {
   const keyNow = monthRange();
   const [yearNow, monthNow] = keyNow.split("-").map((value) => Number(value));
   const months = [];
@@ -3680,10 +3823,16 @@ function buildCategoryMonthlyBars(categoryName, sourceEntries = null) {
   }
   const map = new Map(months.map((item) => [item.key, 0]));
   const normalizedCategory = normalizeText(categoryName);
+  const normalizedCategoryId = Number(categoryId || 0);
   const source = detailEntriesSource(sourceEntries);
   source.forEach((entry) => {
     if (Number(entry?.deleted || 0) === 1) return;
-    if (normalizeText(entry?.category || "") !== normalizedCategory) return;
+    const entryCategoryId = Number(entry?.category_id || entry?.categoryId || 0);
+    if (normalizedCategoryId > 0) {
+      if (entryCategoryId !== normalizedCategoryId) return;
+    } else if (normalizeText(entry?.category || "") !== normalizedCategory) {
+      return;
+    }
     const key = monthKeyFromIso(entry?.date || "");
     if (!map.has(key)) return;
     map.set(key, Number(map.get(key) || 0) + Number(entry?.amount || 0));
@@ -3744,7 +3893,7 @@ function buildMonthAggregateFromEntries(entries, monthKey) {
     const category = byCategoryMap.get(categoryKey);
     category[type] += amount;
 
-    const accountName = String(entry?.account_name || entry?.accountName || "").trim() || "Sem tag";
+    const accountName = String(entry?.account_name || entry?.accountName || "").trim() || "Sem marcador";
     const accountType = String(entry?.account_type || entry?.accountType || "bank");
     const accountId = Number(entry?.account_id || entry?.accountId || 0);
     const accountKey = accountId > 0
@@ -3795,6 +3944,18 @@ function buildMonthAggregateFromEntries(entries, monthKey) {
   };
 }
 
+function colorToneFromHex(hex) {
+  const normalized = normalizeEntityColor(hex);
+  if (!normalized) return null;
+  const [r, g, b] = hexToRgb(normalized);
+  const bg = rgbBytesToHex(
+    r + ((255 - r) * 0.86),
+    g + ((255 - g) * 0.86),
+    b + ((255 - b) * 0.86),
+  );
+  return { fg: normalized, bg };
+}
+
 function aggregateLooksEmpty(agg) {
   const totalCount = Number(agg?.totals?.count || 0);
   const byCategoryCount = Array.isArray(agg?.by_category) ? agg.by_category.length : 0;
@@ -3818,12 +3979,17 @@ function extractEntriesFromGroups(groups) {
   return result;
 }
 
-function buildCategoryEntriesHierarchy(categoryName, sourceEntries = null) {
+function buildCategoryEntriesHierarchy(categoryName, sourceEntries = null, categoryId = 0) {
   const normalizedCategory = normalizeText(categoryName);
+  const normalizedCategoryId = Number(categoryId || 0);
   const source = detailEntriesSource(sourceEntries);
   const filtered = source
     .filter((entry) => Number(entry?.deleted || 0) !== 1)
-    .filter((entry) => normalizeText(entry?.category || "") === normalizedCategory)
+    .filter((entry) => {
+      const entryCategoryId = Number(entry?.category_id || entry?.categoryId || 0);
+      if (normalizedCategoryId > 0) return entryCategoryId === normalizedCategoryId;
+      return normalizeText(entry?.category || "") === normalizedCategory;
+    })
     .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
 
   const yearsMap = new Map();
@@ -3870,8 +4036,8 @@ function buildCategoryEntriesHierarchy(categoryName, sourceEntries = null) {
     }));
 }
 
-function buildCategoryGroupsForLaunchListPattern(categoryName, sourceEntries = null) {
-  const hierarchy = buildCategoryEntriesHierarchy(categoryName, sourceEntries);
+function buildCategoryGroupsForLaunchListPattern(categoryName, sourceEntries = null, categoryId = 0) {
+  const hierarchy = buildCategoryEntriesHierarchy(categoryName, sourceEntries, categoryId);
   return hierarchy.map((yearNode) => ({
     year: yearNode.yearKey,
     label: yearNode.yearKey,
@@ -3994,14 +4160,20 @@ function buildAccountGroupsForLaunchListPattern(accountName, sourceEntries = nul
   }));
 }
 
-function renderCategoryDetailModal(categoryName, sourceEntries = null) {
+function renderCategoryDetailModal(categoryName, sourceEntries = null, categoryId = 0) {
   if (!categoryDetailModal || !categoryDetailTitleEl || !categoryDetailTotalEl || !categoryDetailBarsEl || !categoryDetailListEl) return;
-  const meta = categoryRowsIndex.get(categoryName);
+  const rowKey = buildCategoryRowKey(categoryId, categoryName);
+  const meta = categoryRowsIndex.get(rowKey) || categoryRowsIndex.get(buildCategoryRowKey(0, categoryName));
   if (!meta) return;
   currentDetailCategoryName = categoryName;
+  currentDetailCategoryId = Number(meta?.id || categoryId || 0);
   const categoryType = categoryTypeByName(categoryName);
   const graphColor = categoryType === "in" ? "#2f925f" : "#c95b5b";
-  const sameNameCategories = categories.filter((item) => normalizeText(item?.name || "") === normalizeText(categoryName));
+  const sameNameCategories = categories.filter((item) => {
+    const id = Number(item?.id || 0);
+    if (currentDetailCategoryId > 0 && id > 0) return id === currentDetailCategoryId;
+    return normalizeText(item?.name || "") === normalizeText(categoryName);
+  });
   const hasGlobalCategory = sameNameCategories.some((item) => String(item?.scope || "global") === "global");
   const globalCategoryWithSameName = sameNameCategories.find((item) => String(item?.scope || "global") === "global");
   const editableUserCategory = sameNameCategories.find((item) => String(item?.scope || "global") === "user");
@@ -4036,7 +4208,7 @@ function renderCategoryDetailModal(categoryName, sourceEntries = null) {
   categoryDetailTotalEl.classList.remove("pos", "neg");
   categoryDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
 
-  const bars = buildCategoryMonthlyBars(categoryName, sourceEntries);
+  const bars = buildCategoryMonthlyBars(categoryName, sourceEntries, currentDetailCategoryId);
   categoryDetailBarsEl.innerHTML = bars
     .map((bar) => `
       <span class="category-detail-bars__item">
@@ -4048,7 +4220,7 @@ function renderCategoryDetailModal(categoryName, sourceEntries = null) {
     `)
     .join("");
 
-  const groups = buildCategoryGroupsForLaunchListPattern(categoryName, sourceEntries);
+  const groups = buildCategoryGroupsForLaunchListPattern(categoryName, sourceEntries, currentDetailCategoryId);
   renderEntriesGroupedFromServer(categoryDetailListEl, groups, "Sem lançamentos para esta conta.");
 }
 
@@ -4069,11 +4241,11 @@ function monthBoundsFromKey(monthKey) {
   return { start: toIso(startDate), end: toIso(endDate) };
 }
 
-async function openCategoryDetailModal(categoryName) {
+async function openCategoryDetailModal(categoryName, categoryId = 0) {
   try {
     await loadCategories();
-    const detailEntries = await fetchCategoryDetailEntries(categoryName);
-    renderCategoryDetailModal(categoryName, detailEntries);
+    const detailEntries = await fetchCategoryDetailEntries(categoryName, categoryId);
+    renderCategoryDetailModal(categoryName, detailEntries, categoryId);
     await categoryDetailModal?.present();
   } catch {
     showError("Não foi possível carregar os detalhes da conta.");
@@ -4082,6 +4254,7 @@ async function openCategoryDetailModal(categoryName) {
 
 async function closeCategoryDetailModal() {
   currentDetailCategoryName = "";
+  currentDetailCategoryId = 0;
   currentDetailEditableCategoryId = 0;
   currentDetailGlobalCategoryName = "";
   await categoryDetailModal?.dismiss();
@@ -4107,7 +4280,7 @@ function renderAccountDetailModal(accountId, sourceEntries = null, sourceGroups 
     accountDetailFooterEl.style.display = canManageAccount ? "" : "none";
   }
 
-  accountDetailTitleEl.textContent = currentDetailAccountName || "Tag";
+  accountDetailTitleEl.textContent = currentDetailAccountName || "Marcador";
   accountDetailTotalEl.textContent = money.format(Number(meta?.currBalance || 0));
   accountDetailTotalEl.classList.remove("pos", "neg");
   accountDetailTotalEl.classList.add(Number(meta?.currBalance || 0) >= 0 ? "pos" : "neg");
@@ -4125,10 +4298,10 @@ function renderAccountDetailModal(accountId, sourceEntries = null, sourceGroups 
     .join("");
 
   if (Array.isArray(sourceGroups) && sourceGroups.length) {
-    renderEntriesGroupedFromServer(accountDetailListEl, sourceGroups, "Sem lançamentos para esta tag.");
+    renderEntriesGroupedFromServer(accountDetailListEl, sourceGroups, "Sem lançamentos para este marcador.");
   } else {
     const groups = buildAccountGroupsForLaunchListPattern(currentDetailAccountName, sourceEntries, currentDetailAccountId);
-    renderEntriesGroupedFromServer(accountDetailListEl, groups, "Sem lançamentos para esta tag.");
+    renderEntriesGroupedFromServer(accountDetailListEl, groups, "Sem lançamentos para este marcador.");
   }
 }
 
@@ -4157,7 +4330,7 @@ async function openAccountDetailModal(accountId) {
     renderAccountDetailModal(accountId, detailEntries, detailGroups);
     await accountDetailModal?.present();
   } catch {
-    showError("Não foi possível carregar os detalhes da tag.");
+    showError("Não foi possível carregar os detalhes do marcador.");
   }
 }
 
@@ -4169,12 +4342,12 @@ async function closeAccountDetailModal() {
 
 async function deleteUserAccountFromDetail() {
   if (currentDetailAccountId <= 0) {
-    showError("Tag inválida para exclusão.");
+    showError("Marcador inválido para exclusão.");
     return;
   }
   const confirmed = await confirmActionModal({
-    header: "Excluir tag",
-    message: "Se houver lançamentos vinculados, a tag será apenas desativada.",
+    header: "Excluir marcador",
+    message: "Se houver lançamentos vinculados, o marcador será apenas desativado.",
     confirmText: "Excluir",
     cancelText: "Cancelar",
     confirmRole: "destructive",
@@ -4192,18 +4365,18 @@ async function deleteUserAccountFromDetail() {
     }
     const payload = await safeJson(response, {});
     if (!response.ok) {
-      showError(String(payload?.error || "Não foi possível excluir tag."));
+      showError(String(payload?.error || "Não foi possível excluir marcador."));
       return;
     }
     await closeAccountDetailModal();
     await refreshActiveTabAfterMutation({ refreshLookups: true });
     if (payload?.deactivated) {
-      showInfo("Tag desativada porque possui lançamentos vinculados.");
+      showInfo("Marcador desativado porque possui lançamentos vinculados.");
     } else {
-      showInfo("Tag excluído com sucesso.");
+      showInfo("Marcador excluído com sucesso.");
     }
   } catch {
-    showError("Falha de rede ao excluir tag.");
+    showError("Falha de rede ao excluir marcador.");
   }
 }
 
@@ -4259,32 +4432,35 @@ function renderCategoriesTab(currentAgg, previousAgg) {
   topSummaryState.categorias.previous = previousItems;
   topSummaryState.categorias.currentTotal = Number(currentAgg?.totals?.balance || 0);
   topSummaryState.categorias.previousTotal = Number(previousAgg?.totals?.balance || 0);
-  const categoryKey = (value) => normalizeLookupText(String(value || "").trim());
-  const currMap = new Map(currentItems.map((item) => [categoryKey(item?.name), categoryBalance(item)]));
-  const prevMap = new Map(previousItems.map((item) => [categoryKey(item?.name), categoryBalance(item)]));
+  const categoryRowKey = (item) => buildCategoryRowKey(item?.id, item?.name);
+  const currMap = new Map(currentItems.map((item) => [categoryRowKey(item), categoryBalance(item)]));
+  const prevMap = new Map(previousItems.map((item) => [categoryRowKey(item), categoryBalance(item)]));
 
   const categoryTree = Array.isArray(categoriesTreeCache) ? categoriesTreeCache : [];
   const buildNodeKey = (node) => {
     const id = Number(node?.id || 0);
     const scope = String(node?.scope || "global");
-    const nameKey = categoryKey(node?.name || "");
+    const nameKey = normalizeLookupText(String(node?.name || "").trim());
     return `${scope}:${id > 0 ? id : nameKey}`;
   };
   const decorateNode = (rawNode) => {
     const childrenRaw = Array.isArray(rawNode?.children) ? rawNode.children : [];
     const children = childrenRaw.map((child) => decorateNode(child));
+    const id = Number(rawNode?.id || 0);
     const name = String(rawNode?.name || "").trim();
-    const key = categoryKey(name);
-    const selfCurr = Number(currMap.get(key) || 0);
-    const selfPrev = Number(prevMap.get(key) || 0);
+    const selfKey = buildCategoryRowKey(id, name);
+    const selfCurr = Number(currMap.get(selfKey) || 0);
+    const selfPrev = Number(prevMap.get(selfKey) || 0);
     const childCurr = children.reduce((sum, child) => sum + Number(child?.currBalance || 0), 0);
     const childPrev = children.reduce((sum, child) => sum + Number(child?.prevBalance || 0), 0);
     return {
       key: buildNodeKey(rawNode),
+      id,
       name,
       scope: String(rawNode?.scope || "global"),
       accountClass: String(rawNode?.account_class || "synthetic"),
       type: String(rawNode?.type || "out"),
+      color: String(rawNode?.color || ""),
       currBalance: selfCurr + childCurr,
       prevBalance: selfPrev + childPrev,
       children,
@@ -4317,8 +4493,8 @@ function renderCategoriesTab(currentAgg, previousAgg) {
     const toneMap = buildCategoryToneMap(treeRows.map((item) => String(item?.name || "")));
     categoriesListScreen.innerHTML = treeRows
       .map((item) => {
-        const icon = categoryGlyph(item.name);
-        const tone = toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
+        const customTone = colorToneFromHex(item.color);
+        const tone = customTone || toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
         const toneColor = tone.fg;
         const chipBg = tone.bg;
         const safeName = escapeHtml(item.name);
@@ -4327,9 +4503,11 @@ function renderCategoriesTab(currentAgg, previousAgg) {
         const base = Math.max(currAbs, prevAbs, 1);
         const currWidth = Math.max(0, Math.min(100, Math.round((currAbs / base) * 100)));
         const prevWidth = Math.max(0, Math.min(100, Math.round((prevAbs / base) * 100)));
-        const currClass = item.currBalance >= 0 ? "pos" : "neg";
-        const prevClass = item.prevBalance >= 0 ? "pos" : "neg";
+        const currClass = amountClassByTypeAndValue(item.currBalance, item.type);
+        const prevClass = amountClassByTypeAndValue(item.prevBalance, item.type);
         const encodedName = encodeURIComponent(item.name);
+        const categoryId = Number(item.id || 0);
+        const rowKey = buildCategoryRowKey(categoryId, item.name);
         const nodeKey = escapeHtml(String(item.key || ""));
         const depth = Math.max(0, Number(item.depth || 0));
         const hasChildren = Number(item.childCount || 0) > 0;
@@ -4339,14 +4517,21 @@ function renderCategoriesTab(currentAgg, previousAgg) {
           ? `<span class="cat-tree-toggle" data-cat-tree-toggle="${escapeHtml(String(item.key || ""))}" role="button" tabindex="0" aria-label="Alternar grupo"><span class="material-symbols-rounded">${toggleIcon}</span></span>`
           : `<span class="cat-tree-toggle-spacer" aria-hidden="true"></span>`;
 
-        categoryRowsIndex.set(item.name, { currBalance: item.currBalance, prevBalance: item.prevBalance, toneColor, chipBg });
+        categoryRowsIndex.set(rowKey, {
+          id: categoryId,
+          name: item.name,
+          currBalance: item.currBalance,
+          prevBalance: item.prevBalance,
+          toneColor,
+          chipBg,
+        });
 
         return `
-          <button type="button" class="cat-row cat-row--button" data-category-name="${encodedName}" data-cat-node-key="${nodeKey}" data-cat-expandable="${hasChildren ? "1" : "0"}">
+          <button type="button" class="cat-row cat-row--button" data-category-name="${encodedName}" data-category-id="${categoryId}" data-category-key="${encodeURIComponent(rowKey)}" data-cat-node-key="${nodeKey}" data-cat-expandable="${hasChildren ? "1" : "0"}">
             <div class="cat-row__meta">
               <span class="cat-row__meta-line" style="padding-inline-start:${Math.min(depth * 16, 112)}px">
                 ${toggle}
-                <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
+                <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}">${safeName}</span>
               </span>
             </div>
             <div class="cat-row__curr ${currClass}">${money.format(item.currBalance)}</div>
@@ -4366,31 +4551,42 @@ function renderCategoriesTab(currentAgg, previousAgg) {
     ...currentItems.map((item) => String(item?.name || "")),
     ...previousItems.map((item) => String(item?.name || "")),
   ]);
-  const userAccountNames = (Array.isArray(categories) ? categories : [])
+  const userAccountRows = (Array.isArray(categories) ? categories : [])
     .filter((item) => String(item?.scope || "") === "user")
-    .map((item) => String(item?.name || "").trim())
-    .filter((name) => !!name);
+    .map((item) => ({
+      id: Number(item?.id || 0),
+      name: String(item?.name || "").trim(),
+      color: String(item?.color || ""),
+      type: String(item?.type || ""),
+    }))
+    .filter((item) => !!item.name);
   const allKeys = new Set([
     ...Array.from(currMap.keys()),
     ...Array.from(prevMap.keys()),
-    ...userAccountNames.map((name) => categoryKey(name)),
+    ...userAccountRows.map((item) => buildCategoryRowKey(item.id, item.name)),
   ]);
-  const keyToName = new Map();
+  const keyToMeta = new Map();
   currentItems.forEach((item) => {
+    const key = buildCategoryRowKey(item?.id, item?.name);
     const name = String(item?.name || "").trim();
-    if (name) keyToName.set(categoryKey(name), name);
+    if (name) keyToMeta.set(key, { id: Number(item?.id || 0), name, color: String(item?.color || ""), type: String(item?.type || "") });
   });
   previousItems.forEach((item) => {
+    const key = buildCategoryRowKey(item?.id, item?.name);
     const name = String(item?.name || "").trim();
-    if (name && !keyToName.has(categoryKey(name))) keyToName.set(categoryKey(name), name);
+    if (name && !keyToMeta.has(key)) keyToMeta.set(key, { id: Number(item?.id || 0), name, color: String(item?.color || ""), type: String(item?.type || "") });
   });
-  userAccountNames.forEach((name) => {
-    const key = categoryKey(name);
-    if (!keyToName.has(key)) keyToName.set(key, name);
+  userAccountRows.forEach((item) => {
+    const key = buildCategoryRowKey(item.id, item.name);
+    if (!keyToMeta.has(key)) keyToMeta.set(key, item);
   });
   const listItems = Array.from(allKeys)
     .map((key) => ({
-      name: String(keyToName.get(key) || "").trim(),
+      key: String(key),
+      id: Number(keyToMeta.get(key)?.id || 0),
+      name: String(keyToMeta.get(key)?.name || "").trim(),
+      color: String(keyToMeta.get(key)?.color || ""),
+      type: String(keyToMeta.get(key)?.type || ""),
       currBalance: Number(currMap.get(key) || 0),
       prevBalance: Number(prevMap.get(key) || 0),
     }))
@@ -4404,8 +4600,8 @@ function renderCategoriesTab(currentAgg, previousAgg) {
 
   categoriesListScreen.innerHTML = listItems
     .map((item) => {
-      const icon = categoryGlyph(item.name);
-      const tone = toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
+      const customTone = colorToneFromHex(item.color);
+      const tone = customTone || toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
       const toneColor = tone.fg;
       const chipBg = tone.bg;
       const safeName = escapeHtml(item.name);
@@ -4414,15 +4610,23 @@ function renderCategoriesTab(currentAgg, previousAgg) {
       const base = Math.max(currAbs, prevAbs, 1);
       const currWidth = Math.max(0, Math.min(100, Math.round((currAbs / base) * 100)));
       const prevWidth = Math.max(0, Math.min(100, Math.round((prevAbs / base) * 100)));
-      const currClass = item.currBalance >= 0 ? "pos" : "neg";
-      const prevClass = item.prevBalance >= 0 ? "pos" : "neg";
+      const currClass = amountClassByTypeAndValue(item.currBalance, item.type);
+      const prevClass = amountClassByTypeAndValue(item.prevBalance, item.type);
       const encodedName = encodeURIComponent(item.name);
-      categoryRowsIndex.set(item.name, { currBalance: item.currBalance, prevBalance: item.prevBalance, toneColor, chipBg });
+      const rowKey = String(item.key || buildCategoryRowKey(item.id, item.name));
+      categoryRowsIndex.set(rowKey, {
+        id: Number(item.id || 0),
+        name: item.name,
+        currBalance: item.currBalance,
+        prevBalance: item.prevBalance,
+        toneColor,
+        chipBg,
+      });
 
       return `
-        <button type="button" class="cat-row cat-row--button" data-category-name="${encodedName}">
+        <button type="button" class="cat-row cat-row--button" data-category-name="${encodedName}" data-category-id="${Number(item.id || 0)}" data-category-key="${encodeURIComponent(rowKey)}">
           <div class="cat-row__meta">
-            <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
+            <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}">${safeName}</span>
           </div>
           <div class="cat-row__curr ${currClass}">${money.format(item.currBalance)}</div>
           <span class="cat-row__bar" style="--cat-tone:${toneColor}">
@@ -4449,7 +4653,7 @@ function renderAccountsTab(currentAgg, previousAgg) {
   const currMap = new Map(currentItems.map((item) => [accountKey(item), Number(item?.balance || 0)]));
   const prevMap = new Map(previousItems.map((item) => [accountKey(item), Number(item?.balance || 0)]));
 
-  const baseFromTags = (Array.isArray(accounts) ? accounts : []).map((item) => {
+  const baseFromMarkers = (Array.isArray(accounts) ? accounts : []).map((item) => {
     const id = Number(item?.id || 0);
     const name = String(item?.name || "").trim();
     const type = String(item?.type || "bank");
@@ -4458,12 +4662,13 @@ function renderAccountsTab(currentAgg, previousAgg) {
       key,
       id,
       type,
-      name: name || "Sem tag",
+      name: name || "Sem marcador",
+      color: String(item?.color || ""),
       currBalance: Number(currMap.get(key) || 0),
       prevBalance: Number(prevMap.get(key) || 0),
     };
   });
-  const listMap = new Map(baseFromTags.map((item) => [String(item.key), item]));
+  const listMap = new Map(baseFromMarkers.map((item) => [String(item.key), item]));
   currentItems.forEach((item) => {
     const id = Number(item?.id || 0);
     const name = String(item?.name || "").trim();
@@ -4473,7 +4678,8 @@ function renderAccountsTab(currentAgg, previousAgg) {
       key,
       id,
       type: String(item?.type || "bank"),
-      name: name || "Sem tag",
+      name: name || "Sem marcador",
+      color: "",
       currBalance: Number(currMap.get(key) || 0),
       prevBalance: Number(prevMap.get(key) || 0),
     });
@@ -4487,7 +4693,8 @@ function renderAccountsTab(currentAgg, previousAgg) {
       key,
       id,
       type: String(item?.type || "bank"),
-      name: name || "Sem tag",
+      name: name || "Sem marcador",
+      color: "",
       currBalance: Number(currMap.get(key) || 0),
       prevBalance: Number(prevMap.get(key) || 0),
     });
@@ -4498,7 +4705,7 @@ function renderAccountsTab(currentAgg, previousAgg) {
 
   accountRowsIndex = new Map();
   if (!listItems.length) {
-    accountsListScreen.innerHTML = `<p class="cat-empty">Sem dados de tags no período.</p>`;
+    accountsListScreen.innerHTML = `<p class="cat-empty">Sem dados de marcadores no período.</p>`;
     return;
   }
 
@@ -4509,20 +4716,18 @@ function renderAccountsTab(currentAgg, previousAgg) {
 
   accountsListScreen.innerHTML = listItems
     .map((item) => {
-      const tone = toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
+      const customTone = colorToneFromHex(item.color);
+      const tone = customTone || toneMap.get(item.name) || { fg: "#2b7fff", bg: "#eaf1ff" };
       const toneColor = tone.fg;
       const chipBg = tone.bg;
-      const icon = item.id <= 0
-        ? "account_balance_wallet"
-        : (item.type === "card" ? "credit_card" : "account_balance");
       const safeName = escapeHtml(item.name);
       const currAbs = Math.abs(item.currBalance);
       const prevAbs = Math.abs(item.prevBalance);
       const base = Math.max(currAbs, prevAbs, 1);
       const currWidth = Math.max(0, Math.min(100, Math.round((currAbs / base) * 100)));
       const prevWidth = Math.max(0, Math.min(100, Math.round((prevAbs / base) * 100)));
-      const currClass = item.currBalance >= 0 ? "pos" : "neg";
-      const prevClass = item.prevBalance >= 0 ? "pos" : "neg";
+      const currClass = amountClassByTypeAndValue(item.currBalance, item.type);
+      const prevClass = amountClassByTypeAndValue(item.prevBalance, item.type);
       const rowKey = buildAccountRowKey(item.id, item.name);
       accountRowsIndex.set(rowKey, {
         id: item.id,
@@ -4535,7 +4740,7 @@ function renderAccountsTab(currentAgg, previousAgg) {
       return `
         <button type="button" class="cat-row cat-row--button" data-account-key="${encodeURIComponent(rowKey)}">
           <div class="cat-row__meta">
-            <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}"><span class="material-symbols-rounded cat-chip__icon">${icon}</span>${safeName}</span>
+            <span class="cat-chip" style="--cat-chip-bg:${chipBg};--cat-chip-fg:${toneColor}">${safeName}</span>
           </div>
           <div class="cat-row__curr ${currClass}">${money.format(item.currBalance)}</div>
           <span class="cat-row__bar" style="--cat-tone:${toneColor}">
@@ -4699,7 +4904,7 @@ function renderRecurrenceGroups(container, groups, emptyText) {
                   const signed = String(item?.type || "") === "out" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
                   const amountClass = toAmountClass(signed);
                   const category = escapeHtml(String(item?.category || "Sem conta"));
-                  const account = escapeHtml(String(item?.account_name || "Sem tag"));
+                  const account = escapeHtml(String(item?.account_name || "Sem marcador"));
                   const frequency = escapeHtml(recurrenceFrequencyLabel(item?.frequency));
                   const tone = String(item?.type || "") === "out" ? "entry-chip--out" : "entry-chip--in";
                   return `
@@ -4755,7 +4960,7 @@ function syncRecurrencePickers() {
   if (selectedRecurrenceAccountEl) {
     const account = accounts.find((item) => Number(item?.id || 0) === Number(selectedRecurrenceAccountId || 0));
     const name = String(account?.name || "");
-    selectedRecurrenceAccountEl.textContent = name || "Selecionar tag (opcional)";
+    selectedRecurrenceAccountEl.textContent = name || "Selecionar marcador (opcional)";
     selectedRecurrenceAccountEl.classList.toggle("is-placeholder", !name);
   }
   if (selectedRecurrenceDateEl) {
@@ -4784,10 +4989,14 @@ function renderRecurrenceCategoryOptions() {
     const options = searched.filter((item) => String(item?.type || "") === group.key);
     if (!options.length) return "";
     const optionsHtml = options.map((item) => {
+      const id = Number(item?.id || 0);
+      const scope = String(item?.scope || "global");
       const label = String(item?.name || "").trim();
-      const isSelected = label === selectedRecurrenceCategoryValue;
+      const isSelected = Number(selectedRecurrenceCategoryId || 0) > 0
+        ? (Number(selectedRecurrenceCategoryId || 0) === id && String(selectedRecurrenceCategoryScope || "global") === scope)
+        : label === selectedRecurrenceCategoryValue;
       return `
-        <button type="button" class="category-option is-${group.key}" data-recurrence-category="${encodeURIComponent(label)}"${isSelected ? ' aria-current="true"' : ""}>
+        <button type="button" class="category-option is-${group.key}" data-recurrence-category-id="${id}" data-recurrence-category-scope="${escapeHtml(scope)}" data-recurrence-category="${encodeURIComponent(label)}"${isSelected ? ' aria-current="true"' : ""}>
           <span class="category-option__lead"><span class="material-symbols-rounded">${group.icon}</span></span>
           <span class="category-option__text">${escapeHtml(label)}</span>
         </button>
@@ -4813,7 +5022,7 @@ function renderRecurrenceAccountOptions() {
       <div class="category-group__items">
         <button type="button" class="category-option is-neutral" data-recurrence-account-id="0"${Number(selectedRecurrenceAccountId || 0) <= 0 ? ' aria-current="true"' : ""}>
           <span class="category-option__lead"><span class="material-symbols-rounded">account_balance_wallet</span></span>
-          <span class="category-option__text">Sem tag</span>
+          <span class="category-option__text">Sem marcador</span>
         </button>
       </div>
     </section>
@@ -4840,7 +5049,7 @@ function renderRecurrenceAccountOptions() {
     `;
   }).join("");
   if (!accountGroups.trim() && query) {
-    recurrenceAccountListEl.innerHTML = `${optionalOption}<p class="category-empty">Nenhuma tag encontrada.</p>`;
+    recurrenceAccountListEl.innerHTML = `${optionalOption}<p class="category-empty">Nenhum marcador encontrado.</p>`;
     return;
   }
   recurrenceAccountListEl.innerHTML = `${optionalOption}${accountGroups}`;
@@ -4935,6 +5144,8 @@ function resetRecurrenceForm() {
   if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Novo agendamento";
   if (recurrenceAmountInput) recurrenceAmountInput.value = formatMoneyInput(0);
   selectedRecurrenceCategoryValue = "";
+  selectedRecurrenceCategoryId = 0;
+  selectedRecurrenceCategoryScope = "";
   selectedRecurrenceAccountId = 0;
   selectedRecurrenceStartDateISO = todayIsoDate();
   selectedRecurrenceFrequencyValue = "monthly";
@@ -4973,11 +5184,15 @@ async function saveRecurrence() {
   const isEditingRecurrence = editingRecurrenceId > 0;
   const amount = parseMoneyInput(recurrenceAmountInput?.value || "");
   const category = String(selectedRecurrenceCategoryValue || "").trim();
+  const categoryId = Number(selectedRecurrenceCategoryId || 0);
+  const categoryScope = String(selectedRecurrenceCategoryScope || "");
   const accountId = Number(selectedRecurrenceAccountId || 0);
   const frequency = String(selectedRecurrenceFrequencyValue || "monthly");
   const startDate = String(selectedRecurrenceStartDateISO || "").slice(0, 10);
   const description = String(recurrenceDescriptionInput?.value || "").trim();
-  const categoryType = String(categories.find((item) => String(item?.name || "") === category)?.type || "");
+  const categoryType = String(
+    categories.find((item) => Number(item?.id || 0) === categoryId || String(item?.name || "") === category)?.type || ""
+  );
 
   if (!["in", "out"].includes(categoryType)) {
     showError("Selecione uma conta válida para agendamento.");
@@ -5006,6 +5221,7 @@ async function saveRecurrence() {
         type: categoryType,
         amount,
         category,
+        category_id: categoryId > 0 && categoryScope === "global" ? categoryId : null,
         account_id: accountId > 0 ? accountId : null,
         description,
         frequency,
@@ -5100,7 +5316,15 @@ async function openRecurrenceEditor(recurrenceId) {
   await loadAccounts();
   if (recurrenceModalTitleEl) recurrenceModalTitleEl.textContent = "Editar agendamento";
   if (recurrenceAmountInput) recurrenceAmountInput.value = formatMoneyInput(Number(item?.amount || 0));
+  selectedRecurrenceCategoryId = Number(item?.category_id || 0);
+  selectedRecurrenceCategoryScope = selectedRecurrenceCategoryId > 0 ? "global" : "";
   selectedRecurrenceCategoryValue = String(item?.category || "");
+  if (selectedRecurrenceCategoryId <= 0 && selectedRecurrenceCategoryValue) {
+    const matchedCategory = categories.find((row) => String(row?.name || "") === selectedRecurrenceCategoryValue && String(row?.scope || "") === "user")
+      || categories.find((row) => String(row?.name || "") === selectedRecurrenceCategoryValue);
+    selectedRecurrenceCategoryId = Number(matchedCategory?.id || 0);
+    selectedRecurrenceCategoryScope = matchedCategory ? String(matchedCategory?.scope || "global") : "";
+  }
   selectedRecurrenceAccountId = Number(item?.account_id || 0);
   selectedRecurrenceStartDateISO = String(item?.start_date || todayIsoDate()).slice(0, 10);
   selectedRecurrenceFrequencyValue = String(item?.frequency || "monthly");
@@ -5171,7 +5395,7 @@ async function openRecurrenceDetailModal(recurrenceId) {
     }
     if (recurrenceDetailNextMetaEl) {
       const frequency = recurrenceFrequencyLabel(payload?.frequency);
-      const account = String(payload?.next_entry?.account_name || payload?.account_name || "Sem tag");
+      const account = String(payload?.next_entry?.account_name || payload?.account_name || "Sem marcador");
       recurrenceDetailNextMetaEl.textContent = `${frequency} • ${account}`;
     }
     const entries = Array.isArray(payload?.entries) ? payload.entries : [];
@@ -5205,6 +5429,8 @@ async function loadRecurrences() {
     }
     const data = await response.json();
     renderRecurrencesTab(Array.isArray(data) ? data : []);
+    recurrencesLastLoadedAt = Date.now();
+    recurrencesDirty = false;
   } catch {
     renderRecurrencesTab([]);
   }
@@ -5244,9 +5470,13 @@ function setupRecurrenceInteractions() {
     if (!(target instanceof Element)) return;
     const button = target.closest("[data-recurrence-category]");
     if (!button) return;
+    const categoryId = Number(button.getAttribute("data-recurrence-category-id") || 0);
+    const categoryScope = String(button.getAttribute("data-recurrence-category-scope") || "").trim();
     const encoded = String(button.getAttribute("data-recurrence-category") || "").trim();
     const value = encoded ? decodeURIComponent(encoded) : "";
     if (!value) return;
+    selectedRecurrenceCategoryId = categoryId > 0 ? categoryId : 0;
+    selectedRecurrenceCategoryScope = categoryScope || "";
     selectedRecurrenceCategoryValue = value;
     syncRecurrencePickers();
     void closeRecurrenceCategorySheet();
@@ -5359,68 +5589,98 @@ function setupRecurrenceInteractions() {
   });
 }
 
-async function loadCategories() {
-  try {
-    const response = await authFetch("/api/categories");
-    if (response.status === 401) {
-      window.location.href = "/";
-      return;
-    }
-    if (!response.ok) {
-      categories = [];
-      categoriesTreeCache = [];
-      renderCategoryOptions("");
-      syncRecurrencePickers();
-      return;
-    }
-    const data = await response.json();
-    categories = Array.isArray(data) ? data : [];
-    try {
-      const treeResponse = await authFetch("/api/categories/tree");
-      if (treeResponse.ok) {
-        const treePayload = await safeJson(treeResponse, []);
-        categoriesTreeCache = Array.isArray(treePayload) ? treePayload : [];
-        categoriesTreeCollapsedIds.clear();
-      } else {
-        categoriesTreeCache = [];
-        categoriesTreeCollapsedIds.clear();
-      }
-    } catch {
-      categoriesTreeCache = [];
-      categoriesTreeCollapsedIds.clear();
-    }
+async function loadCategories(force = false) {
+  const hasFreshCache = CATEGORIES_CACHE_TTL_MS > 0
+    && categories.length > 0
+    && (Date.now() - categoriesLastLoadedAt) <= CATEGORIES_CACHE_TTL_MS;
+  if (!force && hasFreshCache) {
     renderCategoryOptions("");
     syncUserCategorySelections();
     syncRecurrencePickers();
-  } catch {
-    categories = [];
-    categoriesTreeCache = [];
-    categoriesTreeCollapsedIds.clear();
-    renderCategoryOptions("");
-    syncUserCategorySelections();
-    syncRecurrencePickers();
+    return;
   }
-}
-
-async function syncDashboardEntriesCache() {
-  if (dashboardEntriesCacheRequest) return dashboardEntriesCacheRequest;
-  dashboardEntriesCacheRequest = (async () => {
+  if (categoriesLoadPromise) {
+    await categoriesLoadPromise;
+    return;
+  }
+  categoriesLoadPromise = (async () => {
     try {
-      const response = await authFetch("/api/entries");
+      const response = await authFetch("/api/categories");
       if (response.status === 401) {
         window.location.href = "/";
         return;
       }
-      if (!response.ok) return;
-      const payload = await safeJson(response, []);
-      dashboardEntriesCache = Array.isArray(payload) ? payload : [];
+      if (!response.ok) {
+        categories = [];
+        categoriesTreeCache = [];
+        categoriesTreeCollapsedIds.clear();
+        categoriesTreeLastLoadedAt = 0;
+        categoriesLastLoadedAt = 0;
+        renderCategoryOptions("");
+        syncRecurrencePickers();
+        return;
+      }
+      const data = await response.json();
+      categories = Array.isArray(data) ? data : [];
+      categoriesTreeCache = [];
+      categoriesTreeCollapsedIds.clear();
+      categoriesTreeLastLoadedAt = 0;
+      categoriesLastLoadedAt = Date.now();
+      renderCategoryOptions("");
+      syncUserCategorySelections();
+      syncRecurrencePickers();
     } catch {
-      // no-op: keep previous cache
+      categories = [];
+      categoriesTreeCache = [];
+      categoriesTreeCollapsedIds.clear();
+      categoriesTreeLastLoadedAt = 0;
+      categoriesLastLoadedAt = 0;
+      renderCategoryOptions("");
+      syncUserCategorySelections();
+      syncRecurrencePickers();
     } finally {
-      dashboardEntriesCacheRequest = null;
+      categoriesLoadPromise = null;
     }
   })();
-  return dashboardEntriesCacheRequest;
+  await categoriesLoadPromise;
+}
+
+async function ensureCategoriesTreeLoaded(force = false) {
+  const hasFreshCache = CATEGORIES_TREE_CACHE_TTL_MS > 0
+    && Array.isArray(categoriesTreeCache)
+    && categoriesTreeCache.length > 0
+    && (Date.now() - categoriesTreeLastLoadedAt) <= CATEGORIES_TREE_CACHE_TTL_MS;
+  if (!force && hasFreshCache) return;
+  if (categoriesTreeLoadPromise) {
+    await categoriesTreeLoadPromise;
+    return;
+  }
+  categoriesTreeLoadPromise = (async () => {
+    try {
+      const treeResponse = await authFetch("/api/categories/tree");
+      if (treeResponse.status === 401) {
+        window.location.href = "/";
+        return;
+      }
+      if (!treeResponse.ok) {
+        categoriesTreeCache = [];
+        categoriesTreeCollapsedIds.clear();
+        categoriesTreeLastLoadedAt = 0;
+        return;
+      }
+      const treePayload = await safeJson(treeResponse, []);
+      categoriesTreeCache = Array.isArray(treePayload) ? treePayload : [];
+      categoriesTreeCollapsedIds.clear();
+      categoriesTreeLastLoadedAt = Date.now();
+    } catch {
+      categoriesTreeCache = [];
+      categoriesTreeCollapsedIds.clear();
+      categoriesTreeLastLoadedAt = 0;
+    } finally {
+      categoriesTreeLoadPromise = null;
+    }
+  })();
+  await categoriesTreeLoadPromise;
 }
 
 function detailEntriesSource(preferred = null) {
@@ -5430,12 +5690,62 @@ function detailEntriesSource(preferred = null) {
   return [];
 }
 
-async function fetchCategoryDetailEntries(categoryName) {
+function applyEntriesGroupsPayload(payload) {
+  const groupedPayload = (payload && typeof payload === "object") ? payload : {};
+  const entryGroups = Array.isArray(groupedPayload?.groups) ? groupedPayload.groups : [];
+  renderEntriesGroupedFromServer(entriesList, entryGroups, "Nenhum lançamento encontrado.");
+  if (entriesMetaEl) {
+    const count = Number(groupedPayload?.count || 0);
+    entriesMetaEl.textContent = count === 1 ? "1 lançamento" : `${count} lançamentos`;
+  }
+  // Primary detail source is dashboardEntriesCache; keep grouped fallback lightweight.
+  dashboardGroupedEntriesCache = [];
+}
+
+function rememberEntriesGroupsCache(query, payload) {
+  lastEntriesGroupsQuery = String(query || "");
+  lastEntriesGroupsPayload = (payload && typeof payload === "object") ? payload : {};
+  lastEntriesGroupsLoadedAt = Date.now();
+}
+
+async function loadEntriesGroupsForCurrentFilters() {
+  const query = buildEntriesGroupsQueryString(entryFilters, entriesSearchTerm);
+  if (
+    ENTRIES_GROUPS_CACHE_TTL_MS > 0
+    &&
+    query
+    && query === lastEntriesGroupsQuery
+    && (Date.now() - lastEntriesGroupsLoadedAt) <= ENTRIES_GROUPS_CACHE_TTL_MS
+    && lastEntriesGroupsPayload
+  ) {
+    applyEntriesGroupsPayload(lastEntriesGroupsPayload);
+    return;
+  }
+  const token = ++entriesGroupsLoadToken;
+  const response = await authFetch(`/api/reports/entries-groups?${query}`);
+  if (token !== entriesGroupsLoadToken) return;
+  if (response.status === 401) {
+    window.location.href = "/";
+    return;
+  }
+  if (!response.ok) {
+    showError("Não foi possível atualizar os lançamentos filtrados.");
+    return;
+  }
+  const payload = await safeJson(response, {});
+  if (token !== entriesGroupsLoadToken) return;
+  rememberEntriesGroupsCache(query, payload);
+  applyEntriesGroupsPayload(payload);
+}
+
+async function fetchCategoryDetailEntries(categoryName, categoryId = 0) {
   const name = String(categoryName || "").trim();
-  if (!name) return [];
+  const normalizedCategoryId = Number(categoryId || 0);
+  if (!name && normalizedCategoryId <= 0) return [];
   const params = new URLSearchParams();
   params.set("type", "all");
-  params.set("categories", name);
+  if (normalizedCategoryId > 0) params.set("category_id", String(normalizedCategoryId));
+  else params.set("categories", name);
   const response = await authFetch(`/api/reports/entries-groups?${params.toString()}`);
   if (response.status === 401) {
     window.location.href = "/";
@@ -5493,9 +5803,16 @@ function entryMatchesAccount(entry, accountId, accountName) {
   return entryAccountId === targetId;
 }
 
+function buildCategoryRowKey(categoryId, categoryName = "") {
+  const id = Number(categoryId || 0);
+  const normalizedName = String(categoryName || "").trim() || "Sem conta";
+  if (id > 0) return `id:${id}`;
+  return `name:${normalizeLookupText(normalizedName)}`;
+}
+
 function buildAccountRowKey(accountId, accountName = "") {
   const id = Number(accountId || 0);
-  const normalizedName = String(accountName || "").trim() || "Sem tag";
+  const normalizedName = String(accountName || "").trim() || "Sem marcador";
   if (id > 0) return `id:${id}`;
   return `name:${normalizeLookupText(normalizedName)}`;
 }
@@ -5542,6 +5859,8 @@ function resetEntryForm() {
   setEntryModalMode("create");
   setEntryTheme("neutral");
   if (entryAmountInput) entryAmountInput.value = formatMoneyInput(0);
+  selectedCategoryId = 0;
+  selectedCategoryScope = "";
   selectedCategoryValue = "";
   if (categorySearchInput) categorySearchInput.value = "";
   if (selectedCategoryEl) {
@@ -5551,7 +5870,7 @@ function resetEntryForm() {
   selectedAccountId = 0;
   if (accountSearchInput) accountSearchInput.value = "";
   if (selectedAccountEl) {
-    selectedAccountEl.textContent = "Selecionar tag (opcional)";
+    selectedAccountEl.textContent = "Selecionar marcador (opcional)";
     selectedAccountEl.classList.add("is-placeholder");
   }
   setEntryDirectionHint("");
@@ -5598,6 +5917,8 @@ async function createEntry() {
   const type = currentEntryTypeForValidation();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
+  const categoryId = Number(selectedCategoryId || 0);
+  const categoryScope = String(selectedCategoryScope || "");
   const accountId = Number(selectedAccountId || 0);
   const date = String(selectedDateISO || "").slice(0, 10).trim();
   const description = String(entryDescriptionInput?.value || "").trim();
@@ -5640,6 +5961,7 @@ async function createEntry() {
         type,
         amount,
         category,
+        category_id: categoryId > 0 && categoryScope === "global" ? categoryId : null,
         account_id: accountPayload,
         date,
         description,
@@ -5685,6 +6007,8 @@ async function approvePendingEntry() {
   const type = currentEntryTypeForValidation();
   const amount = parseMoneyInput(entryAmountInput?.value || "");
   const category = String(selectedCategoryValue || "").trim();
+  const categoryId = Number(selectedCategoryId || 0);
+  const categoryScope = String(selectedCategoryScope || "");
   const accountId = Number(selectedAccountId || 0);
   const date = String(selectedDateISO || "").slice(0, 10).trim();
   const description = String(entryDescriptionInput?.value || "").trim();
@@ -5728,6 +6052,7 @@ async function approvePendingEntry() {
         type,
         amount,
         category,
+        category_id: categoryId > 0 && categoryScope === "global" ? categoryId : null,
         account_id: accountPayload,
         date,
         description,
@@ -5913,6 +6238,8 @@ function setupEntryModal() {
   categorySearchInput?.addEventListener("ionInput", () => {
     const current = String(categorySearchInput?.value || "").trim();
     if (current !== selectedCategoryValue) {
+      selectedCategoryId = 0;
+      selectedCategoryScope = "";
       selectedCategoryValue = "";
       if (selectedCategoryEl) {
         selectedCategoryEl.textContent = "Selecionar conta";
@@ -5928,9 +6255,13 @@ function setupEntryModal() {
     if (!(target instanceof Element)) return;
     const button = target.closest(".category-option");
     if (!button) return;
+    const categoryId = Number(button.getAttribute("data-category-id") || 0);
+    const categoryScope = String(button.getAttribute("data-category-scope") || "").trim();
     const encoded = String(button.getAttribute("data-category") || "").trim();
     const value = encoded ? decodeURIComponent(encoded) : "";
     if (!value) return;
+    selectedCategoryId = categoryId > 0 ? categoryId : 0;
+    selectedCategoryScope = categoryScope || "";
     selectedCategoryValue = value;
     if (categorySearchInput) categorySearchInput.value = value;
     if (selectedCategoryEl) {
@@ -5958,7 +6289,7 @@ function setupEntryModal() {
     if (selected && typed && typed !== String(selected?.name || "")) {
       selectedAccountId = 0;
       if (selectedAccountEl) {
-        selectedAccountEl.textContent = "Selecionar tag (opcional)";
+        selectedAccountEl.textContent = "Selecionar marcador (opcional)";
         selectedAccountEl.classList.add("is-placeholder");
       }
       updateSaveState();
@@ -5980,7 +6311,7 @@ function setupEntryModal() {
         selectedAccountEl.textContent = String(account?.name || "");
         selectedAccountEl.classList.remove("is-placeholder");
       } else {
-        selectedAccountEl.textContent = "Selecionar tag (opcional)";
+        selectedAccountEl.textContent = "Selecionar marcador (opcional)";
         selectedAccountEl.classList.add("is-placeholder");
       }
     }
@@ -6032,48 +6363,28 @@ function setupEntryModal() {
     updateUserAccountSaveState();
   });
 
-  openUserCategoryIconModalBtn?.addEventListener("click", () => {
-    void openUserCategoryIconModal();
-  });
-
-  closeUserCategoryIconModalBtn?.addEventListener("click", () => {
-    void closeUserCategoryIconModal();
-  });
-
-  openUserAccountIconModalBtn?.addEventListener("click", () => {
-    void openUserAccountIconModal();
-  });
-
-  closeUserAccountIconModalBtn?.addEventListener("click", () => {
-    void closeUserAccountIconModal();
-  });
-
-  userCategoryIconListEl?.addEventListener("click", (event) => {
+  userCategoryColorListEl?.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const button = target.closest("[data-user-category-icon]");
+    const button = target.closest("[data-user-category-color]");
     if (!button) return;
-    const encoded = String(button.getAttribute("data-user-category-icon") || "").trim();
-    const iconName = encoded ? decodeURIComponent(encoded) : "";
-    if (!iconName) return;
-    selectedUserCategoryIcon = iconName;
+    const color = normalizeEntityColor(button.getAttribute("data-user-category-color"));
+    if (!color) return;
+    selectedUserCategoryColor = color;
     syncUserCategorySelections();
-    renderUserCategoryIconOptions();
-    void closeUserCategoryIconModal();
+    renderUserCategoryColorOptions();
   });
 
-  userAccountIconListEl?.addEventListener("click", (event) => {
+  userAccountColorListEl?.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const button = target.closest("[data-user-account-icon]");
+    const button = target.closest("[data-user-account-color]");
     if (!button) return;
-    const encoded = String(button.getAttribute("data-user-account-icon") || "").trim();
-    const iconName = encoded ? decodeURIComponent(encoded) : "";
-    if (!iconName) return;
-    selectedUserAccountIcon = iconName;
+    const color = normalizeEntityColor(button.getAttribute("data-user-account-color"));
+    if (!color) return;
+    selectedUserAccountColor = color;
     syncUserAccountSelections();
-    renderUserAccountIconOptions();
-    void closeUserAccountIconModal();
+    renderUserAccountColorOptions();
   });
 
   openUserCategoryGlobalModalBtn?.addEventListener("click", () => {
@@ -6322,8 +6633,13 @@ function renderNotifications(items) {
     .join("");
 }
 
-async function loadNotifications() {
+async function loadNotifications(options = {}) {
+  const includeSupport = options?.includeSupport !== false;
   const localItems = readUserNotifications();
+  if (!includeSupport) {
+    setSupportAndNotificationBadges(localItems.length);
+    return localItems;
+  }
   try {
     const supportEndpoint = isSupportAdminMode() ? "/api/admin/support/threads" : "/api/support/threads";
     const response = await authFetch(supportEndpoint);
@@ -6775,7 +7091,7 @@ function supportAttachOptions() {
     { key: "file", label: "Imagem / Captura de tela", icon: "image" },
     { key: "entry", label: "Lançamento", icon: "receipt_long" },
     { key: "category", label: "Conta", icon: "category" },
-    { key: "account", label: "Tag", icon: "account_balance_wallet" },
+    { key: "account", label: "Marcador", icon: "account_balance_wallet" },
     { key: "recurrence", label: "Agendamento", icon: "event_repeat" },
   ];
 }
@@ -6860,7 +7176,7 @@ function supportEntityTitle(type) {
   return ({
     entry: "Selecionar lançamento",
     category: "Selecionar conta",
-    account: "Selecionar tag",
+    account: "Selecionar marcador",
     recurrence: "Selecionar agendamento",
   })[type] || "Selecionar item";
 }
@@ -7400,8 +7716,8 @@ function adminAlterdataFieldLabel(scope, field) {
       type_code: "Tipo (E/S)",
       category: "Conta",
       description: "Descrição",
-      account_name: "Tag",
-      account_id: "ID da tag",
+      account_name: "Marcador",
+      account_id: "ID do marcador",
     },
     category: {
       id: "ID da conta",
@@ -8031,7 +8347,7 @@ function renderAdminUserStats(stats) {
   adminUserStatsEl.innerHTML = `
     <article class="settings-item"><p class="settings-item__text">Lançamentos: <strong>${Number(stats?.entries || 0)}</strong></p></article>
     <article class="settings-item"><p class="settings-item__text">Agendamentos ativos: <strong>${Number(stats?.recurrences || 0)}</strong></p></article>
-    <article class="settings-item"><p class="settings-item__text">Tags ativas: <strong>${Number(stats?.accounts || 0)}</strong></p></article>
+    <article class="settings-item"><p class="settings-item__text">Marcadores ativos: <strong>${Number(stats?.accounts || 0)}</strong></p></article>
     <article class="settings-item"><p class="settings-item__text">Contas filhas: <strong>${Number(stats?.categories || 0)}</strong></p></article>
     <article class="settings-item"><p class="settings-item__text">Pendentes de revisão: <strong>${Number(stats?.pending_review || 0)}</strong></p></article>
   `;
@@ -8731,6 +9047,100 @@ async function closeAdminExportUserModal() {
   }
 }
 
+async function fetchDashboardSnapshotPayload() {
+  const month = monthRange();
+  const groupsQuery = buildEntriesGroupsQueryString(entryFilters, entriesSearchTerm);
+  if (periodEl) periodEl.textContent = `Período: ${periodLabel()}`;
+  const dashboardUrl = `/api/reports/dashboard?month=${encodeURIComponent(month)}${groupsQuery ? `&${groupsQuery}` : ""}`;
+  const response = await authFetch(dashboardUrl);
+  if (response.status === 401) {
+    window.location.href = "/";
+    return null;
+  }
+  if (!response.ok) {
+    showError("Não foi possível carregar o dashboard.");
+    return null;
+  }
+  return safeJson(response, {});
+}
+
+function applyDashboardSnapshotPayload(dashboardPayload) {
+  const entries = Array.isArray(dashboardPayload?.entries) ? dashboardPayload.entries : [];
+  dashboardEntriesCache = Array.isArray(entries) ? entries : [];
+  const summary = (dashboardPayload?.summary && typeof dashboardPayload.summary === "object")
+    ? dashboardPayload.summary
+    : {};
+  const monthAggSafe = (dashboardPayload?.month_aggregate && typeof dashboardPayload.month_aggregate === "object")
+    ? dashboardPayload.month_aggregate
+    : {};
+  const prevMonthAggSafe = (dashboardPayload?.previous_month_aggregate && typeof dashboardPayload.previous_month_aggregate === "object")
+    ? dashboardPayload.previous_month_aggregate
+    : {};
+
+  const totals = monthAggSafe?.totals || {};
+  const balance = Number(totals.balance || 0);
+  const totalIn = Number(totals.in || 0);
+  const totalOut = Number(totals.out || 0);
+
+  if (kpiBalance) kpiBalance.textContent = money.format(balance);
+  if (balanceHeadEl) {
+    balanceHeadEl.textContent = money.format(balance);
+    balanceHeadEl.className = `topbar-balance__value ${toAmountClass(balance)}`.trim();
+  }
+  if (budgetLine) budgetLine.textContent = `${money.format(totalIn + totalOut)} orçado no mês`;
+
+  const trend = Number((summary?.last_12_months || []).slice(-1)[0]?.month_balance || 0);
+  const trendPrefix = trend >= 0 ? "+" : "-";
+  if (trendLabel) trendLabel.textContent = `Resultado do mês ${trendPrefix} ${money.format(Math.abs(trend))}`;
+  if (trendLine) trendLine.setAttribute("points", polylinePoints(summary?.last_12_months || []));
+
+  const groupedPayload = (dashboardPayload?.entry_groups && typeof dashboardPayload.entry_groups === "object")
+    ? dashboardPayload.entry_groups
+    : {};
+  rememberEntriesGroupsCache(buildEntriesGroupsQueryString(entryFilters, entriesSearchTerm), groupedPayload);
+  applyEntriesGroupsPayload(groupedPayload);
+
+  try {
+    const pendingEntries = Array.isArray(entries)
+      ? entries.filter((entry) => Number(entry.needs_review || 0) === 1).slice(0, 3)
+      : [];
+    renderRows(reviewList, pendingEntries, "review", "Tudo revisado por enquanto.");
+    if (reviewActionEl) reviewActionEl.hidden = pendingEntries.length === 0;
+
+    const today = todayIsoDate();
+    const nextEntries = Array.isArray(entries)
+      ? entries
+          .filter((entry) => entry.type === "out" && (entry.date || "") >= today)
+          .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
+          .slice(0, 3)
+      : [];
+    renderRows(nextList, nextEntries, "next", "Nenhum lançamento futuro.");
+    renderCategories(monthAggSafe?.by_category || []);
+    renderCategoriesTab(monthAggSafe || {}, prevMonthAggSafe || {});
+    renderAccountsTab(monthAggSafe || {}, prevMonthAggSafe || {});
+    topSummaryState.categorias.currentTotal = Number(monthAggSafe?.totals?.balance || 0);
+    topSummaryState.categorias.previousTotal = Number(prevMonthAggSafe?.totals?.balance || 0);
+    topSummaryState.contas.currentTotal = Number(monthAggSafe?.totals?.balance || 0);
+    topSummaryState.contas.previousTotal = Number(prevMonthAggSafe?.totals?.balance || 0);
+    renderTopSummaryForTab(activeTabName());
+  } catch (sectionError) {
+    console.error("Erro ao renderizar seções secundárias do dashboard:", sectionError);
+  }
+}
+
+async function loadDashboardSnapshotOnly() {
+  const payload = await fetchDashboardSnapshotPayload();
+  if (!payload) return;
+  applyDashboardSnapshotPayload(payload);
+  const now = Date.now();
+  dashboardLastLoadedAt = now;
+  dashboardDirty = false;
+  aggregateLastLoadedAt = now;
+  aggregateDirty = false;
+  showInfo(`Atualizado com dados de ${periodLabel()}`);
+  requestAnimationFrame(updateOverlayPositioning);
+}
+
 async function loadDashboard() {
   const token = ++dashboardLoadToken;
   dashboardLoadsInFlight += 1;
@@ -8741,44 +9151,17 @@ async function loadDashboard() {
   normalizeAppliedEntryFilters();
   formatFilterPanel();
 
-  const month = monthRange();
-  const prevMonth = previousMonthRange(month);
-  const monthBounds = monthBoundsFromKey(month);
-  const prevMonthBounds = monthBoundsFromKey(prevMonth);
-  const groupsQuery = buildEntriesGroupsQueryString(entryFilters, entriesSearchTerm);
-  if (periodEl) periodEl.textContent = `Per\u00edodo: ${periodLabel()}`;
-
   try {
-    const profileRes = await authFetch("/api/account/profile");
-    if (profileRes.status === 401) {
-      window.location.href = "/";
+    const dashboardPayload = await fetchDashboardSnapshotPayload();
+    if (!dashboardPayload) return;
+    if (token !== dashboardLoadToken) return;
+    if (dashboardPayload?.session_profile && typeof dashboardPayload.session_profile === "object") {
+      applySessionProfile(dashboardPayload.session_profile);
+    } else {
+      showError("Nao foi possivel carregar o perfil da sessao no dashboard.");
       return;
     }
-    if (!profileRes.ok) {
-      showError("N\u00e3o foi poss\u00edvel carregar o perfil da sess\u00e3o.");
-      return;
-    }
-    const profile = await safeJson(profileRes, {});
-    const displayName = profile?.name || profile?.email || "Usu\u00e1rio";
-    const impersonationPayload = profile?.impersonation && typeof profile.impersonation === "object"
-      ? profile.impersonation
-      : { active: false };
-    currentProfile = {
-      id: Number(profile?.id || 0),
-      name: String(profile?.name || ""),
-      email: String(profile?.email || ""),
-      role: String(profile?.role || ""),
-      alterdataCode: String(profile?.alterdata_code || ""),
-      impersonation: {
-        active: Boolean(impersonationPayload?.active),
-        admin: impersonationPayload?.admin || null,
-      },
-    };
-    if (userTitleEl) userTitleEl.textContent = displayName;
-    syncAdminAreaAccess();
-    syncImpersonationBanner();
-    syncDashMenuUserSummary();
-    void loadNotifications();
+    void loadNotifications({ includeSupport: false });
     if (String(currentProfile?.role || "") === "admin" || Boolean(currentProfile?.impersonation?.active)) {
       void fetchAdminPendingEntries().then((items) => {
         syncAdminPendingEntriesBadge(Array.isArray(items) ? items.length : 0);
@@ -8786,149 +9169,23 @@ async function loadDashboard() {
     } else {
       syncAdminPendingEntriesBadge(0);
     }
+    applyDashboardSnapshotPayload(dashboardPayload);
 
-    const [monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes] = await Promise.all([
-      authFetch(`/api/reports/aggregate?start=${monthBounds.start}&end=${monthBounds.end}`),
-      authFetch(`/api/reports/aggregate?start=${prevMonthBounds.start}&end=${prevMonthBounds.end}`),
-      authFetch("/api/reports/summary"),
-      authFetch("/api/entries"),
-      authFetch(`/api/reports/entries-groups?${groupsQuery}`),
-    ]);
-
-    if ([monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => response.status === 401)) {
-      window.location.href = "/";
-      return;
+    const tabNow = activeTabName();
+    const shouldLoadAccounts = tabNow === "contas";
+    if (shouldLoadAccounts) {
+      await loadAccounts(true);
+      if (token !== dashboardLoadToken) return;
     }
-    if ([monthAggRes, prevMonthAggRes, summaryRes, entriesRes, entryGroupsRes].some((response) => !response.ok)) {
-      showError("N\u00e3o foi poss\u00edvel carregar o dashboard.");
-      return;
+    const shouldLoadRecurrences = tabNow === "recorrentes";
+    if (shouldLoadRecurrences) {
+      await loadRecurrences();
+      if (token !== dashboardLoadToken) return;
     }
-
-    const [monthAgg, prevMonthAgg, summary, entries, groupedPayload] = await Promise.all([
-      safeJson(monthAggRes, {}),
-      safeJson(prevMonthAggRes, {}),
-      safeJson(summaryRes, {}),
-      safeJson(entriesRes, []),
-      safeJson(entryGroupsRes, {}),
-    ]);
-    if (token !== dashboardLoadToken) return;
-
-    dashboardEntriesCache = Array.isArray(entries) ? entries : [];
-    const monthAggSafe = (monthAgg && typeof monthAgg === "object") ? monthAgg : {};
-    const prevMonthAggSafe = (prevMonthAgg && typeof prevMonthAgg === "object") ? prevMonthAgg : {};
-    const monthAggInvalid = !Array.isArray(monthAggSafe.by_category)
-      || !Array.isArray(monthAggSafe.by_account)
-      || (Number(monthAggSafe?.totals?.count || 0) > 0
-        && monthAggSafe.by_category.length === 0
-        && monthAggSafe.by_account.length === 0);
-    const prevAggInvalid = !Array.isArray(prevMonthAggSafe.by_category)
-      || !Array.isArray(prevMonthAggSafe.by_account)
-      || (Number(prevMonthAggSafe?.totals?.count || 0) > 0
-        && prevMonthAggSafe.by_category.length === 0
-        && prevMonthAggSafe.by_account.length === 0);
-
-    if (monthAggInvalid) {
-      const monthGroupsQuery = buildEntriesGroupsQueryString({
-        type: "all",
-        startDate: monthBounds.start,
-        endDate: monthBounds.end,
-        categories: [],
-      }, "");
-      const monthGroupsRes = await authFetch(`/api/reports/entries-groups?${monthGroupsQuery}`);
-      if (monthGroupsRes.status === 401) {
-        window.location.href = "/";
-        return;
-      }
-      if (monthGroupsRes.ok) {
-        const monthGroupsPayload = await safeJson(monthGroupsRes, {});
-        if (token !== dashboardLoadToken) return;
-        const monthGroups = Array.isArray(monthGroupsPayload?.groups) ? monthGroupsPayload.groups : [];
-        const monthEntries = extractEntriesFromGroups(monthGroups);
-        Object.assign(monthAggSafe, buildMonthAggregateFromEntries(monthEntries, month));
-      }
-    }
-
-    if (prevAggInvalid) {
-      const prevGroupsQuery = buildEntriesGroupsQueryString({
-        type: "all",
-        startDate: prevMonthBounds.start,
-        endDate: prevMonthBounds.end,
-        categories: [],
-      }, "");
-      const prevGroupsRes = await authFetch(`/api/reports/entries-groups?${prevGroupsQuery}`);
-      if (prevGroupsRes.status === 401) {
-        window.location.href = "/";
-        return;
-      }
-      if (prevGroupsRes.ok) {
-        const prevGroupsPayload = await safeJson(prevGroupsRes, {});
-        if (token !== dashboardLoadToken) return;
-        const prevGroups = Array.isArray(prevGroupsPayload?.groups) ? prevGroupsPayload.groups : [];
-        const prevEntriesFromGroups = extractEntriesFromGroups(prevGroups);
-        Object.assign(prevMonthAggSafe, buildMonthAggregateFromEntries(prevEntriesFromGroups, prevMonth));
-      }
-    }
-    if (token !== dashboardLoadToken) return;
-
-    const totals = monthAggSafe?.totals || {};
-    const balance = Number(totals.balance || 0);
-    const totalIn = Number(totals.in || 0);
-    const totalOut = Number(totals.out || 0);
-
-    if (kpiBalance) kpiBalance.textContent = money.format(balance);
-    if (balanceHeadEl) {
-      balanceHeadEl.textContent = money.format(balance);
-      balanceHeadEl.className = `topbar-balance__value ${toAmountClass(balance)}`.trim();
-    }
-    if (budgetLine) budgetLine.textContent = `${money.format(totalIn + totalOut)} or\u00e7ado no m\u00eas`;
-
-    const trend = Number((summary?.last_12_months || []).slice(-1)[0]?.month_balance || 0);
-    const trendPrefix = trend >= 0 ? "+" : "-";
-    if (trendLabel) trendLabel.textContent = `Resultado do m\u00eas ${trendPrefix} ${money.format(Math.abs(trend))}`;
-    if (trendLine) trendLine.setAttribute("points", polylinePoints(summary?.last_12_months || []));
-
-    const entryGroups = Array.isArray(groupedPayload?.groups) ? groupedPayload.groups : [];
-    const groupedEntries = extractEntriesFromGroups(entryGroups);
-    dashboardGroupedEntriesCache = groupedEntries;
-    renderEntriesGroupedFromServer(entriesList, entryGroups, "Nenhum lan\u00e7amento encontrado.");
-    if (entriesMetaEl) {
-      const count = Number(groupedPayload?.count || 0);
-      entriesMetaEl.textContent = count === 1 ? "1 lan\u00e7amento" : `${count} lan\u00e7amentos`;
-    }
-
-    try {
-      const pendingEntries = Array.isArray(entries)
-        ? entries.filter((entry) => Number(entry.needs_review || 0) === 1).slice(0, 3)
-        : [];
-      renderRows(reviewList, pendingEntries, "review", "Tudo revisado por enquanto.");
-      if (reviewActionEl) reviewActionEl.hidden = pendingEntries.length === 0;
-
-      const today = todayIsoDate();
-      const nextEntries = Array.isArray(entries)
-        ? entries
-            .filter((entry) => entry.type === "out" && (entry.date || "") >= today)
-            .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
-            .slice(0, 3)
-        : [];
-      renderRows(nextList, nextEntries, "next", "Nenhum lan\u00e7amento futuro.");
-      renderCategories(monthAggSafe?.by_category || []);
-      renderCategoriesTab(monthAggSafe || {}, prevMonthAggSafe || {});
-      renderAccountsTab(monthAggSafe || {}, prevMonthAggSafe || {});
-      topSummaryState.categorias.currentTotal = Number(monthAggSafe?.totals?.balance || 0);
-      topSummaryState.categorias.previousTotal = Number(prevMonthAggSafe?.totals?.balance || 0);
-      topSummaryState.contas.currentTotal = Number(monthAggSafe?.totals?.balance || 0);
-      topSummaryState.contas.previousTotal = Number(prevMonthAggSafe?.totals?.balance || 0);
-      renderTopSummaryForTab(activeTabName());
-    } catch (sectionError) {
-      console.error("Erro ao renderizar se\u00e7\u00f5es secund\u00e1rias do dashboard:", sectionError);
-    }
-
-    await loadCategories();
-    if (token !== dashboardLoadToken) return;
-    await loadAccounts(true);
-    if (token !== dashboardLoadToken) return;
-    await loadRecurrences();
-    if (token !== dashboardLoadToken) return;
+    dashboardLastLoadedAt = Date.now();
+    dashboardDirty = false;
+    aggregateLastLoadedAt = dashboardLastLoadedAt;
+    aggregateDirty = false;
     showInfo(`Atualizado com dados de ${periodLabel()}`);
     requestAnimationFrame(updateOverlayPositioning);
   } catch (error) {
@@ -8938,7 +9195,9 @@ async function loadDashboard() {
     if (initialBootPending) {
       initialBootPending = false;
       if (window.__dashboardLoading && typeof window.__dashboardLoading.finishWithSlide === "function") {
-        window.__dashboardLoading.finishWithSlide(500, 420);
+        const exitDelay = IS_DEV_RUNTIME ? 0 : 500;
+        const exitDuration = IS_DEV_RUNTIME ? 0 : 420;
+        window.__dashboardLoading.finishWithSlide(exitDelay, exitDuration);
       } else {
         window.setTimeout(() => {
           if (!rootApp) return;
@@ -9852,6 +10111,23 @@ void loadDashboard();
 function registerPwaServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   if (!window.isSecureContext) return;
+  const host = String(window.location.hostname || "").toLowerCase();
+  const isDevHost = host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
+  const params = new URLSearchParams(window.location.search);
+  const clearDevCache = params.get("dev_clear_cache") === "1";
+  if (isDevHost) {
+    if (clearDevCache) {
+      navigator.serviceWorker.getRegistrations()
+        .then((regs) => Promise.all((regs || []).map((reg) => reg.unregister())))
+        .catch(() => {});
+      if ("caches" in window) {
+        caches.keys()
+          .then((keys) => Promise.all((keys || []).map((key) => caches.delete(key))))
+          .catch(() => {});
+      }
+    }
+    return;
+  }
 
   navigator.serviceWorker
     .register(`/service-worker.js?v=${APP_ASSET_VERSION}`)

@@ -14,5 +14,6 @@ interface UserRepositoryInterface
     public function listAll(): array;
     public function updateUser(int $id, array $data): ?User;
     public function updatePassword(int $id, string $passwordHash): bool;
+    public function incrementTokenVersion(int $id): bool;
     public function deleteUser(int $id): bool;
 }

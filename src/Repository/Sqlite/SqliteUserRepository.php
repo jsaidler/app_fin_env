@@ -35,7 +35,7 @@ class SqliteUserRepository implements UserRepositoryInterface
     public function create(string $name, string $email, string $passwordHash): User
     {
         $now = date('c');
-        $stmt = $this->pdo->prepare('INSERT INTO users (name,email,password_hash,role,theme,alterdata_code,created_at) VALUES (:name,:email,:ph,:role,:theme,:alterdata_code,:created)');
+        $stmt = $this->pdo->prepare('INSERT INTO users (name,email,password_hash,role,theme,alterdata_code,token_version,created_at) VALUES (:name,:email,:ph,:role,:theme,:alterdata_code,:token_version,:created)');
         $stmt->execute([
             'name' => $name,
             'email' => strtolower($email),
@@ -43,6 +43,7 @@ class SqliteUserRepository implements UserRepositoryInterface
             'role' => 'user',
             'theme' => 'dark',
             'alterdata_code' => '',
+            'token_version' => 0,
             'created' => $now,
         ]);
         $id = (int)$this->pdo->lastInsertId();
@@ -54,6 +55,7 @@ class SqliteUserRepository implements UserRepositoryInterface
             'role' => 'user',
             'theme' => 'dark',
             'alterdata_code' => '',
+            'token_version' => 0,
             'created_at' => $now,
         ]);
     }
@@ -93,6 +95,13 @@ class SqliteUserRepository implements UserRepositoryInterface
     {
         $stmt = $this->pdo->prepare('UPDATE users SET password_hash=:ph WHERE id=:id');
         $stmt->execute(['ph' => $passwordHash, 'id' => $id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function incrementTokenVersion(int $id): bool
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = :id');
+        $stmt->execute(['id' => $id]);
         return $stmt->rowCount() > 0;
     }
 

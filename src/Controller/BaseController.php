@@ -53,6 +53,27 @@ abstract class BaseController
         }
         $role = $payload['role'] ?? $user->role ?? 'user';
         $this->authPayload['role'] = $role;
+        $tokenVersion = isset($payload['tv']) ? (int)$payload['tv'] : 0;
+        if ($tokenVersion !== (int)($user->tokenVersion ?? 0)) {
+            Logger::warning('Token revogado por versao', ['uid' => $uid, 'path' => $_SERVER['REQUEST_URI'] ?? '']);
+            Response::json(['error' => 'Token revogado'], 401);
+        }
+        $this->authPayload['tv'] = $tokenVersion;
+
+        $impBy = isset($payload['imp_by']) ? (int)$payload['imp_by'] : 0;
+        if ($impBy > 0) {
+            $admin = $this->userRepo()->findById($impBy);
+            if (!$admin || $admin->role !== 'admin') {
+                Logger::warning('Token de personificacao sem admin valido', ['uid' => $uid, 'imp_by' => $impBy]);
+                Response::json(['error' => 'Token invalido'], 401);
+            }
+            $impTokenVersion = isset($payload['imp_tv']) ? (int)$payload['imp_tv'] : 0;
+            if ($impTokenVersion !== (int)($admin->tokenVersion ?? 0)) {
+                Logger::warning('Token de personificacao revogado por versao do admin', ['uid' => $uid, 'imp_by' => $impBy]);
+                Response::json(['error' => 'Token revogado'], 401);
+            }
+            $this->authPayload['imp_tv'] = $impTokenVersion;
+        }
 
         if ($this->authTokenSource === 'cookie') {
             $this->setCsrfCookie();

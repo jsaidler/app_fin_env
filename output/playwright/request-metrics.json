@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-03-06T14:42:26.255Z",
+  "base_url": "http://127.0.0.1:8000",
+  "flows": {
+    "open_app_login": {
+      "total_api_requests": 3,
+      "unique_endpoints": 3,
+      "endpoints": [
+        {
+          "endpoint": "GET /api/categories",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/reports/dashboard?month=2026-03&start=2026-03-01&end=2026-03-31&type=all",
+          "count": 1
+        },
+        {
+          "endpoint": "POST /api/auth/login",
+          "count": 1
+        }
+      ]
+    },
+    "switch_to_categories": {
+      "total_api_requests": 2,
+      "unique_endpoints": 2,
+      "endpoints": [
+        {
+          "endpoint": "GET /api/categories/tree",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/reports/dashboard?month=2026-03&type=all",
+          "count": 1
+        }
+      ]
+    },
+    "switch_to_accounts": {
+      "total_api_requests": 1,
+      "unique_endpoints": 1,
+      "endpoints": [
+        {
+          "endpoint": "GET /api/reports/dashboard?month=2026-03&type=all",
+          "count": 1
+        }
+      ]
+    },
+    "apply_filter_type_in": {
+      "total_api_requests": 4,
+      "unique_endpoints": 3,
+      "endpoints": [
+        {
+          "endpoint": "GET /api/categories",
+          "count": 2
+        },
+        {
+          "endpoint": "GET /api/reports/dashboard?month=2026-03&start=2026-03-01&end=2026-03-31&type=all",
+          "count": 1
+        },
+        {
+          "endpoint": "GET /api/reports/entries-groups?start=2026-03-01&end=2026-03-31&type=in&categories%5B%5D=Salario",
+          "count": 1
+        }
+      ]
+    },
+    "create_entry_via_api": {
+      "total_api_requests": 1,
+      "unique_endpoints": 1,
+      "endpoints": [
+        {
+          "endpoint": "POST /api/entries",
+          "count": 1
+        }
+      ]
+    }
+  }
+}

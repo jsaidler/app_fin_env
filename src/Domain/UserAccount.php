@@ -10,6 +10,7 @@ class UserAccount
     public string $name;
     public string $type;
     public string $icon = '';
+    public string $color = '';
     public float $initialBalance = 0.0;
     public bool $active = true;
     public string $createdAt;
@@ -23,6 +24,7 @@ class UserAccount
         $item->name = (string)($data['name'] ?? '');
         $item->type = (string)($data['type'] ?? '');
         $item->icon = (string)($data['icon'] ?? '');
+        $item->color = (string)($data['color'] ?? '');
         $item->initialBalance = (float)($data['initial_balance'] ?? 0);
         $item->active = (int)($data['active'] ?? 1) === 1;
         $item->createdAt = (string)($data['created_at'] ?? date('c'));
@@ -38,6 +40,7 @@ class UserAccount
             'name' => $this->name,
             'type' => $this->type,
             'icon' => $this->icon,
+            'color' => $this->color,
             'initial_balance' => $this->initialBalance,
             'active' => $this->active ? 1 : 0,
             'created_at' => $this->createdAt,

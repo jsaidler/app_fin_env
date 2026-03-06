@@ -9,6 +9,7 @@ class UserCategory
     public int $userId;
     public string $name;
     public string $icon = '';
+    public string $color = '';
     public int $globalCategoryId;
     public string $accountClass = 'analytic'; // user can only manage analytic
     public string $globalName = '';
@@ -26,6 +27,7 @@ class UserCategory
         $item->userId = (int)($data['user_id'] ?? 0);
         $item->name = (string)($data['name'] ?? '');
         $item->icon = (string)($data['icon'] ?? '');
+        $item->color = (string)($data['color'] ?? '');
         $item->globalCategoryId = (int)($data['global_category_id'] ?? 0);
         $item->accountClass = (string)($data['account_class'] ?? 'analytic');
         $item->globalName = (string)($data['global_name'] ?? '');
@@ -47,6 +49,7 @@ class UserCategory
             'user_id' => $this->userId,
             'name' => $this->name,
             'icon' => $this->icon,
+            'color' => $this->color,
             'global_category_id' => $this->globalCategoryId,
             'account_class' => $this->accountClass,
             'global_name' => $this->globalName,

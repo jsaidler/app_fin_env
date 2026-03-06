@@ -28,6 +28,7 @@ class AccountService
         }
         $hash = password_hash($new, PASSWORD_DEFAULT);
         $this->users->updatePassword($userId, $hash);
+        $this->users->incrementTokenVersion($userId);
     }
 
     public function updatePreferences(int $userId, array $input): array
@@ -57,4 +58,3 @@ class AccountService
         return ['theme' => $user->theme, 'name' => $user->name];
     }
 }
-

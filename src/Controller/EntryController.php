@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Repository\Sqlite\SqliteCategoryRepository;
 use App\Repository\Sqlite\SqliteEntryRepository;
 use App\Repository\Sqlite\SqliteRecurrenceRepository;
 use App\Repository\Sqlite\SqliteRecurrenceRunRepository;
@@ -18,7 +19,7 @@ class EntryController extends BaseController
     public function list(): void
     {
         $uid = $this->requireAuth();
-        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->categoryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $service->purgeOlderThanDays(7);
         $includeDeleted = isset($_GET['include_deleted']) && $_GET['include_deleted'] === '1';
@@ -79,7 +80,7 @@ class EntryController extends BaseController
     {
         $uid = $this->requireAuth();
         $modifierUserId = $this->actorModifierId($uid);
-        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->categoryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $input = $this->jsonInput();
         $input['last_modified_by_user_id'] = $modifierUserId;
@@ -91,6 +92,7 @@ class EntryController extends BaseController
                 'type' => $data['type'] ?? ($input['type'] ?? ''),
                 'amount' => $data['amount'] ?? ($input['amount'] ?? 0),
                 'category' => $data['category'] ?? ($input['category'] ?? ''),
+                'category_id' => $data['category_id'] ?? ($input['category_id'] ?? null),
                 'account_id' => $data['account_id'] ?? ($input['account_id'] ?? 0),
                 'description' => $data['description'] ?? ($input['description'] ?? ''),
                 'frequency' => $frequency,
@@ -120,7 +122,7 @@ class EntryController extends BaseController
         $uid = $this->requireAuth();
         $modifierUserId = $this->actorModifierId($uid);
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->categoryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $input = $this->jsonInput();
         $input['last_modified_by_user_id'] = $modifierUserId;
@@ -133,7 +135,7 @@ class EntryController extends BaseController
         $uid = $this->requireAuth();
         $modifierUserId = $this->actorModifierId($uid);
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->categoryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $deleted = $service->delete($uid, $id, $modifierUserId);
         Response::json(['deleted' => $deleted]);
@@ -142,7 +144,7 @@ class EntryController extends BaseController
     public function trash(): void
     {
         $uid = $this->requireAuth();
-        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->categoryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $entries = array_filter($service->listDeleted($uid), fn($e) => $e->deletedAt !== null);
         $data = array_values(array_map(function($e) {
@@ -158,7 +160,7 @@ class EntryController extends BaseController
         $uid = $this->requireAuth();
         $modifierUserId = $this->actorModifierId($uid);
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->categoryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $data = $service->restore($uid, $id, $modifierUserId);
         Response::json($data);
@@ -168,7 +170,7 @@ class EntryController extends BaseController
     {
         $uid = $this->requireAuth();
         $id = (int) ($params['id'] ?? 0);
-        $service = new EntryService($this->entryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
+        $service = new EntryService($this->entryRepo(), $this->categoryRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null, $this->notificationService());
         $this->recurrenceService()->syncDueEntries($uid);
         $ok = $service->purge($uid, $id);
         Response::json(['deleted' => $ok]);
@@ -182,6 +184,11 @@ class EntryController extends BaseController
     private function accountRepo()
     {
         return new SqliteUserAccountRepository($this->db());
+    }
+
+    private function categoryRepo()
+    {
+        return new SqliteCategoryRepository($this->db());
     }
 
     private function recurrenceRepo()
@@ -201,7 +208,7 @@ class EntryController extends BaseController
 
     private function recurrenceService(): RecurrenceService
     {
-        return new RecurrenceService($this->recurrenceRepo(), $this->recurrenceRunRepo(), $this->entryRepo(), $this->accountRepo());
+        return new RecurrenceService($this->recurrenceRepo(), $this->recurrenceRunRepo(), $this->entryRepo(), $this->categoryRepo(), $this->accountRepo());
     }
 
     private function recurrenceRunRepo()

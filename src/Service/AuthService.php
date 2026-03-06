@@ -34,7 +34,7 @@ class AuthService
         }
         $hash = password_hash($pass, PASSWORD_DEFAULT);
         $user = $this->users->create($name, $email, $hash);
-        $token = Token::issue(['uid' => $user->id], $this->secret, $this->ttl);
+        $token = Token::issue(['uid' => $user->id, 'role' => $user->role, 'tv' => (int)$user->tokenVersion], $this->secret, $this->ttl);
         return ['token' => $token, 'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email]];
     }
 
@@ -53,7 +53,7 @@ class AuthService
             $this->denyAuth();
         }
 
-        $token = Token::issue(['uid' => $user->id, 'role' => $user->role], $this->secret, $this->ttl);
+        $token = Token::issue(['uid' => $user->id, 'role' => $user->role, 'tv' => (int)$user->tokenVersion], $this->secret, $this->ttl);
         \App\Util\Logger::info('Login efetuado', ['uid' => $user->id, 'email' => $email]);
         return [
             'token' => $token,

@@ -8,6 +8,7 @@ class Category
     public int $id;
     public string $name;
     public string $type; // in|out
+    public string $icon = '';
     public string $accountClass = 'synthetic'; // synthetic|analytic
     public ?int $parentCategoryId = null;
     public bool $allowsAnalyticChildren = true;
@@ -24,6 +25,7 @@ class Category
         $c->id = (int)$data['id'];
         $c->name = $data['name'];
         $c->type = $data['type'];
+        $c->icon = (string)($data['icon'] ?? '');
         $c->accountClass = (string)($data['account_class'] ?? 'synthetic');
         $c->parentCategoryId = array_key_exists('parent_category_id', $data) && $data['parent_category_id'] !== null
             ? (int)$data['parent_category_id']
@@ -48,6 +50,7 @@ class Category
             'id' => $this->id,
             'name' => $this->name,
             'type' => $this->type,
+            'icon' => $this->icon,
             'account_class' => $this->accountClass,
             'parent_category_id' => $this->parentCategoryId,
             'allows_analytic_children' => $this->allowsAnalyticChildren ? 1 : 0,

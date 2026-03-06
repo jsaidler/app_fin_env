@@ -27,9 +27,6 @@ const MODE_LOGIN = "login";
 const MODE_FORGOT = "forgot";
 const MODE_RESET = "reset";
 const APP_ASSET_VERSION = "20260302-01";
-function authHeaders(extra = {}) {
-  return { ...extra };
-}
 
 function showError(message) {
   alertBox.textContent = message;
@@ -78,28 +75,6 @@ function setMode(mode) {
 
 function looksLikeEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-async function tryLoadSession() {
-  try {
-    const response = await fetch("/api/account/profile", {
-      method: "GET",
-      credentials: "same-origin",
-      headers: authHeaders({ Accept: "application/json" }),
-    });
-    if (!response.ok) {
-      return false;
-    }
-    const data = await response.json();
-    if (!data || !data.email) {
-      return false;
-    }
-    window.location.href = "/dashboard";
-    return true;
-  } catch {
-    // Ignora falhas de rede nessa verificacao inicial.
-    return false;
-  }
 }
 
 async function handleLoginSubmit(event) {
@@ -299,14 +274,29 @@ function resolveInitialMode() {
   return MODE_LOGIN;
 }
 
-function warmDashboardRoute() {
-  fetch("/dashboard", {
-    method: "GET",
-    credentials: "same-origin",
-    headers: { Accept: "text/html" },
-  }).catch(() => {
-    // warmup nao pode bloquear o fluxo do login
-  });
+function isDevRuntime() {
+  const host = String(window.location.hostname || "").toLowerCase();
+  return host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
+}
+
+function shouldClearDevCache() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("dev_clear_cache") === "1";
+}
+
+function disablePwaCacheForDev() {
+  if (!isDevRuntime()) return;
+  if (!shouldClearDevCache()) return;
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => Promise.all((regs || []).map((reg) => reg.unregister())))
+      .catch(() => {});
+  }
+  if ("caches" in window) {
+    caches.keys()
+      .then((keys) => Promise.all((keys || []).map((key) => caches.delete(key))))
+      .catch(() => {});
+  }
 }
 
 function revealLoginUi() {
@@ -320,23 +310,19 @@ async function initLoginApp() {
     revealLoginUi();
     return;
   }
-  const redirected = await tryLoadSession();
-  if (!redirected) {
-    revealLoginUi();
-  }
+  revealLoginUi();
 }
 
 void initLoginApp();
 
 if ("serviceWorker" in navigator && window.isSecureContext) {
   window.addEventListener("load", () => {
+    if (isDevRuntime()) {
+      disablePwaCacheForDev();
+      return;
+    }
     navigator.serviceWorker.register(`/service-worker.js?v=${APP_ASSET_VERSION}`).catch(() => {
       // Falha de registro nao bloqueia o app.
     });
-    warmDashboardRoute();
-  });
-} else {
-  window.addEventListener("load", () => {
-    warmDashboardRoute();
   });
 }

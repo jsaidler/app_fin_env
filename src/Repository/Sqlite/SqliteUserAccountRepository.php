@@ -45,18 +45,19 @@ class SqliteUserAccountRepository implements UserAccountRepositoryInterface
         return $row ? UserAccount::fromArray($row) : null;
     }
 
-    public function create(int $userId, string $name, string $type, string $icon, float $initialBalance = 0.0): UserAccount
+    public function create(int $userId, string $name, string $type, string $icon, string $color, float $initialBalance = 0.0): UserAccount
     {
         $now = date('c');
         $stmt = $this->pdo->prepare(
-            'INSERT INTO user_accounts (user_id, name, type, icon, initial_balance, active, created_at, updated_at)
-             VALUES (:uid, :name, :type, :icon, :initial_balance, 1, :created, :updated)'
+            'INSERT INTO user_accounts (user_id, name, type, icon, color, initial_balance, active, created_at, updated_at)
+             VALUES (:uid, :name, :type, :icon, :color, :initial_balance, 1, :created, :updated)'
         );
         $stmt->execute([
             'uid' => $userId,
             'name' => $name,
             'type' => $type,
             'icon' => $icon,
+            'color' => $color,
             'initial_balance' => $initialBalance,
             'created' => $now,
             'updated' => $now,
@@ -68,6 +69,7 @@ class SqliteUserAccountRepository implements UserAccountRepositoryInterface
             'name' => $name,
             'type' => $type,
             'icon' => $icon,
+            'color' => $color,
             'initial_balance' => $initialBalance,
             'active' => 1,
             'created_at' => $now,
@@ -89,6 +91,7 @@ class SqliteUserAccountRepository implements UserAccountRepositoryInterface
              SET name = :name,
                  type = :type,
                  icon = :icon,
+                 color = :color,
                  initial_balance = :initial_balance,
                  active = :active,
                  updated_at = :updated_at
@@ -98,6 +101,7 @@ class SqliteUserAccountRepository implements UserAccountRepositoryInterface
             'name' => $merged['name'],
             'type' => $merged['type'],
             'icon' => $merged['icon'],
+            'color' => (string)($merged['color'] ?? ''),
             'initial_balance' => (float)($merged['initial_balance'] ?? 0),
             'active' => (int)($merged['active'] ?? 1) === 1 ? 1 : 0,
             'updated_at' => $merged['updated_at'],

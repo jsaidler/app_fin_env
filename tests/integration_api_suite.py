@@ -58,6 +58,31 @@ class Api:
                 raw = ""
             return int(e.code), self._json(raw), raw
 
+    def call_with_headers(self, method: str, path: str, token: str | None = None, params: dict[str, Any] | None = None, payload: Any = None, accept: str = "application/json") -> tuple[int, dict[str, str], str]:
+        q = "?" + urllib.parse.urlencode(params, doseq=True) if params else ""
+        url = f"{self.base}{path}{q}"
+        headers = {"Accept": accept}
+        body = None
+        if payload is not None:
+            body = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+            headers["X-Auth-Token"] = token
+        req = urllib.request.Request(url, data=body, method=method.upper(), headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=12) as r:
+                raw = r.read().decode("utf-8", errors="replace")
+                out_headers = {k: v for k, v in r.headers.items()}
+                return int(r.status), out_headers, raw
+        except urllib.error.HTTPError as e:
+            try:
+                raw = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                raw = ""
+            out_headers = {k: v for k, v in e.headers.items()}
+            return int(e.code), out_headers, raw
+
     @staticmethod
     def _json(raw: str) -> Any:
         raw = raw.strip()
@@ -85,6 +110,7 @@ class IntegrationApiSuite(unittest.TestCase):
     def setUpClass(cls) -> None:
         runtime = ROOT / "tests" / "_runtime"
         runtime.mkdir(parents=True, exist_ok=True)
+        cls.cleanup_runtime_root(runtime)
         cls.workdir = Path(tempfile.mkdtemp(prefix="api-suite-", dir=str(runtime)))
         cls.db = cls.workdir / "suite.sqlite"
         port = free_port()
@@ -95,6 +121,8 @@ class IntegrationApiSuite(unittest.TestCase):
         env = os.environ.copy()
         env["APP_ENV"] = "dev"
         env["APP_SECRET"] = "integration-suite-secret"
+        env["DATA_PATH"] = str(cls.workdir / "data")
+        env["UPLOADS_PATH"] = str(cls.workdir / "data" / "users")
         env["DB_PATH"] = str(cls.db)
         cls.proc = subprocess.Popen(
             ["php", "-S", f"127.0.0.1:{port}", "-t", "public", "public/index.php"],
@@ -118,7 +146,7 @@ class IntegrationApiSuite(unittest.TestCase):
                 cls.proc.kill()
                 cls.proc.wait(timeout=5)
         if cls.workdir and cls.workdir.exists():
-            shutil.rmtree(cls.workdir, ignore_errors=True)
+            cls.remove_tree_retry(cls.workdir)
 
     @classmethod
     def wait_ready(cls) -> None:
@@ -134,6 +162,30 @@ class IntegrationApiSuite(unittest.TestCase):
                 pass
             time.sleep(0.2)
         raise AssertionError("server not ready")
+
+    @classmethod
+    def remove_tree_retry(cls, path: Path, attempts: int = 4, delay: float = 0.15) -> None:
+        for _ in range(max(1, attempts)):
+            try:
+                shutil.rmtree(path)
+                return
+            except FileNotFoundError:
+                return
+            except Exception:
+                time.sleep(delay)
+        shutil.rmtree(path, ignore_errors=True)
+
+    @classmethod
+    def cleanup_runtime_root(cls, runtime_root: Path) -> None:
+        if not runtime_root.exists():
+            return
+        cutoff = time.time() - (24 * 60 * 60)
+        for item in runtime_root.iterdir():
+            try:
+                if item.is_dir() and item.name.startswith("api-suite-") and item.stat().st_mtime < cutoff:
+                    cls.remove_tree_retry(item, attempts=2, delay=0.05)
+            except Exception:
+                continue
 
     @classmethod
     def seed(cls) -> None:
@@ -153,7 +205,10 @@ class IntegrationApiSuite(unittest.TestCase):
             cls.ids["cat_expense"] = int(cur.lastrowid)
             cur.execute("INSERT INTO categories (name,type,alterdata_auto,created_at,updated_at) VALUES (?,?,?,?,?)", ("Reserva", "in", "AUTORES", now, now))
             reserve = int(cur.lastrowid)
-            cur.execute("INSERT INTO user_categories (user_id,name,icon,global_category_id,created_at,updated_at) VALUES (?,?,?,?,?,?)", (cls.user_id, "Dizimo", "savings", reserve, now, now))
+            cur.execute(
+                "INSERT INTO categories (name,type,icon,account_class,parent_category_id,allows_analytic_children,owner_user_id,alterdata_auto,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                ("Dizimo", "in", "savings", "analytic", reserve, 0, cls.user_id, "", now, now),
+            )
             conn.commit()
         finally:
             conn.close()
@@ -177,23 +232,30 @@ class IntegrationApiSuite(unittest.TestCase):
         st, p, raw = self.api.call("GET", "/api/account/profile", token=self.user_token); self.ok(st, raw); self.assertEqual(int(p.get("id", 0)), self.user_id)
         st, p, raw = self.api.call("PUT", "/api/account/preferences", token=self.user_token, payload={"theme": "light", "name": "Suite User Updated"}); self.ok(st, raw)
         st, _, raw = self.api.call("PUT", "/api/account/password", token=self.user_token, payload={"current_password": "User#12345", "password": "User#67890"}); self.assertEqual(st, 200, raw)
-        st, p, raw = self.api.call("POST", "/api/auth/login", payload={"email": "user.suite@local", "password": "User#67890"}); self.assertEqual(st, 200, raw); self.user_token = str(p.get("token", ""))
+        st, p, raw = self.api.call("POST", "/api/auth/login", payload={"email": "user.suite@local", "password": "User#67890"}); self.assertEqual(st, 200, raw); type(self).user_token = str(p.get("token", ""))
         st, _, raw = self.api.call("POST", "/api/auth/password/forgot", payload={"email": "user.suite@local"}); self.assertEqual(st, 200, raw)
         st, _, raw = self.api.call("POST", "/api/auth/password/reset", payload={"token": "invalid", "password": "Another#12345"}); self.assertEqual(st, 422, raw)
 
     def test_02_accounts_categories_entries_reports(self) -> None:
-        st, p, raw = self.api.call("POST", "/api/accounts", token=self.user_token, payload={"name": "Conta Suite", "type": "bank", "icon": "account_balance", "initial_balance": 0}); self.assertEqual(st, 201, raw); aid = int(p.get("id", 0)); self.ids["account"] = aid
-        st, _, raw = self.api.call("PUT", f"/api/accounts/{aid}", token=self.user_token, payload={"name": "Conta Suite Updated", "type": "bank", "icon": "account_balance", "initial_balance": 10}); self.assertEqual(st, 200, raw)
-        st, p, raw = self.api.call("POST", "/api/user-categories", token=self.user_token, payload={"name": "Categoria Suite", "icon": "sell", "global_category_id": self.ids["cat_expense"]}); self.assertEqual(st, 201, raw); cid = int(p.get("id", 0)); self.ids["ucat"] = cid
-        st, _, raw = self.api.call("PUT", f"/api/user-categories/{cid}", token=self.user_token, payload={"name": "Categoria Suite Atualizada", "icon": "sell", "global_category_id": self.ids["cat_expense"]}); self.assertEqual(st, 200, raw)
+        st, p, raw = self.api.call("POST", "/api/accounts", token=self.user_token, payload={"name": "Conta Suite", "type": "bank", "color": "#2F80ED", "initial_balance": 0}); self.assertEqual(st, 201, raw); self.assertEqual(str(p.get("color", "")), "#2F80ED", raw); aid = int(p.get("id", 0)); self.ids["account"] = aid
+        st, p, raw = self.api.call("PUT", f"/api/accounts/{aid}", token=self.user_token, payload={"name": "Conta Suite Updated", "type": "bank", "color": "#8E44AD", "initial_balance": 10}); self.assertEqual(st, 200, raw); self.assertEqual(str(p.get("color", "")), "#8E44AD", raw)
+        st, p, raw = self.api.call("POST", "/api/user-categories", token=self.user_token, payload={"name": "Categoria Suite", "color": "#16A085", "global_category_id": self.ids["cat_expense"]}); self.assertEqual(st, 201, raw); self.assertEqual(str(p.get("color", "")), "#16A085", raw); cid = int(p.get("id", 0)); self.ids["ucat"] = cid
+        st, p, raw = self.api.call("PUT", f"/api/user-categories/{cid}", token=self.user_token, payload={"name": "Categoria Suite Atualizada", "color": "#27AE60", "global_category_id": self.ids["cat_expense"]}); self.assertEqual(st, 200, raw); self.assertEqual(str(p.get("color", "")), "#27AE60", raw)
 
         today = date.today().isoformat(); month = today[:7]
         st, p, raw = self.api.call("POST", "/api/entries", token=self.user_token, payload={"type": "in", "amount": 1000, "category": "Salario", "description": "suite-income", "date": today, "account_id": aid}); self.assertEqual(st, 201, raw); ein = int(p.get("id", 0))
         st, p, raw = self.api.call("POST", "/api/entries", token=self.user_token, payload={"type": "out", "amount": 200, "category": "Gastos", "description": "suite-expense", "date": today}); self.assertEqual(st, 201, raw); eout = int(p.get("id", 0))
         st, _, raw = self.api.call("PUT", f"/api/entries/{eout}", token=self.user_token, payload={"type": "out", "amount": 210, "category": "Categoria Suite Atualizada", "description": "suite-expense-updated", "date": today}); self.assertEqual(st, 200, raw)
+        st, p, raw = self.api.call("POST", "/api/admin/categories", token=self.admin_token, payload={"name": "Categoria Normalizada Suite", "type": "out", "alterdata_auto": "NORM001"}); self.assertEqual(st, 201, raw); norm_cat = int(p.get("id", 0))
+        st, p, raw = self.api.call("POST", "/api/entries", token=self.user_token, payload={"type": "out", "amount": 90, "category": "Categoria Normalizada Suite", "description": "suite-normalization", "date": today}); self.assertEqual(st, 201, raw); enrm = int(p.get("id", 0))
+        st, _, raw = self.api.call("PUT", f"/api/admin/categories/{norm_cat}", token=self.admin_token, payload={"name": "Categoria Normalizada Renomeada", "type": "out", "alterdata_auto": "NORM001"}); self.assertEqual(st, 200, raw)
+        st, rows, raw = self.api.call("GET", "/api/entries", token=self.user_token); self.assertEqual(st, 200, raw)
+        item = next((x for x in rows if isinstance(x, dict) and int(x.get("id", 0)) == enrm), None); self.assertIsNotNone(item, raw)
+        self.assertEqual(str((item or {}).get("category", "")), "Categoria Normalizada Renomeada", raw)
         st, _, raw = self.api.call("GET", "/api/entries", token=self.user_token); self.assertEqual(st, 200, raw)
         st, s, raw = self.api.call("GET", "/api/entries/summary", token=self.user_token, params={"start": f"{month}-01", "end": f"{month}-31"}); self.ok(st, raw); self.assertIn("totals", s)
         st, a, raw = self.api.call("GET", "/api/reports/aggregate", token=self.user_token, params={"start": f"{month}-01", "end": f"{month}-31"}); self.ok(st, raw); self.assertGreaterEqual(int((a.get("totals") or {}).get("count", 0)), 2)
+        st, d, raw = self.api.call("GET", "/api/reports/dashboard", token=self.user_token, params={"month": month, "type": "all"}); self.ok(st, raw); self.assertIn("summary", d); self.assertIn("month_aggregate", d); self.assertIn("previous_month_aggregate", d); self.assertTrue(isinstance(d.get("entries", []), list)); self.assertTrue(isinstance((d.get("entry_groups") or {}).get("groups", []), list))
         st, g, raw = self.api.call("GET", "/api/reports/entries-groups", token=self.user_token, params={"start": f"{month}-01", "end": f"{month}-31", "type": "all"}); self.ok(st, raw); self.assertGreaterEqual(int(g.get("count", 0)), 2)
         st, _, raw = self.api.call("DELETE", f"/api/entries/{ein}", token=self.user_token); self.assertEqual(st, 200, raw)
         st, t, raw = self.api.call("GET", "/api/entries/trash", token=self.user_token); self.ok(st, raw); self.assertTrue(any(int(x.get("id", 0)) == ein for x in t if isinstance(x, dict)), raw)
@@ -205,7 +267,7 @@ class IntegrationApiSuite(unittest.TestCase):
 
     def test_03_recurrence_support_user(self) -> None:
         today = date.today().isoformat()
-        st, p, raw = self.api.call("POST", "/api/accounts", token=self.user_token, payload={"name": "Conta Rec", "type": "bank", "icon": "account_balance", "initial_balance": 0}); self.assertEqual(st, 201, raw); aid = int(p.get("id", 0))
+        st, p, raw = self.api.call("POST", "/api/accounts", token=self.user_token, payload={"name": "Conta Rec", "type": "bank", "color": "#D35400", "initial_balance": 0}); self.assertEqual(st, 201, raw); aid = int(p.get("id", 0))
         st, p, raw = self.api.call("POST", "/api/recurrences", token=self.user_token, payload={"type": "out", "amount": 50, "category": "Gastos", "description": "suite-rec", "frequency": "monthly", "start_date": today, "next_run_date": today, "account_id": aid}); self.assertEqual(st, 201, raw); rid = int(p.get("id", 0))
         st, p, raw = self.api.call("POST", "/api/recurrences", token=self.user_token, payload={"type": "in", "amount": 30, "category": "Salario", "description": "suite-rec-no-account", "frequency": "monthly", "start_date": today, "next_run_date": today}); self.assertEqual(st, 201, raw); rid_no_account = int(p.get("id", 0)); self.assertGreater(rid_no_account, 0, raw)
         st, d, raw = self.api.call("GET", f"/api/recurrences/{rid_no_account}", token=self.user_token); self.ok(st, raw); self.assertIn(int(d.get("account_id", 0)), (0,), raw)
@@ -240,7 +302,7 @@ class IntegrationApiSuite(unittest.TestCase):
         st, _, raw = self.api.call("GET", f"/api/admin/categories/{cid}/stats", token=self.admin_token); self.assertEqual(st, 200, raw)
         st, _, raw = self.api.call("DELETE", f"/api/admin/categories/{cid}", token=self.admin_token); self.assertEqual(st, 200, raw)
 
-        st, p, raw = self.api.call("POST", "/api/accounts", token=self.user_token, payload={"name": "Conta Admin Entry", "type": "bank", "icon": "account_balance", "initial_balance": 0}); self.assertEqual(st, 201, raw); aid = int(p.get("id", 0))
+        st, p, raw = self.api.call("POST", "/api/accounts", token=self.user_token, payload={"name": "Conta Admin Entry", "type": "bank", "color": "#0E7490", "initial_balance": 0}); self.assertEqual(st, 201, raw); aid = int(p.get("id", 0))
         st, p, raw = self.api.call("POST", "/api/admin/entries", token=self.admin_token, payload={"user_id": self.user_id, "type": "out", "amount": 33, "category": "Gastos", "description": "admin-entry", "date": today, "account_id": aid}); self.assertEqual(st, 201, raw); eid = int(p.get("id", 0))
         st, _, raw = self.api.call("GET", "/api/admin/entries", token=self.admin_token, params={"user_id": self.user_id}); self.assertEqual(st, 200, raw)
         st, _, raw = self.api.call("PUT", f"/api/admin/entries/{eid}", token=self.admin_token, payload={"user_id": self.user_id, "type": "out", "amount": 44, "category": "Gastos", "description": "admin-entry-upd", "date": today, "account_id": aid}); self.assertEqual(st, 200, raw)
@@ -269,6 +331,31 @@ class IntegrationApiSuite(unittest.TestCase):
         st, _, raw = self.api.call("GET", "/api/admin/export/alterdata", token=self.admin_token, params={"month": month, "user_id": self.user_id}, accept="text/plain"); self.assertIn(st, (200, 422), raw)
         st, _, raw = self.api.call("GET", "/api/admin/export/alterdata/history", token=self.admin_token); self.assertEqual(st, 200, raw)
         st, _, raw = self.api.call("GET", "/api/export/pdf", token=self.user_token, params={"month": month, "type": "all"}, accept="application/pdf"); self.assertEqual(st, 200, raw)
+
+    def test_06_security_and_cache_headers(self) -> None:
+        st, headers, raw = self.api.call_with_headers("GET", "/api/account/profile", token=self.user_token)
+        self.assertEqual(st, 200, raw)
+        self.assertIn("no-store", (headers.get("Cache-Control", "")).lower())
+        self.assertEqual(headers.get("X-Frame-Options", ""), "DENY")
+        self.assertIn("nosniff", (headers.get("X-Content-Type-Options", "")).lower())
+        self.assertIn("default-src", headers.get("Content-Security-Policy", ""))
+        self.assertIn("geolocation=()", headers.get("Permissions-Policy", ""))
+
+        st, headers, raw = self.api.call_with_headers("GET", "/assets/css/app.css", accept="text/css")
+        self.assertEqual(st, 200, raw)
+        cache_control = (headers.get("Cache-Control", "")).lower()
+        app_env = (headers.get("X-App-Env", "")).lower()
+        if app_env == "dev":
+            self.assertIn("public", cache_control)
+            self.assertIn("max-age=600", cache_control)
+        else:
+            self.assertIn("public", cache_control)
+            self.assertIn("max-age=31536000", cache_control)
+            self.assertIn("immutable", cache_control)
+
+        st, headers, raw = self.api.call_with_headers("GET", "/manifest.json", accept="application/json")
+        self.assertEqual(st, 200, raw)
+        self.assertIn("no-cache", (headers.get("Cache-Control", "")).lower())
 
 
 if __name__ == "__main__":

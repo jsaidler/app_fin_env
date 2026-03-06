@@ -10,6 +10,7 @@ class Entry
     public string $type; // in|out
     public float $amount;
     public string $category;
+    public ?int $categoryId = null;
     public ?int $accountId = null;
     public string $accountName = '';
     public string $accountType = '';
@@ -34,7 +35,8 @@ class Entry
         $e->userId = (int) $data['user_id'];
         $e->type = $data['type'];
         $e->amount = (float) $data['amount'];
-        $e->category = $data['category'];
+        $e->category = (string)($data['category_live'] ?? $data['category'] ?? '');
+        $e->categoryId = array_key_exists('category_id', $data) && $data['category_id'] !== null ? (int)$data['category_id'] : null;
         $e->accountId = array_key_exists('account_id', $data) && $data['account_id'] !== null ? (int)$data['account_id'] : null;
         $e->accountName = (string)($data['account_name'] ?? '');
         $e->accountType = (string)($data['account_type'] ?? '');
@@ -66,6 +68,7 @@ class Entry
             'type' => $this->type,
             'amount' => $this->amount,
             'category' => $this->category,
+            'category_id' => $this->categoryId,
             'account_id' => $this->accountId,
             'account_name' => $this->accountName,
             'account_type' => $this->accountType,

@@ -20,4 +20,6 @@ interface RecurrenceRepositoryInterface
 
     /** @return Recurrence[] */
     public function listDueByUser(int $userId, string $dateIso): array;
+
+    public function reassignCategoryForUser(int $userId, string $fromCategory, string $toCategory): int;
 }

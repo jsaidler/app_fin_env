@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\EntryRepositoryInterface;
+use App\Repository\CategoryRepositoryInterface;
 use App\Repository\UserAccountRepositoryInterface;
 use App\Util\Response;
 use App\Util\Validator;
@@ -17,6 +18,7 @@ class EntryService
     private static int $lastPurgeAt = 0;
 
     private EntryRepositoryInterface $entries;
+    private CategoryRepositoryInterface $categories;
     private UserAccountRepositoryInterface $accounts;
     private ?MonthLockService $locks;
     private ?string $uploadDir;
@@ -24,6 +26,7 @@ class EntryService
 
     public function __construct(
         EntryRepositoryInterface $entries,
+        CategoryRepositoryInterface $categories,
         UserAccountRepositoryInterface $accounts,
         ?MonthLockService $locks = null,
         ?string $uploadDir = null,
@@ -31,6 +34,7 @@ class EntryService
     )
     {
         $this->entries = $entries;
+        $this->categories = $categories;
         $this->accounts = $accounts;
         $this->locks = $locks;
         $this->uploadDir = $uploadDir;
@@ -54,6 +58,7 @@ class EntryService
         $month = substr($input['date'], 0, 7);
         $closed = $this->isClosed($month, $userId);
         $payload = $input;
+        $payload = $this->applyResolvedCategory($payload, $userId);
         $payload['account_id'] = $this->normalizeAccountId($payload['account_id'] ?? null, $userId);
         if ($closed) {
             $payload['needs_review'] = 1;
@@ -86,6 +91,7 @@ class EntryService
         $newMonth = substr($targetDate, 0, 7);
         $closed = $this->isClosed($originalMonth, $userId) || $this->isClosed($newMonth, $userId);
         $payload = $input;
+        $payload = $this->applyResolvedCategory($payload, $userId, $existing);
         $payload['account_id'] = $this->normalizeAccountId($payload['account_id'] ?? null, $userId);
         if ($closed) {
             $payload['needs_review'] = 1;
@@ -193,13 +199,81 @@ class EntryService
         if (!Validator::positiveNumber($input['amount'] ?? null)) {
             Response::json(['error' => 'Valor invalido'], 422);
         }
-        if (!Validator::nonEmpty($input['category'] ?? '')) {
+        $categoryName = trim((string)($input['category'] ?? ''));
+        $categoryId = isset($input['category_id']) ? (int)$input['category_id'] : 0;
+        if ($categoryName === '' && $categoryId <= 0) {
             Response::json(['error' => 'Categoria obrigatoria'], 422);
         }
+        $this->resolveCategory($input, $userId);
         $this->normalizeAccountId($input['account_id'] ?? null, $userId);
         if (!Validator::date($input['date'] ?? '')) {
             Response::json(['error' => 'Data invalida'], 422);
         }
+    }
+
+    private function applyResolvedCategory(array $payload, int $userId, ?Entry $existing = null): array
+    {
+        $hasCategoryInput = array_key_exists('category', $payload) || array_key_exists('category_id', $payload);
+        if (!$hasCategoryInput && $existing) {
+            $payload['category'] = $existing->category;
+            $payload['category_id'] = $existing->categoryId;
+            if (in_array((string)$existing->type, ['in', 'out'], true)) {
+                $payload['type'] = $existing->type;
+            }
+            return $payload;
+        }
+        $resolved = $this->resolveCategory($payload, $userId);
+        $payload['category'] = $resolved['name'];
+        $payload['category_id'] = $resolved['id'];
+        if (!empty($resolved['type']) && in_array((string)$resolved['type'], ['in', 'out'], true)) {
+            $payload['type'] = (string)$resolved['type'];
+        }
+        return $payload;
+    }
+
+    /** @return array{id:int,name:string,type:string} */
+    private function resolveCategory(array $input, int $userId): array
+    {
+        $categoryId = isset($input['category_id']) ? (int)$input['category_id'] : 0;
+        $categoryName = trim((string)($input['category'] ?? ''));
+        $visible = $this->categories->listForUser($userId);
+        if ($categoryId > 0) {
+            foreach ($visible as $category) {
+                if ((int)($category->id ?? 0) !== $categoryId) {
+                    continue;
+                }
+                return [
+                    'id' => $categoryId,
+                    'name' => trim((string)($category->name ?? $categoryName)),
+                    'type' => (string)($category->type ?? ($input['type'] ?? '')),
+                ];
+            }
+            Response::json(['error' => 'Categoria invalida'], 422);
+        }
+        if ($categoryName === '') {
+            Response::json(['error' => 'Categoria obrigatoria'], 422);
+        }
+        $needle = function_exists('mb_strtolower') ? mb_strtolower($categoryName, 'UTF-8') : strtolower($categoryName);
+        foreach ($visible as $category) {
+            $name = trim((string)($category->name ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $candidate = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
+            if ($candidate === $needle) {
+                return [
+                    'id' => (int)($category->id ?? 0),
+                    'name' => $name,
+                    'type' => (string)($category->type ?? ($input['type'] ?? '')),
+                ];
+            }
+        }
+        // Backward compatibility for legacy/user account labels not yet mapped in categories.
+        return [
+            'id' => 0,
+            'name' => $categoryName,
+            'type' => in_array((string)($input['type'] ?? ''), ['in', 'out'], true) ? (string)$input['type'] : 'out',
+        ];
     }
 
     private function normalizeAccountId($value, int $userId): ?int

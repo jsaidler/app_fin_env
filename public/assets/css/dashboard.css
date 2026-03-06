@@ -2343,8 +2343,6 @@ ion-fab.fab-safe {
 
 #entry-category-modal::part(content),
 #entry-account-modal::part(content),
-#user-category-icon-modal::part(content),
-#user-account-icon-modal::part(content),
 #user-category-global-modal::part(content),
 #entry-date-modal::part(content),
 #entries-filter-start-date-modal::part(content),
@@ -2694,8 +2692,13 @@ ion-input.amount-input {
   color: #c95b5b;
 }
 
-#selected-user-category-icon-glyph.entry-picker-row__direction {
-  font-size: 28px;
+.entry-picker-row__swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 49, 95, 0.2);
+  background: #e9eef7;
+  flex: 0 0 auto;
 }
 
 .entry-picker-row__value.is-placeholder {
@@ -2781,7 +2784,6 @@ ion-input.amount-input {
 }
 
 #category-search,
-#user-category-icon-search,
 #user-category-global-search {
   --background: #f1f4f8;
   --box-shadow: none;
@@ -2795,7 +2797,6 @@ ion-input.amount-input {
 }
 
 #category-search::part(native),
-#user-category-icon-search::part(native),
 #user-category-global-search::part(native) {
   font-size: var(--cp-type-body);
   font-weight: 700;
@@ -2807,34 +2808,42 @@ ion-input.amount-input {
   border-top: 0;
 }
 
-.icon-grid-list {
+.inline-color-selector {
+  gap: 8px;
+}
+
+.inline-color-selector .entry-stage__title {
+  margin-bottom: 6px;
+}
+
+.color-grid-list {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.icon-grid-option {
-  width: 100%;
-  min-height: 64px;
-  border: 1px solid rgba(31, 49, 95, 0.12);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid rgba(31, 49, 95, 0.14);
+  border-radius: 10px;
+  overflow: hidden;
   background: #ffffff;
-  border-radius: 12px;
-  color: #2d4271;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+}
+
+.color-grid-option {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 0;
+  border-inline-end: 1px solid rgba(31, 49, 95, 0.12);
+  border-radius: 0;
+  display: block;
   padding: 0;
+  transition: transform 90ms ease, filter 120ms ease, box-shadow 120ms ease;
 }
 
-.icon-grid-option .material-symbols-rounded {
-  font-size: 30px;
-  line-height: 1;
+.color-grid-option[aria-current="true"] {
+  box-shadow: inset 0 0 0 2px #ffffff, inset 0 0 0 4px rgba(0, 0, 0, 0.35);
+  filter: saturate(1.1);
 }
 
-.icon-grid-option[aria-current="true"] {
-  background: #edf3ff;
-  border-color: rgba(0, 93, 151, 0.5);
-  color: #005d97;
+.color-grid-option:last-child {
+  border-inline-end: 0;
 }
 
 #entry-category-modal .category-list {

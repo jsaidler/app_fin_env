@@ -86,22 +86,22 @@ class SupportController extends BaseController
         $refId = $attachmentRefId > 0 ? $attachmentRefId : 0;
 
         if ($type === 'audio' && $attachmentPath === '') {
-            Response::json(['error' => 'Anexo de áudio inválido'], 422);
+            Response::json(['error' => 'Anexo de audio invalido'], 422);
         }
         if (($type === 'file' || $type === 'screenshot') && $attachmentPath === '') {
-            Response::json(['error' => 'Anexo de arquivo inválido'], 422);
+            Response::json(['error' => 'Anexo de arquivo invalido'], 422);
         }
         if (in_array($type, ['entry', 'category', 'category_global', 'account', 'recurrence'], true)) {
             if ($refType === '') {
                 $refType = $type;
             }
             if ($refId <= 0) {
-                Response::json(['error' => 'Referência inválida'], 422);
+                Response::json(['error' => 'Referencia invalida'], 422);
             }
             $this->assertReferenceOwnership($userId, $refType, $refId);
         } elseif ($refType !== '' || $refId > 0) {
             if ($refType === '' || $refId <= 0) {
-                Response::json(['error' => 'Referência inválida'], 422);
+                Response::json(['error' => 'Referencia invalida'], 422);
             }
             $this->assertReferenceOwnership($userId, $refType, $refId);
             if ($type === '') {
@@ -122,7 +122,6 @@ class SupportController extends BaseController
         $pdo = $this->db();
         $map = [
             'entry' => ['table' => 'entries', 'user_col' => 'user_id'],
-            'category' => ['table' => 'user_categories', 'user_col' => 'user_id'],
             'account' => ['table' => 'user_accounts', 'user_col' => 'user_id'],
             'recurrence' => ['table' => 'recurrences', 'user_col' => 'user_id'],
         ];
@@ -131,12 +130,28 @@ class SupportController extends BaseController
             $stmt->execute(['id' => $refId]);
             $exists = (int)($stmt->fetchColumn() ?: 0);
             if ($exists <= 0) {
-                Response::json(['error' => 'Referência inválida para este usuário'], 422);
+                Response::json(['error' => 'Referencia invalida para este usuario'], 422);
+            }
+            return;
+        }
+        if ($refType === 'category') {
+            $stmt = $pdo->prepare(
+                'SELECT id
+                   FROM categories
+                  WHERE id = :id
+                    AND owner_user_id = :uid
+                    AND lower(coalesce(account_class, "")) = "analytic"
+                  LIMIT 1'
+            );
+            $stmt->execute(['id' => $refId, 'uid' => $userId]);
+            $exists = (int)($stmt->fetchColumn() ?: 0);
+            if ($exists <= 0) {
+                Response::json(['error' => 'Referencia invalida para este usuario'], 422);
             }
             return;
         }
         if (!isset($map[$refType])) {
-            Response::json(['error' => 'Referência inválida'], 422);
+            Response::json(['error' => 'Referencia invalida'], 422);
         }
         $table = $map[$refType]['table'];
         $userCol = $map[$refType]['user_col'];
@@ -144,7 +159,7 @@ class SupportController extends BaseController
         $stmt->execute(['id' => $refId, 'uid' => $userId]);
         $exists = (int)($stmt->fetchColumn() ?: 0);
         if ($exists <= 0) {
-            Response::json(['error' => 'Referência inválida para este usuário'], 422);
+            Response::json(['error' => 'Referencia invalida para este usuario'], 422);
         }
     }
 }

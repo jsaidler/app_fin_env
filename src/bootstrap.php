@@ -20,19 +20,33 @@ spl_autoload_register(function (string $class): void {
 $config = require __DIR__ . '/../config/config.php';
 $GLOBALS['config'] = $config;
 
-$env = (string)($config['env'] ?? 'dev');
-$secret = (string)($config['secret'] ?? '');
-if ($env !== 'dev') {
-    if ($secret === '' || $secret === 'change-this-secret' || strlen($secret) < 24) {
-        throw new RuntimeException('APP_SECRET invalido para ambiente nao-dev.');
-    }
-}
-
 // Ensure data directories exist
 foreach ([$config['paths']['data'], $config['paths']['uploads']] as $dir) {
     if (!is_dir($dir)) {
         mkdir($dir, 0775, true);
     }
+}
+
+$env = (string)($config['env'] ?? 'dev');
+$secret = trim((string)($config['secret'] ?? ''));
+
+if ($secret === '' || $secret === 'change-this-secret' || strlen($secret) < 24) {
+    if ($env !== 'dev') {
+        throw new RuntimeException('APP_SECRET invalido para ambiente nao-dev.');
+    }
+    $runtimeSecretFile = rtrim((string)$config['paths']['data'], '/\\') . '/.app-secret';
+    $runtimeSecret = is_file($runtimeSecretFile) ? trim((string)@file_get_contents($runtimeSecretFile)) : '';
+    if ($runtimeSecret === '' || strlen($runtimeSecret) < 24) {
+        try {
+            $runtimeSecret = bin2hex(random_bytes(32));
+        } catch (\Throwable) {
+            $runtimeSecret = hash('sha256', uniqid('app-secret', true) . mt_rand());
+        }
+        @file_put_contents($runtimeSecretFile, $runtimeSecret);
+        @chmod($runtimeSecretFile, 0600);
+    }
+    $config['secret'] = $runtimeSecret;
+    $GLOBALS['config']['secret'] = $runtimeSecret;
 }
 
 // Prepare SQLite database (creates file/tables)

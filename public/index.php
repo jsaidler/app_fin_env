@@ -19,15 +19,8 @@ use App\Util\Response;
 use App\Util\Token;
 use App\Util\Logger;
 
-require __DIR__ . '/../src/bootstrap.php';
-// Backup diário (executa no primeiro acesso do dia)
-if (!empty($config['backup_email'])) {
-    try {
-        (new \App\Service\BackupService($config['paths']['data'], $config['backup_email']))->maybeSend();
-    } catch (\Throwable $e) {
-        // Ignora falha de backup para não bloquear requisições
-    }
-}
+$config = require __DIR__ . '/../config/config.php';
+$GLOBALS['config'] = $config;
 
 function denyPathTraversal(string $path): void
 {
@@ -62,6 +55,49 @@ function userRepoForFront(array $config)
         Response::json(['error' => 'Banco de dados indisponivel: ' . $e->getMessage()], 500);
     }
     return new SqliteUserRepository($pdo);
+}
+
+function resolveAuthenticatedUserId(array $config): int
+{
+    $token = $_COOKIE['auth_token'] ?? '';
+    if ($token === '') {
+        return 0;
+    }
+    $payload = Token::verify($token, $config['secret']);
+    if (!$payload || empty($payload['uid'])) {
+        return 0;
+    }
+    $uid = (int) $payload['uid'];
+    if ($uid <= 0) {
+        return 0;
+    }
+    $repo = userRepoForFront($config);
+    $user = $repo->findById($uid);
+    if (!$user) {
+        return 0;
+    }
+
+    $tokenVersion = isset($payload['tv']) ? (int) $payload['tv'] : -1;
+    if ($tokenVersion < 0 || $tokenVersion !== $user->tokenVersion) {
+        return 0;
+    }
+
+    if (!empty($payload['imp_by'])) {
+        $adminId = (int) $payload['imp_by'];
+        if ($adminId <= 0) {
+            return 0;
+        }
+        $admin = $repo->findById($adminId);
+        if (!$admin || $admin->role !== 'admin') {
+            return 0;
+        }
+        $adminTokenVersion = isset($payload['imp_tv']) ? (int) $payload['imp_tv'] : -1;
+        if ($adminTokenVersion < 0 || $adminTokenVersion !== $admin->tokenVersion) {
+            return 0;
+        }
+    }
+
+    return $uid;
 }
 
 function requireUploadAccess(string $relPath, array $config): void
@@ -100,14 +136,92 @@ function requireUploadAccess(string $relPath, array $config): void
     }
 }
 
+function setNoStoreHeaders(): void
+{
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
+function setStaticCacheHeaders(string $path): void
+{
+    global $config;
+    $env = strtolower((string)($config['env'] ?? 'dev'));
+    // Service worker/manifest must stay revalidating to propagate updates quickly.
+    if ($path === '/service-worker.js' || $path === '/manifest.json') {
+        header('Cache-Control: no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        return;
+    }
+
+    if ($env === 'dev') {
+        if (str_starts_with($path, '/assets/')) {
+            header('Cache-Control: public, max-age=600');
+            return;
+        }
+        header('Cache-Control: no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        return;
+    }
+
+    // Versioned frontend assets can be cached aggressively.
+    if (str_starts_with($path, '/assets/')) {
+        header('Cache-Control: public, max-age=31536000, immutable');
+        return;
+    }
+
+    // Default for static files outside /assets.
+    header('Cache-Control: public, max-age=3600');
+}
+
 $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
 $requestPath = rawurldecode($requestPath);
 denyPathTraversal($requestPath);
+$requestStartedAt = microtime(true);
+try {
+    $requestId = bin2hex(random_bytes(8));
+} catch (\Throwable $e) {
+    $requestId = str_replace('.', '', uniqid('', true));
+}
+$GLOBALS['request_id'] = $requestId;
+header('X-Request-Id: ' . $requestId);
+header('X-App-Env: ' . strtolower((string)($config['env'] ?? 'dev')));
+
+if (str_starts_with($requestPath, '/api/') && !empty($config['log_api_requests'])) {
+    register_shutdown_function(static function () use ($requestStartedAt, $requestPath): void {
+        $durationMs = (int)round((microtime(true) - $requestStartedAt) * 1000);
+        $status = (int)(http_response_code() ?: 200);
+        $level = $status >= 500 ? 'error' : (($status >= 400) ? 'warning' : 'info');
+        $message = 'api_request';
+        $lastError = error_get_last();
+        if (is_array($lastError) && in_array((int)$lastError['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+            $level = 'error';
+            $message = 'api_request_fatal';
+        }
+        Logger::$level($message, [
+            'request_id' => (string)($GLOBALS['request_id'] ?? ''),
+            'method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
+            'path' => $requestPath,
+            'status' => $status,
+            'duration_ms' => $durationMs,
+            'memory_peak_bytes' => memory_get_peak_usage(true),
+            'fatal' => $lastError,
+        ]);
+    });
+}
 
 // Security headers
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()');
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+if ($isHttps) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
 $csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 if ($requestPath === '/ui-kit' || $requestPath === '/ui-kit.html') {
     $csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
@@ -124,16 +238,51 @@ if ($origin !== '' && $host !== '' && parse_url($origin, PHP_URL_HOST) === $host
 }
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('Expires: 0');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
+}
+if (str_starts_with($requestPath, '/api/')) {
+    setNoStoreHeaders();
 }
 
 if (preg_match('#^/data(/|$)#', $requestPath)) {
     http_response_code(404);
     exit;
+}
+
+// Serve static assets first, without full app bootstrap.
+// In PHP dev server (single process), bootstrapping each .css/.js request serializes the waterfall.
+$staticFile = __DIR__ . $requestPath;
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && is_file($staticFile)) {
+    $ext = pathinfo($staticFile, PATHINFO_EXTENSION);
+    $mime = [
+        'css' => 'text/css',
+        'js' => 'application/javascript',
+        'json' => 'application/json',
+        'html' => 'text/html; charset=utf-8',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+        'svg' => 'image/svg+xml',
+        'ico' => 'image/x-icon',
+        'pdf' => 'application/pdf',
+    ][$ext] ?? 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    setStaticCacheHeaders($requestPath);
+    readfile($staticFile);
+    exit;
+}
+
+require __DIR__ . '/../src/bootstrap.php';
+$config = $GLOBALS['config'] ?? $config;
+// Backup diario (executa no primeiro acesso do dia)
+if (!empty($config['backup_email'])) {
+    try {
+        (new \App\Service\BackupService($config['paths']['data'], $config['backup_email']))->maybeSend();
+    } catch (\Throwable $e) {
+        // Ignora falha de backup para nao bloquear requisicoes
+    }
 }
 
 // Serve uploads armazenados em data/users/{id}/uploads
@@ -179,28 +328,6 @@ if (str_starts_with($requestPath, '/uploads/')) {
     http_response_code(404);
     exit;
 }
-// Serve static assets even se o servidor estiver com docroot fora de /public
-$staticFile = __DIR__ . $requestPath;
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && is_file($staticFile)) {
-    $ext = pathinfo($staticFile, PATHINFO_EXTENSION);
-    $mime = [
-        'css' => 'text/css',
-        'js' => 'application/javascript',
-        'json' => 'application/json',
-        'html' => 'text/html; charset=utf-8',
-        'png' => 'image/png',
-        'jpg' => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'webp' => 'image/webp',
-        'svg' => 'image/svg+xml',
-        'ico' => 'image/x-icon',
-        'pdf' => 'application/pdf',
-    ][$ext] ?? 'application/octet-stream';
-    header('Content-Type: ' . $mime);
-    readfile($staticFile);
-    exit;
-}
-
 $router = new Router();
 $router->add('POST', '/api/auth/login', [AuthController::class, 'login']);
 $router->add('POST', '/api/auth/logout', [AuthController::class, 'logout']);
@@ -239,6 +366,7 @@ $router->add('POST', '/api/tags', [FinancialAccountController::class, 'createTag
 $router->add('PUT', '/api/tags/{id}', [FinancialAccountController::class, 'updateTag']);
 $router->add('DELETE', '/api/tags/{id}', [FinancialAccountController::class, 'deleteTag']);
 $router->add('GET', '/api/reports/summary', [ReportController::class, 'summary']);
+$router->add('GET', '/api/reports/dashboard', [ReportController::class, 'dashboard']);
 $router->add('GET', '/api/reports/aggregate', [ReportController::class, 'aggregate']);
 $router->add('GET', '/api/reports/entries-groups', [ReportController::class, 'entriesGroups']);
 $router->add('GET', '/api/reports/closure', [ReportController::class, 'closure']);
@@ -285,29 +413,50 @@ $router->add('GET', '/api/admin/export/alterdata/history', [AdminController::cla
 $router->add('GET', '/api/admin/export/alterdata/config', [AdminController::class, 'getAlterdataExportConfig']);
 $router->add('PUT', '/api/admin/export/alterdata/config/{column}', [AdminController::class, 'updateAlterdataExportConfig']);
 $router->add('GET', '/', function () {
+    global $config;
+    if (resolveAuthenticatedUserId($config) > 0) {
+        header('Location: /dashboard', true, 302);
+        exit;
+    }
     header('Content-Type: text/html; charset=utf-8');
+    setNoStoreHeaders();
     readfile(__DIR__ . '/index.html');
     exit;
 });
 $router->add('GET', '/dashboard', function () {
     header('Content-Type: text/html; charset=utf-8');
+    setNoStoreHeaders();
     readfile(__DIR__ . '/dashboard.html');
     exit;
 });
 $router->add('GET', '/ui-kit', function () {
     header('Content-Type: text/html; charset=utf-8');
+    setNoStoreHeaders();
     readfile(__DIR__ . '/ui-kit.html');
     exit;
 });
 $router->add('GET', '/index.php', function () {
+    global $config;
+    if (resolveAuthenticatedUserId($config) > 0) {
+        header('Location: /dashboard', true, 302);
+        exit;
+    }
     header('Content-Type: text/html; charset=utf-8');
+    setNoStoreHeaders();
     readfile(__DIR__ . '/index.html');
     exit;
 });
 $router->add('GET', '/public/index.php', function () {
+    global $config;
+    if (resolveAuthenticatedUserId($config) > 0) {
+        header('Location: /dashboard', true, 302);
+        exit;
+    }
     header('Content-Type: text/html; charset=utf-8');
+    setNoStoreHeaders();
     readfile(__DIR__ . '/index.html');
     exit;
 });
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+

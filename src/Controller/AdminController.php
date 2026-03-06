@@ -59,7 +59,7 @@ class AdminController extends BaseController
         if (!$user) {
             Response::json(['error' => 'Usuario nao encontrado'], 404);
         }
-        $service = new UserCategoryService($this->categoryRepo(), new SqliteUserCategoryRepository($this->db()), $this->entryRepo());
+        $service = new UserCategoryService($this->categoryRepo(), new SqliteUserCategoryRepository($this->db()), $this->entryRepo(), $this->recurrenceRepo(), $this->accountRepo());
         Response::json($service->listMergedForUser($userId));
     }
 
@@ -75,7 +75,7 @@ class AdminController extends BaseController
             Response::json(['error' => 'Usuario nao encontrado'], 404);
         }
         $includeInactive = isset($_GET['include_inactive']) && (string)$_GET['include_inactive'] === '1';
-        $service = new UserAccountService($this->accountRepo(), $this->entryRepo());
+        $service = new UserAccountService($this->accountRepo(), $this->entryRepo(), new SqliteUserCategoryRepository($this->db()));
         Response::json($service->listForUser($userId, $includeInactive));
     }
 
@@ -90,7 +90,7 @@ class AdminController extends BaseController
         if (!$user) {
             Response::json(['error' => 'Usuario nao encontrado'], 404);
         }
-        $service = new RecurrenceService($this->recurrenceRepo(), $this->recurrenceRunRepo(), $this->entryRepo(), $this->accountRepo());
+        $service = new RecurrenceService($this->recurrenceRepo(), $this->recurrenceRunRepo(), $this->entryRepo(), $this->categoryRepo(), $this->accountRepo());
         Response::json($service->listForUser($userId));
     }
 
@@ -173,15 +173,14 @@ class AdminController extends BaseController
         }
         $pdo = $this->db();
 
-        $childStmt = $pdo->prepare('SELECT COUNT(*) FROM user_categories WHERE global_category_id = :id');
+        $childStmt = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE parent_category_id = :id AND owner_user_id IS NOT NULL AND lower(coalesce(account_class, "")) = "analytic"');
         $childStmt->execute(['id' => $id]);
         $childCount = (int)($childStmt->fetchColumn() ?: 0);
 
         $entryStmt = $pdo->prepare(
             'SELECT COUNT(*)
                FROM entries e
-               JOIN user_categories uc ON uc.user_id = e.user_id AND uc.name = e.category
-              WHERE uc.global_category_id = :id
+              WHERE e.category_id = :id
                 AND e.deleted_at IS NULL'
         );
         $entryStmt->execute(['id' => $id]);
@@ -190,14 +189,13 @@ class AdminController extends BaseController
         $recStmt = $pdo->prepare(
             'SELECT COUNT(*)
                FROM recurrences r
-               JOIN user_categories uc ON uc.user_id = r.user_id AND uc.name = r.category
-              WHERE uc.global_category_id = :id
+              WHERE r.category_id = :id
                 AND r.active = 1'
         );
         $recStmt->execute(['id' => $id]);
         $recurrencesCount = (int)($recStmt->fetchColumn() ?: 0);
 
-        $userStmt = $pdo->prepare('SELECT COUNT(DISTINCT user_id) FROM user_categories WHERE global_category_id = :id');
+        $userStmt = $pdo->prepare('SELECT COUNT(DISTINCT owner_user_id) FROM categories WHERE parent_category_id = :id AND owner_user_id IS NOT NULL AND lower(coalesce(account_class, "")) = "analytic"');
         $userStmt->execute(['id' => $id]);
         $usersCount = (int)($userStmt->fetchColumn() ?: 0);
 
@@ -225,7 +223,7 @@ class AdminController extends BaseController
             'needs_review' => isset($_GET['needs_review']) ? (int)$_GET['needs_review'] === 1 : null,
         ];
         $filters = array_filter($filters, fn($v) => $v !== null && $v !== '');
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->categoryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $data = $service->list($filters);
         Response::json($data);
     }
@@ -233,7 +231,7 @@ class AdminController extends BaseController
     public function createAdminEntry(): void
     {
         $adminId = $this->requireAdmin();
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->categoryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $input = $this->jsonInput();
         $input['admin_user_id'] = $adminId;
         $entry = $service->create($input);
@@ -244,7 +242,7 @@ class AdminController extends BaseController
     {
         $adminId = $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->categoryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $input = $this->jsonInput();
         $input['admin_user_id'] = $adminId;
         $entry = $service->update($id, $input);
@@ -255,7 +253,7 @@ class AdminController extends BaseController
     {
         $adminId = $this->requireAdmin();
         $id = (int)($params['id'] ?? 0);
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->categoryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $res = $service->delete($id, $adminId);
         Response::json($res);
     }
@@ -267,7 +265,7 @@ class AdminController extends BaseController
         if ($id <= 0) {
             Response::json(['error' => 'Lancamento invalido'], 422);
         }
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->categoryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $ok = $service->approve($id, $adminId);
         (new AdminNotificationService($this->db()))->markReadByEntry($id);
         Response::json(['approved' => $ok]);
@@ -280,7 +278,7 @@ class AdminController extends BaseController
         if ($id <= 0) {
             Response::json(['error' => 'Lancamento invalido'], 422);
         }
-        $service = new AdminEntryService($this->entryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
+        $service = new AdminEntryService($this->entryRepo(), $this->categoryRepo(), $this->userRepo(), $this->accountRepo(), $this->lockService(), $this->config['paths']['uploads'] ?? null);
         $entry = $service->reject($id, $adminId);
         (new AdminNotificationService($this->db()))->markReadByEntry($id);
         Response::json(['rejected' => true, 'entry' => $entry]);
@@ -524,7 +522,7 @@ class AdminController extends BaseController
         $accStmt->execute(['uid' => $id]);
         $accountsCount = (int)($accStmt->fetchColumn() ?: 0);
 
-        $catStmt = $pdo->prepare('SELECT COUNT(*) FROM user_categories WHERE user_id = :uid');
+        $catStmt = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE owner_user_id = :uid AND lower(coalesce(account_class, "")) = "analytic"');
         $catStmt->execute(['uid' => $id]);
         $categoriesCount = (int)($catStmt->fetchColumn() ?: 0);
 
@@ -560,6 +558,8 @@ class AdminController extends BaseController
             'uid' => $user->id,
             'role' => $user->role,
             'imp_by' => $adminId,
+            'tv' => (int)$user->tokenVersion,
+            'imp_tv' => (int)($this->userRepo()->findById($adminId)?->tokenVersion ?? 0),
         ], (string)$this->config['secret'], (int)$this->config['token_ttl']);
         $this->setAuthCookie($token);
 
@@ -590,6 +590,7 @@ class AdminController extends BaseController
         $token = Token::issue([
             'uid' => $admin->id,
             'role' => $admin->role,
+            'tv' => (int)$admin->tokenVersion,
         ], (string)$this->config['secret'], (int)$this->config['token_ttl']);
         $this->setAuthCookie($token);
 
@@ -672,17 +673,18 @@ class AdminController extends BaseController
         $stmtExport = $pdo->prepare(
             "SELECT e.user_id AS user_id, COUNT(*) AS qty
                FROM entries e
-          LEFT JOIN user_categories uc
-                 ON uc.user_id = e.user_id
-                AND lower(uc.name) = lower(e.category)
+          LEFT JOIN categories c_user
+                 ON c_user.owner_user_id = e.user_id
+                AND lower(coalesce(c_user.account_class, '')) = 'analytic'
+                AND lower(c_user.name) = lower(e.category)
           LEFT JOIN categories c_global
-                 ON c_global.id = uc.global_category_id
+                 ON c_global.id = c_user.parent_category_id
           LEFT JOIN categories c_direct
                  ON lower(c_direct.name) = lower(e.category)
               WHERE e.deleted_at IS NULL
                 AND e.needs_review = 0
                 AND e.user_id IN ($placeholders)
-                AND COALESCE(NULLIF(c_global.alterdata_auto, ''), NULLIF(c_direct.alterdata_auto, '')) IS NULL
+                AND COALESCE(NULLIF(c_global.alterdata_auto, ''), NULLIF(c_user.alterdata_auto, ''), NULLIF(c_direct.alterdata_auto, '')) IS NULL
               GROUP BY e.user_id"
         );
         $stmtExport->execute($ids);
@@ -788,22 +790,22 @@ class AdminController extends BaseController
         $refId = $attachmentRefId > 0 ? $attachmentRefId : 0;
 
         if ($type === 'audio' && $attachmentPath === '') {
-            Response::json(['error' => 'Anexo de áudio inválido'], 422);
+            Response::json(['error' => 'Anexo de Ã¡udio invÃ¡lido'], 422);
         }
         if (($type === 'file' || $type === 'screenshot') && $attachmentPath === '') {
-            Response::json(['error' => 'Anexo de arquivo inválido'], 422);
+            Response::json(['error' => 'Anexo de arquivo invÃ¡lido'], 422);
         }
         if (in_array($type, ['entry', 'category', 'category_global', 'account', 'recurrence'], true)) {
             if ($refType === '') {
                 $refType = $type;
             }
             if ($refId <= 0) {
-                Response::json(['error' => 'Referência inválida'], 422);
+                Response::json(['error' => 'ReferÃªncia invÃ¡lida'], 422);
             }
             $this->assertSupportReferenceOwnership($userId, $refType, $refId);
         } elseif ($refType !== '' || $refId > 0) {
             if ($refType === '' || $refId <= 0) {
-                Response::json(['error' => 'Referência inválida'], 422);
+                Response::json(['error' => 'ReferÃªncia invÃ¡lida'], 422);
             }
             $this->assertSupportReferenceOwnership($userId, $refType, $refId);
             if ($type === '') {
@@ -824,7 +826,7 @@ class AdminController extends BaseController
         $pdo = $this->db();
         $map = [
             'entry' => ['table' => 'entries', 'user_col' => 'user_id'],
-            'category' => ['table' => 'user_categories', 'user_col' => 'user_id'],
+            'category' => ['table' => 'categories', 'user_col' => 'owner_user_id'],
             'account' => ['table' => 'user_accounts', 'user_col' => 'user_id'],
             'recurrence' => ['table' => 'recurrences', 'user_col' => 'user_id'],
         ];
@@ -833,12 +835,31 @@ class AdminController extends BaseController
             $stmt->execute(['id' => $refId]);
             $exists = (int)($stmt->fetchColumn() ?: 0);
             if ($exists <= 0) {
-                Response::json(['error' => 'Referência inválida para este usuário'], 422);
+                Response::json(['error' => 'ReferÃªncia invÃ¡lida para este usuÃ¡rio'], 422);
             }
             return;
         }
         if (!isset($map[$refType])) {
-            Response::json(['error' => 'Referência inválida'], 422);
+            Response::json(['error' => 'ReferÃªncia invÃ¡lida'], 422);
+        }
+        if ($refType === 'category') {
+            $stmt = $pdo->prepare(
+                'SELECT id
+                   FROM categories
+                  WHERE id = :id
+                    AND owner_user_id = :uid
+                    AND lower(coalesce(account_class, "")) = "analytic"
+                  LIMIT 1'
+            );
+            $stmt->execute(['id' => $refId, 'uid' => $userId]);
+            $exists = (int)($stmt->fetchColumn() ?: 0);
+            if ($exists <= 0) {
+                Response::json(['error' => 'Referencia invalida para este usuario'], 422);
+            }
+            return;
+        }
+        if (!isset($map[$refType])) {
+            Response::json(['error' => 'Referencia invalida'], 422);
         }
         $table = $map[$refType]['table'];
         $userCol = $map[$refType]['user_col'];
@@ -846,7 +867,8 @@ class AdminController extends BaseController
         $stmt->execute(['id' => $refId, 'uid' => $userId]);
         $exists = (int)($stmt->fetchColumn() ?: 0);
         if ($exists <= 0) {
-            Response::json(['error' => 'Referência inválida para este usuário'], 422);
+            Response::json(['error' => 'ReferÃªncia invÃ¡lida para este usuÃ¡rio'], 422);
         }
     }
 }
+

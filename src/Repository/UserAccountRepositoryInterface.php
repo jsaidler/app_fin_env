@@ -14,7 +14,7 @@ interface UserAccountRepositoryInterface
 
     public function findByUserAndName(int $userId, string $name): ?UserAccount;
 
-    public function create(int $userId, string $name, string $type, string $icon, float $initialBalance = 0.0): UserAccount;
+    public function create(int $userId, string $name, string $type, string $icon, string $color, float $initialBalance = 0.0): UserAccount;
 
     public function updateForUser(int $id, int $userId, array $data): ?UserAccount;
 

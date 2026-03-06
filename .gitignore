@@ -1,4 +1,7 @@
 node_modules/
 playwright-report/
 test-results/
-
+tests/_runtime/
+data/*-throttle.json
+data/playwright-e2e*.sqlite
+data/app.log.*

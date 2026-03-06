@@ -10,6 +10,8 @@ class ReportService
 {
     private EntryRepositoryInterface $entries;
     private ?UserAccountRepositoryInterface $accounts;
+    /** @var array<string, array<int, object>> */
+    private array $entriesByUserCache = [];
 
     public function __construct(EntryRepositoryInterface $entries, ?UserAccountRepositoryInterface $accounts = null)
     {
@@ -19,7 +21,70 @@ class ReportService
 
     public function summary(int $userId): array
     {
-        $entries = $this->entries->listByUser($userId);
+        $entries = $this->entriesForUser($userId, false);
+        return $this->summaryFromEntries($entries);
+    }
+
+    public function dashboardSnapshot(int $userId, string $month, array $entriesGroupsFilters = []): array
+    {
+        $entries = $this->entriesForUser($userId, false);
+        return $this->dashboardSnapshotFromEntries($entries, $userId, $month, $entriesGroupsFilters);
+    }
+
+    /** @param array<int, object> $entries */
+    public function dashboardSnapshotFromEntries(array $entries, int $userId, string $month, array $entriesGroupsFilters = []): array
+    {
+        $monthKey = $this->normalizeMonthKey($month);
+        $monthBounds = $this->monthBounds($monthKey);
+        $previousMonth = (new \DateTimeImmutable($monthKey . '-01'))->modify('-1 month')->format('Y-m');
+        $prevBounds = $this->monthBounds($previousMonth);
+        [$monthEntries, $previousMonthEntries] = $this->splitEntriesByMonths($entries, $monthKey, $previousMonth);
+
+        $entriesGroups = $this->entriesGroupsReportFromEntries($entries, $entriesGroupsFilters);
+
+        return [
+            'month' => $monthKey,
+            'summary' => $this->summaryFromEntries($entries),
+            'month_aggregate' => $this->aggregateFromEntries($monthEntries, [
+                'start' => $monthBounds['start'],
+                'end' => $monthBounds['end'],
+                'type' => null,
+                'category' => null,
+            ], $userId, false),
+            'previous_month_aggregate' => $this->aggregateFromEntries($previousMonthEntries, [
+                'start' => $prevBounds['start'],
+                'end' => $prevBounds['end'],
+                'type' => null,
+                'category' => null,
+            ], $userId, false),
+            'entry_groups' => $entriesGroups,
+        ];
+    }
+
+    /**
+     * @param array<int, object> $entries
+     * @return array{0: array<int, object>, 1: array<int, object>}
+     */
+    private function splitEntriesByMonths(array $entries, string $month, string $previousMonth): array
+    {
+        $current = [];
+        $previous = [];
+        foreach ($entries as $entry) {
+            $entryMonth = substr((string)($entry->date ?? ''), 0, 7);
+            if ($entryMonth === $month) {
+                $current[] = $entry;
+                continue;
+            }
+            if ($entryMonth === $previousMonth) {
+                $previous[] = $entry;
+            }
+        }
+        return [$current, $previous];
+    }
+
+    /** @param array<int, object> $entries */
+    private function summaryFromEntries(array $entries): array
+    {
         $totalIn = 0;
         $totalOut = 0;
         $pendingIn = 0;
@@ -69,7 +134,7 @@ class ReportService
 
     public function monthClosure(int $userId, string $month): array
     {
-        $entries = $this->entries->listByUser($userId);
+        $entries = $this->entriesForUser($userId, false);
         $totalIn = 0;
         $totalOut = 0;
         $count = 0;
@@ -114,22 +179,194 @@ class ReportService
 
     public function aggregateReport(int $userId, array $filters): array
     {
-        $entries = $this->entries->listByUser($userId);
+        $entries = $this->entriesForUser($userId, false);
+        return $this->aggregateFromEntries($entries, $filters, $userId, true);
+    }
+
+    /** @param array<int, object> $entries */
+    private function aggregateFromEntries(array $entries, array $filters, int $userId, bool $includeLast12Months): array
+    {
         $filtered = $this->filterEntries($entries, $filters);
-        $visible = array_values(array_filter($filtered, fn($e) => empty($e->deletedAt)));
+        $result = $this->aggregateMetricsFromFilteredEntries($filtered, $userId);
+        if ($includeLast12Months) {
+            $result['last_12_months'] = $this->last12Months($entries);
+        }
+        return $result;
+    }
+
+    /**
+     * Aggregates all visible metrics in a single pass over filtered entries.
+     *
+     * @param array<int, object> $filtered
+     * @return array<string, mixed>
+     */
+    private function aggregateMetricsFromFilteredEntries(array $filtered, int $userId): array
+    {
+        $totalsIn = 0.0;
+        $totalsOut = 0.0;
+        $totalsCount = 0;
+        $pendingIn = 0.0;
+        $pendingOut = 0.0;
+        $pendingCount = 0;
+        $daily = [];
+        $categories = [];
+        $accountsMap = [];
+        $canonicalNoAccount = 'Sem conta/cartao';
+
+        if ($userId > 0 && $this->accounts) {
+            foreach ($this->accounts->listByUser($userId, false) as $account) {
+                $accountId = (int)($account->id ?? 0);
+                if ($accountId <= 0) {
+                    continue;
+                }
+                $name = trim((string)($account->name ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+                $key = 'id:' . $accountId;
+                $accountsMap[$key] = [
+                    'id' => $accountId,
+                    'name' => $name,
+                    'type' => (string)($account->type ?? 'bank'),
+                    'in' => 0.0,
+                    'out' => 0.0,
+                    'initial_balance' => (float)($account->initialBalance ?? 0.0),
+                ];
+            }
+        }
+
+        foreach ($filtered as $entry) {
+            if (!empty($entry->needsReview)) {
+                $pendingCount += 1;
+                if ($entry->type === 'in') {
+                    $pendingIn += (float)$entry->amount;
+                } else {
+                    $pendingOut += (float)$entry->amount;
+                }
+            }
+
+            if (!empty($entry->deletedAt)) {
+                continue;
+            }
+
+            $amount = $this->effectiveAmount($entry);
+            if ($entry->type === 'in') {
+                $totalsIn += $amount;
+            } else {
+                $totalsOut += $amount;
+            }
+            $totalsCount += 1;
+
+            $day = (string)$entry->date;
+            if (!isset($daily[$day])) {
+                $daily[$day] = ['label' => $day, 'in' => 0.0, 'out' => 0.0, 'total' => 0.0];
+            }
+            if ($entry->type === 'in') {
+                $daily[$day]['in'] += $amount;
+            } else {
+                $daily[$day]['out'] += $amount;
+            }
+            $daily[$day]['total'] = $daily[$day]['in'] - $daily[$day]['out'];
+
+            $categoryId = (int)($entry->categoryId ?? 0);
+            $categoryName = trim((string)($entry->category ?? ''));
+            $categoryName = $categoryName !== '' ? $categoryName : 'Sem categoria';
+            $categoryKey = $categoryId > 0
+                ? ('id:' . $categoryId)
+                : ('name:' . $this->lower($categoryName));
+            if (!isset($categories[$categoryKey])) {
+                $categories[$categoryKey] = [
+                    'id' => $categoryId,
+                    'name' => $categoryName,
+                    'in' => 0.0,
+                    'out' => 0.0,
+                ];
+            }
+            if ($entry->type === 'in') {
+                $categories[$categoryKey]['in'] += $amount;
+            } else {
+                $categories[$categoryKey]['out'] += $amount;
+            }
+
+            $accountId = (int)($entry->accountId ?? 0);
+            $accountName = trim((string)($entry->accountName ?? ''));
+            if ($accountId <= 0) {
+                $accountName = $canonicalNoAccount;
+                $accountId = 0;
+            } elseif ($accountName === '') {
+                $accountName = 'Conta #' . $accountId;
+            }
+            $accountKey = $accountId > 0
+                ? ('id:' . $accountId)
+                : ('name:' . strtolower($accountName));
+            if (!isset($accountsMap[$accountKey])) {
+                $accountsMap[$accountKey] = [
+                    'id' => $accountId,
+                    'name' => $accountName,
+                    'type' => (string)($entry->accountType ?? 'bank'),
+                    'in' => 0.0,
+                    'out' => 0.0,
+                    'initial_balance' => 0.0,
+                ];
+            }
+            if ($entry->type === 'in') {
+                $accountsMap[$accountKey]['in'] += $amount;
+            } else {
+                $accountsMap[$accountKey]['out'] += $amount;
+            }
+        }
+
+        ksort($daily);
+        $byDay = array_values($daily);
+
+        $byCategory = array_values($categories);
+        $categoryTotalFlow = 0.0;
+        foreach ($byCategory as $item) {
+            $categoryTotalFlow += (float)$item['in'] + (float)$item['out'];
+        }
+        usort($byCategory, fn($a, $b) => (($b['in'] + $b['out']) <=> ($a['in'] + $a['out'])));
+        foreach ($byCategory as &$item) {
+            $share = $categoryTotalFlow ? ((((float)$item['in'] + (float)$item['out']) / $categoryTotalFlow) * 100) : 0;
+            $item['share'] = (int)round($share);
+            $item['balance'] = (float)$item['in'] - (float)$item['out'];
+        }
+        unset($item);
+
+        $byAccount = array_values($accountsMap);
+        $accountTotalFlow = 0.0;
+        foreach ($byAccount as $item) {
+            $accountTotalFlow += (float)$item['in'] + (float)$item['out'];
+        }
+        usort($byAccount, fn($a, $b) => (($b['in'] + $b['out']) <=> ($a['in'] + $a['out'])));
+        foreach ($byAccount as &$item) {
+            $share = $accountTotalFlow ? ((((float)$item['in'] + (float)$item['out']) / $accountTotalFlow) * 100) : 0;
+            $item['share'] = (int)round($share);
+            $item['balance'] = (float)$item['in'] - (float)$item['out'];
+        }
+        unset($item);
+
         return [
-            'totals' => $this->totals($visible),
-            'pending' => $this->pendingTotals($filtered),
-            'by_day' => $this->dailySeries($visible),
-            'by_category' => $this->categorySummary($visible),
-            'by_account' => $this->accountSummary($visible, $userId),
-            'last_12_months' => $this->last12Months($entries),
+            'totals' => [
+                'in' => $totalsIn,
+                'out' => $totalsOut,
+                'balance' => $totalsIn - $totalsOut,
+                'count' => $totalsCount,
+            ],
+            'pending' => [
+                'in' => $pendingIn,
+                'out' => $pendingOut,
+                'balance' => $pendingIn - $pendingOut,
+                'count' => $pendingCount,
+            ],
+            'by_day' => $byDay,
+            'by_category' => $byCategory,
+            'by_account' => $byAccount,
         ];
     }
 
     public function aggregateEntriesView(int $userId, array $filters): array
     {
-        $entries = $this->entries->listByUser($userId);
+        $entries = $this->entriesForUser($userId, false);
         $filtered = $this->filterEntries($entries, $filters);
         $visible = array_values(array_filter($filtered, fn($e) => empty($e->deletedAt)));
         return [
@@ -142,9 +379,17 @@ class ReportService
     public function entriesGroupsReport(int $userId, array $filters): array
     {
         $typeFilter = trim((string)($filters['type'] ?? ''));
+        $deletedOnly = $typeFilter === 'deleted' || !empty($filters['deleted_only']);
+        $entries = $this->entriesForUser($userId, $deletedOnly);
+        return $this->entriesGroupsReportFromEntries($entries, $filters);
+    }
+
+    /** @param array<int, object> $entries */
+    private function entriesGroupsReportFromEntries(array $entries, array $filters): array
+    {
+        $typeFilter = trim((string)($filters['type'] ?? ''));
         $pendingOnly = $typeFilter === 'pending';
         $deletedOnly = $typeFilter === 'deleted' || !empty($filters['deleted_only']);
-        $entries = $this->entries->listByUser($userId, $deletedOnly);
         if ($deletedOnly) {
             $entries = array_values(array_filter($entries, fn($e) => !empty($e->deletedAt)));
         }
@@ -160,8 +405,8 @@ class ReportService
                 : array_values(array_filter($entries, fn($e) => empty($e->deletedAt))));
 
         $groupedFiltered = $this->groupedByYearMonth($groupEntriesFiltered);
-        $groupedAllTotals = $this->groupedByYearMonth($groupEntriesAll);
-        $grouped = $this->mergeGroupTotals($groupedFiltered, $groupedAllTotals);
+        $groupedAllTotalsIndex = $this->groupedTotalsIndex($groupEntriesAll);
+        $grouped = $this->mergeGroupTotals($groupedFiltered, $groupedAllTotalsIndex);
 
         return [
             'totals' => $this->totals($groupEntriesAll),
@@ -174,19 +419,12 @@ class ReportService
      * Keeps filtered entries structure, but replaces year/month/day totals with period base totals.
      *
      * @param array<int, array<string, mixed>> $filtered
-     * @param array<int, array<string, mixed>> $base
+     * @param array<string, mixed> $baseIndex
      * @return array<int, array<string, mixed>>
      */
-    private function mergeGroupTotals(array $filtered, array $base): array
+    private function mergeGroupTotals(array $filtered, array $baseIndex): array
     {
-        $baseYears = [];
-        foreach ($base as $yearNode) {
-            $yearKey = (string)($yearNode['year'] ?? '');
-            if ($yearKey === '') {
-                continue;
-            }
-            $baseYears[$yearKey] = $yearNode;
-        }
+        $baseYears = is_array($baseIndex['years'] ?? null) ? $baseIndex['years'] : [];
 
         return array_map(function ($yearNode) use ($baseYears) {
             $yearKey = (string)($yearNode['year'] ?? '');
@@ -195,15 +433,7 @@ class ReportService
                 $yearNode['totals'] = $baseYear['totals'];
             }
 
-            $baseMonths = [];
-            if (is_array($baseYear) && !empty($baseYear['months']) && is_array($baseYear['months'])) {
-                foreach ($baseYear['months'] as $monthNode) {
-                    $monthKey = (string)($monthNode['month'] ?? '');
-                    if ($monthKey !== '') {
-                        $baseMonths[$monthKey] = $monthNode;
-                    }
-                }
-            }
+            $baseMonths = is_array($baseYear['months'] ?? null) ? $baseYear['months'] : [];
 
             $yearNode['months'] = array_map(function ($monthNode) use ($baseMonths) {
                 $monthKey = (string)($monthNode['month'] ?? '');
@@ -212,15 +442,7 @@ class ReportService
                     $monthNode['totals'] = $baseMonth['totals'];
                 }
 
-                $baseDays = [];
-                if (is_array($baseMonth) && !empty($baseMonth['days']) && is_array($baseMonth['days'])) {
-                    foreach ($baseMonth['days'] as $dayNode) {
-                        $dayKey = (string)($dayNode['date'] ?? '');
-                        if ($dayKey !== '') {
-                            $baseDays[$dayKey] = $dayNode;
-                        }
-                    }
-                }
+                $baseDays = is_array($baseMonth['days'] ?? null) ? $baseMonth['days'] : [];
 
                 $monthNode['days'] = array_map(function ($dayNode) use ($baseDays) {
                     $dayKey = (string)($dayNode['date'] ?? '');
@@ -238,10 +460,65 @@ class ReportService
         }, $filtered);
     }
 
+    /**
+     * Builds a compact totals index by year/month/day in one pass, without carrying entry arrays.
+     *
+     * @param array<int, object> $entries
+     * @return array<string, mixed>
+     */
+    private function groupedTotalsIndex(array $entries): array
+    {
+        $years = [];
+        foreach ($entries as $entry) {
+            $date = (string)($entry->date ?? '');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                continue;
+            }
+            $yearKey = substr($date, 0, 4);
+            $monthKey = substr($date, 0, 7);
+            $dayKey = $date;
+
+            if (!isset($years[$yearKey])) {
+                $years[$yearKey] = [
+                    'totals' => ['in' => 0.0, 'out' => 0.0, 'balance' => 0.0, 'count' => 0],
+                    'months' => [],
+                ];
+            }
+            $this->accumulateEntryTotals($years[$yearKey]['totals'], $entry);
+
+            if (!isset($years[$yearKey]['months'][$monthKey])) {
+                $years[$yearKey]['months'][$monthKey] = [
+                    'totals' => ['in' => 0.0, 'out' => 0.0, 'balance' => 0.0, 'count' => 0],
+                    'days' => [],
+                ];
+            }
+            $this->accumulateEntryTotals($years[$yearKey]['months'][$monthKey]['totals'], $entry);
+
+            if (!isset($years[$yearKey]['months'][$monthKey]['days'][$dayKey])) {
+                $years[$yearKey]['months'][$monthKey]['days'][$dayKey] = [
+                    'totals' => ['in' => 0.0, 'out' => 0.0, 'balance' => 0.0, 'count' => 0],
+                ];
+            }
+            $this->accumulateEntryTotals($years[$yearKey]['months'][$monthKey]['days'][$dayKey]['totals'], $entry);
+        }
+
+        return ['years' => $years];
+    }
+
     public function filterEntriesForUser(int $userId, array $filters): array
     {
-        $entries = $this->entries->listByUser($userId);
+        $entries = $this->entriesForUser($userId, false);
         return $this->filterEntries($entries, $filters);
+    }
+
+    /** @return array<int, object> */
+    private function entriesForUser(int $userId, bool $includeDeleted): array
+    {
+        $key = $userId . ':' . ($includeDeleted ? '1' : '0');
+        if (!array_key_exists($key, $this->entriesByUserCache)) {
+            $this->entriesByUserCache[$key] = $this->entries->listByUser($userId, $includeDeleted);
+        }
+        return $this->entriesByUserCache[$key];
     }
 
     /** @param array<int, object> $entries */
@@ -297,6 +574,10 @@ class ReportService
         if (array_key_exists('account_id', $filters) && $filters['account_id'] !== null && $filters['account_id'] !== '') {
             $accountIdFilter = (int)$filters['account_id'];
         }
+        $categoryIdFilter = null;
+        if (array_key_exists('category_id', $filters) && $filters['category_id'] !== null && $filters['category_id'] !== '') {
+            $categoryIdFilter = (int)$filters['category_id'];
+        }
         $noAccountFilter = false;
         if (!empty($filters['no_account'])) {
             $rawNoAccount = strtolower(trim((string)$filters['no_account']));
@@ -307,7 +588,7 @@ class ReportService
         }
         [$start, $end] = $this->normalizeRange($filters);
 
-        return array_values(array_filter($entries, function ($e) use ($type, $pendingOnly, $categories, $query, $accountIdFilter, $noAccountFilter, $start, $end, $includeDeleted, $deletedOnly) {
+        return array_values(array_filter($entries, function ($e) use ($type, $pendingOnly, $categories, $query, $accountIdFilter, $categoryIdFilter, $noAccountFilter, $start, $end, $includeDeleted, $deletedOnly) {
             if (!$includeDeleted && !$deletedOnly && !empty($e->deletedAt)) {
                 return false;
             }
@@ -322,6 +603,10 @@ class ReportService
             }
             $entryCategory = trim((string)($e->category ?? ''));
             if ($categories && !in_array($this->lower($entryCategory), $categories, true)) {
+                return false;
+            }
+            $entryCategoryId = (int)($e->categoryId ?? 0);
+            if ($categoryIdFilter !== null && $categoryIdFilter > 0 && $entryCategoryId !== $categoryIdFilter) {
                 return false;
             }
             $entryAccountId = (int)($e->accountId ?? 0);
@@ -348,13 +633,15 @@ class ReportService
     /** @param array<int, object> $entries */
     private function groupedByYearMonth(array $entries): array
     {
-        usort($entries, function ($a, $b) {
-            $byDate = strcmp((string)$b->date, (string)$a->date);
-            if ($byDate !== 0) {
-                return $byDate;
-            }
-            return strcmp((string)($b->updatedAt ?? $b->createdAt ?? ''), (string)($a->updatedAt ?? $a->createdAt ?? ''));
-        });
+        if (!$this->isEntriesSortedDesc($entries)) {
+            usort($entries, function ($a, $b) {
+                $byDate = strcmp((string)$b->date, (string)$a->date);
+                if ($byDate !== 0) {
+                    return $byDate;
+                }
+                return strcmp((string)($b->updatedAt ?? $b->createdAt ?? ''), (string)($a->updatedAt ?? $a->createdAt ?? ''));
+            });
+        }
 
         $years = [];
 
@@ -422,6 +709,28 @@ class ReportService
         }, $years));
 
         return $result;
+    }
+
+    /** @param array<int, object> $entries */
+    private function isEntriesSortedDesc(array $entries): bool
+    {
+        $prevDate = null;
+        $prevTs = null;
+        foreach ($entries as $entry) {
+            $date = (string)($entry->date ?? '');
+            $ts = (string)($entry->updatedAt ?? $entry->createdAt ?? '');
+            if ($prevDate !== null) {
+                if ($prevDate < $date) {
+                    return false;
+                }
+                if ($prevDate === $date && $prevTs < $ts) {
+                    return false;
+                }
+            }
+            $prevDate = $date;
+            $prevTs = $ts;
+        }
+        return true;
     }
 
     private function accumulateEntryTotals(array &$totals, object $entry): void
@@ -653,7 +962,6 @@ class ReportService
             $totalAll += $item['in'] + $item['out'];
         }
         usort($items, fn($a, $b) => ($b['in'] + $b['out']) <=> ($a['in'] + $a['out']));
-        $items = array_slice($items, 0, 6);
         foreach ($items as &$item) {
             $share = $totalAll ? (($item['in'] + $item['out']) / $totalAll) * 100 : 0;
             $item['share'] = (int)round($share);
@@ -679,7 +987,7 @@ class ReportService
                 if ($name === '') {
                     continue;
                 }
-                $key = $accountId . ':' . strtolower($name);
+                $key = 'id:' . $accountId;
                 $map[$key] = [
                     'id' => $accountId,
                     'name' => $name,
@@ -700,7 +1008,9 @@ class ReportService
             } elseif ($name === '') {
                 $name = 'Conta #' . $accountId;
             }
-            $key = ($accountId > 0 ? $accountId . ':' : 'name:') . strtolower($name);
+            $key = $accountId > 0
+                ? ('id:' . $accountId)
+                : ('name:' . strtolower($name));
             if (!isset($map[$key])) {
                 $map[$key] = [
                     'id' => $accountId,
@@ -727,7 +1037,7 @@ class ReportService
         foreach ($items as &$item) {
             $share = $totalAll ? ((((float)$item['in'] + (float)$item['out']) / $totalAll) * 100) : 0;
             $item['share'] = (int)round($share);
-            $item['balance'] = (float)($item['initial_balance'] ?? 0.0) + (float)$item['in'] - (float)$item['out'];
+            $item['balance'] = (float)$item['in'] - (float)$item['out'];
         }
         unset($item);
         return $items;
@@ -795,6 +1105,28 @@ class ReportService
             return (float)$entry->amount;
         }
         return (float)$entry->amount;
+    }
+
+    private function normalizeMonthKey(string $month): string
+    {
+        $value = trim($month);
+        if (preg_match('/^\d{4}-\d{2}$/', $value)) {
+            return $value;
+        }
+        return (new \DateTimeImmutable('first day of this month'))->format('Y-m');
+    }
+
+    /** @return array{start:string,end:string} */
+    private function monthBounds(string $monthKey): array
+    {
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d', $monthKey . '-01');
+        if (!$date) {
+            $date = new \DateTimeImmutable('first day of this month');
+        }
+        return [
+            'start' => $date->format('Y-m-d'),
+            'end' => $date->modify('last day of this month')->format('Y-m-d'),
+        ];
     }
 }
 

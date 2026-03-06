@@ -123,6 +123,7 @@ final class PasswordResetService
                 $this->pdo->rollBack();
                 return false;
             }
+            $this->users->incrementTokenVersion($uid);
 
             $consume = $this->pdo->prepare('UPDATE password_resets SET used_at = :used WHERE id = :id AND used_at IS NULL');
             $consume->execute([
@@ -189,4 +190,3 @@ final class PasswordResetService
         usleep(random_int(120000, 240000));
     }
 }
-
